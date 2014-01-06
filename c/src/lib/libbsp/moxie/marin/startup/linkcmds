@@ -25,7 +25,6 @@ HeapSize = DEFINED(HeapSize) ? HeapSize : 0x0;
 
 SECTIONS
 {
-  
   . = 0x1000;
   .qemu_marin_boot :
   {
