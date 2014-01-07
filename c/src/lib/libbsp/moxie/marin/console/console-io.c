@@ -1,6 +1,6 @@
 /*
  *  This file contains the hardware specific portions of the TTY driver
- *  for the Moxie GDB simulator.
+ *  for the Moxie Marin board.
  *
  *  COPYRIGHT (c) 2011.
  *  Anthony Green.
@@ -36,13 +36,26 @@ void console_initialize_hardware(void)
  *
  *  This routine transmits a character using polling.
  */
-ssize_t _sys_write(int fd, const void *buf, size_t count);
+#define MARIN_UART_BASE    0xF0000008
+#define MARIN_UART_RXRDY   (MARIN_UART_BASE + 0)
+#define MARIN_UART_TXRDY   (MARIN_UART_BASE + 2)
+#define MARIN_UART_RXDATA  (MARIN_UART_BASE + 4)
+#define MARIN_UART_TXDATA  (MARIN_UART_BASE + 6)
+
 void console_outbyte_polled(
   int  port,
   char ch
 )
 {
-  _sys_write( 1, &ch, 1 );
+  volatile unsigned short *pUartTxReady = 
+    (volatile unsigned short *) MARIN_UART_TXRDY;
+  volatile unsigned short *pUartTxData = 
+    (volatile unsigned short *) MARIN_UART_TXDATA;
+
+
+  while (*pUartTxReady != 1) ;
+
+  *pUartTxData = ch;
 }
 
 /*
@@ -55,12 +68,23 @@ int console_inbyte_nonblocking(
   int port
 )
 {
-  return -1;
+  volatile unsigned short *pUartRxReady = 
+    (volatile unsigned short *) MARIN_UART_RXRDY;
+  volatile unsigned short *pUartRxData = 
+    (volatile unsigned short *) MARIN_UART_RXDATA;
+
+
+  if (*pUartRxReady == 1) {
+    return *pUartRxData;
+  } else {
+    return -1;
+  }
 }
 
 #include <rtems/bspIo.h>
 
-void moxiesim_output_char(char c) { console_outbyte_polled( 0, c ); }
+void marin_output_char(char c) { console_outbyte_polled( 0, c ); }
+void marin_input_char(char c) { console_inbyte_nonblocking( 0 ); }
 
-BSP_output_char_function_type           BSP_output_char = moxiesim_output_char;
-BSP_polling_getchar_function_type       BSP_poll_char = NULL;
+BSP_output_char_function_type           BSP_output_char = marin_output_char;
+BSP_polling_getchar_function_type       BSP_poll_char = marin_input_char;
