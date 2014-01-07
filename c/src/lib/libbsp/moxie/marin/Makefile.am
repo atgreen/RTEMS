@@ -38,8 +38,7 @@ libbsp_a_SOURCES += ../../shared/bspclean.c ../../shared/bsplibc.c \
 # clock
 libbsp_a_SOURCES += ../../shared/clock_driver_simidle.c
 # console
-libbsp_a_SOURCES += ../../shared/console-polled.c console/console-io.c \
-   console/syscalls.S
+libbsp_a_SOURCES += ../../shared/console-polled.c console/console-io.c
 # timer
 libbsp_a_SOURCES += ../../shared/timerstub.c
 

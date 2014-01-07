@@ -2,6 +2,8 @@
 AC_DEFUN([RTEMS_CHECK_BSPDIR],
 [
   case "$1" in
+  marin )
+    AC_CONFIG_SUBDIRS([marin]);;
   moxiesim )
     AC_CONFIG_SUBDIRS([moxiesim]);;
   *)
