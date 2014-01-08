@@ -25,6 +25,13 @@ HeapSize = DEFINED(HeapSize) ? HeapSize : 0x0;
 
 SECTIONS
 {
+  
+  . = 0x1000;
+  .qemu_marin_boot :
+  {
+    *(.qemu_marin_boot)
+  }
+
   /* Read-only sections, merged into text segment: */
   . = 0x30000000;
   .interp     : { *(.interp) 	}
