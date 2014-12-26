@@ -165,6 +165,35 @@ fat_file_reopen(fat_file_fd_t *fat_fd)
     return RC_OK;
 }
 
+int
+fat_file_update(fat_fs_info_t *fs_info, fat_file_fd_t *fat_fd)
+{
+    int ret_rc = RC_OK;
+
+    /*
+     * if fat-file descriptor is not marked as "removed", synchronize
+     * size, first cluster number, write time and date fields of the file
+     */
+    if (!FAT_FILE_IS_REMOVED(fat_fd) && FAT_FILE_HAS_META_DATA_CHANGED(fat_fd))
+    {
+        int rc;
+
+        rc = fat_file_write_first_cluster_num(fs_info, fat_fd);
+        if (rc != RC_OK)
+            ret_rc = rc;
+
+        rc = fat_file_write_file_size(fs_info, fat_fd);
+        if (rc != RC_OK)
+            ret_rc = rc;
+
+        rc = fat_file_write_time_and_date(fs_info, fat_fd);
+        if (rc != RC_OK)
+            ret_rc = rc;
+    }
+
+    return ret_rc;
+}
+
 /* fat_file_close --
  *     Close fat-file. If count of links to fat-file
  *     descriptor is greater than 1 (i.e. somebody esle holds pointer
@@ -203,6 +232,8 @@ fat_file_close(
     else
     {
         uint32_t key = fat_construct_key(fs_info, &fat_fd->dir_pos.sname);
+
+        fat_file_update(fs_info, fat_fd);
 
         if (fat_fd->flags & FAT_FILE_REMOVED)
         {
@@ -643,8 +674,9 @@ fat_file_extend(
         /* add new chain to the end of existing */
         if ( fat_fd->fat_file_size == 0 )
         {
-            fat_fd->map.disk_cln = fat_fd->cln = chain;
+            fat_fd->map.disk_cln = chain;
             fat_fd->map.file_cln = 0;
+            fat_file_set_first_cluster_num(fat_fd, chain);
         }
         else
         {
@@ -687,7 +719,7 @@ fat_file_extend(
     }
 
     *a_length = new_length;
-    fat_fd->fat_file_size = new_length;
+    fat_file_set_file_size(fat_fd, new_length);
 
     return RC_OK;
 }

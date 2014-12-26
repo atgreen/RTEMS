@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -23,8 +23,58 @@
 #include <pthread.h>
 #include <errno.h>
 
-#include <rtems/system.h>
 #include <rtems/posix/rwlockimpl.h>
+#include <rtems/score/apimutex.h>
+
+static bool _POSIX_RWLock_Check_id_and_auto_init(
+  pthread_mutex_t   *rwlock,
+  Objects_Locations *location
+)
+{
+  if ( rwlock == NULL ) {
+    *location = OBJECTS_ERROR;
+
+    return false;
+  }
+
+  if ( *rwlock == PTHREAD_RWLOCK_INITIALIZER ) {
+    int eno;
+
+    _Once_Lock();
+
+    if ( *rwlock == PTHREAD_RWLOCK_INITIALIZER ) {
+      eno = pthread_rwlock_init( rwlock, NULL );
+    } else {
+      eno = 0;
+    }
+
+    _Once_Unlock();
+
+    if ( eno != 0 ) {
+      *location = OBJECTS_ERROR;
+
+      return false;
+    }
+  }
+
+  return true;
+}
+
+POSIX_RWLock_Control *_POSIX_RWLock_Get(
+  pthread_rwlock_t  *rwlock,
+  Objects_Locations *location
+)
+{
+  if ( !_POSIX_RWLock_Check_id_and_auto_init( rwlock, location ) ) {
+    return NULL;
+  }
+
+  return (POSIX_RWLock_Control *) _Objects_Get(
+    &_POSIX_RWLock_Information,
+    *rwlock,
+    location
+  );
+}
 
 /*
  *  pthread_rwlock_init
@@ -88,15 +138,10 @@ int pthread_rwlock_init(
    */
   _CORE_RWLock_Initialize_attributes( &the_attributes );
 
-  /*
-   * Enter dispatching critical section to allocate and initialize RWLock
-   */
-  _Thread_Disable_dispatch();             /* prevents deletion */
-
   the_rwlock = _POSIX_RWLock_Allocate();
 
   if ( !the_rwlock ) {
-    _Thread_Enable_dispatch();
+    _Objects_Allocator_unlock();
     return EAGAIN;
   }
 
@@ -110,6 +155,6 @@ int pthread_rwlock_init(
 
   *rwlock = the_rwlock->Object.id;
 
-  _Thread_Enable_dispatch();
+  _Objects_Allocator_unlock();
   return 0;
 }

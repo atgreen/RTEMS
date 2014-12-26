@@ -7,7 +7,7 @@
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
  *
- * http://www.rtems.com/license/LICENSE
+ * http://www.rtems.org/license/LICENSE
  */
 
 #include <bsp.h>
@@ -32,7 +32,7 @@
 
 /* from NDS support library */
 extern void consolePrintChar(char c);
-void
+static void
 nds_putch (char c)
 {
 #ifdef TESTSUITE
@@ -43,13 +43,15 @@ nds_putch (char c)
 
 static volatile char ch = 0;
 
+void console_push (char c); /* used in touchscreen.c */
+
 void
 console_push (char c)
 {
   ch = c;
 }
 
-int
+static int
 nds_getch (void)
 {
   char c;

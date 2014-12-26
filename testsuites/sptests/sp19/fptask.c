@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,11 +41,7 @@ rtems_task FP_task(
     INTEGER_factors[ task_index ]
   );
   put_name( Task_name[ task_index ], FALSE );
-  #if ( RTEMS_HAS_HARDWARE_FP == 1 )
-    printf( " - float base = (%g)\n", FP_factors[ task_index ] );
-  #else
-    printf( " - float base = (NA)\n" );
-  #endif
+  printf( " - float base = (%g)\n", FP_factors[ task_index ] );
 
   previous_seconds = (uint32_t)-1;
 
@@ -64,7 +60,7 @@ rtems_task FP_task(
       status = rtems_task_delete( Task_id[ 3 ] );
       directive_failed( status, "rtems_task_delete of TA3" );
 
-      puts( "*** END OF TEST 19 *** " );
+      TEST_END();
       rtems_test_exit( 0 );
     }
 

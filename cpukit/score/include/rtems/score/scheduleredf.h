@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_SCHEDULEREDF_H
@@ -45,16 +45,16 @@ extern "C" {
     _Scheduler_EDF_Yield,            /* yield entry point */ \
     _Scheduler_EDF_Block,            /* block entry point */ \
     _Scheduler_EDF_Unblock,          /* unblock entry point */ \
-    _Scheduler_EDF_Allocate,         /* allocate entry point */ \
-    _Scheduler_EDF_Free,             /* free entry point */ \
-    _Scheduler_EDF_Update,           /* update entry point */ \
-    _Scheduler_EDF_Enqueue,          /* enqueue entry point */ \
-    _Scheduler_EDF_Enqueue_first,    /* enqueue_first entry point */ \
-    _Scheduler_EDF_Extract,          /* extract entry point */ \
+    _Scheduler_EDF_Change_priority,  /* change priority entry point */ \
+    SCHEDULER_OPERATION_DEFAULT_ASK_FOR_HELP \
+    _Scheduler_EDF_Node_initialize,  /* node initialize entry point */ \
+    _Scheduler_default_Node_destroy, /* node destroy entry point */ \
+    _Scheduler_EDF_Update_priority,  /* update priority entry point */ \
     _Scheduler_EDF_Priority_compare, /* compares two priorities */ \
     _Scheduler_EDF_Release_job,      /* new period of task */ \
     _Scheduler_default_Tick,         /* tick entry point */ \
     _Scheduler_default_Start_idle    /* start idle entry point */ \
+    SCHEDULER_OPERATION_DEFAULT_GET_SET_AFFINITY \
   }
 
 /**
@@ -65,6 +65,18 @@ extern "C" {
  * tasks.
  */
 #define SCHEDULER_EDF_PRIO_MSB 0x80000000
+
+typedef struct {
+  /**
+   * @brief Basic scheduler context.
+   */
+  Scheduler_Context Base;
+
+  /**
+   * Top of the ready queue.
+   */
+  RBTree_Control Ready;
+} Scheduler_EDF_Context;
 
 /**
  * @typedef Scheduler_EDF_Queue_state
@@ -79,9 +91,14 @@ typedef enum {
 } Scheduler_EDF_Queue_state;
 
 /**
- * This structure handles EDF specific data of a thread.
+ * @brief Scheduler node specialization for EDF schedulers.
  */
 typedef struct {
+  /**
+   * @brief Basic scheduler node.
+   */
+  Scheduler_Node Base;
+
   /**
    * Pointer to corresponding Thread Control Block.
    */
@@ -94,19 +111,14 @@ typedef struct {
    * State of the thread with respect to ready queue.
    */
   Scheduler_EDF_Queue_state queue_state;
-} Scheduler_EDF_Per_thread;
-
-/**
- * Top of the ready queue.
- */
-extern RBTree_Control _Scheduler_EDF_Ready_queue;
+} Scheduler_EDF_Node;
 
 /**
  * @brief Initialize EDF scheduler.
  *
  * This routine initializes the EDF scheduler.
  */
-void _Scheduler_EDF_Initialize( void );
+void _Scheduler_EDF_Initialize( const Scheduler_Control *scheduler );
 
 /**
  *  @brief Removes thread from ready queue.
@@ -119,7 +131,8 @@ void _Scheduler_EDF_Initialize( void );
  *  @param[in] the_thread is the thread to be blocked.
  */
 void _Scheduler_EDF_Block(
-  Thread_Control    *the_thread
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
 );
 
 /**
@@ -129,30 +142,17 @@ void _Scheduler_EDF_Block(
  *  This kernel routine sets the heir thread to be the next ready thread
  *  in the rbtree ready queue.
  */
-void _Scheduler_EDF_Schedule( Thread_Control *thread );
-
-/**
- *  @brief Allocates EDF specific information of @a the_thread.
- *
- *  This routine allocates EDF specific information of @a the_thread.
- *
- *  @param[in] the_thread is the thread the scheduler is allocating
- *             management memory for.
- */
-void *_Scheduler_EDF_Allocate(
-  Thread_Control      *the_thread
+void _Scheduler_EDF_Schedule(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
 );
 
 /**
- *  @brief Frees EDF information of a thread.
- *
- *  This routine frees the EDF specific information of @a the_thread.
- *
- *  @param[in] the_thread is the thread whose scheduler specific information
- *             will be deallocated.
+ *  @brief Initializes an EDF specific scheduler node of @a the_thread.
  */
-void _Scheduler_EDF_Free(
-  Thread_Control      *the_thread
+void _Scheduler_EDF_Node_initialize(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
 );
 
 /**
@@ -163,8 +163,10 @@ void _Scheduler_EDF_Free(
  *  @param[in] the_thread will have its scheduler specific information
  *             structure updated.
  */
-void _Scheduler_EDF_Update(
-  Thread_Control      *the_thread
+void _Scheduler_EDF_Update_priority(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread,
+  Priority_Control         new_priority
 );
 
 /**
@@ -176,8 +178,16 @@ void _Scheduler_EDF_Update(
  *
  *  @param[in] the_thread will be unblocked.
  */
-void _Scheduler_EDF_Unblock(
-  Thread_Control    *the_thread
+Scheduler_Void_or_thread _Scheduler_EDF_Unblock(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
+);
+
+Scheduler_Void_or_thread _Scheduler_EDF_Change_priority(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread,
+  Priority_Control         new_priority,
+  bool                     prepend_it
 );
 
 /**
@@ -195,42 +205,9 @@ void _Scheduler_EDF_Unblock(
  *
  *  @param[in,out] thread The yielding thread.
  */
-void _Scheduler_EDF_Yield( Thread_Control *thread );
-
-/**
- *  @brief Put @a the_thread to the rbtree ready queue.
- *
- *  This routine puts @a the_thread to the rbtree ready queue.
- *
- *  @param[in] the_thread will be enqueued to the ready queue.
- */
-void _Scheduler_EDF_Enqueue(
-  Thread_Control    *the_thread
-);
-
-/**
- *  @brief Enqueue a thread to the ready queue.
- *
- *  This routine puts @a the_thread to the rbtree ready queue.
- *  For the EDF scheduler this is the same as @a _Scheduler_EDF_Enqueue.
- *
- *  @param[in] the_thread will be enqueued to the ready queue.
- */
-void _Scheduler_EDF_Enqueue_first(
-  Thread_Control    *the_thread
-);
-
-/**
- *  @brief Remove a specific thread from the scheduler's set
- *  of ready threads.
- *
- *  This routine removes a specific thread from the scheduler's set
- *  of ready threads.
- *
- *  @param[in] the_thread will be extracted from the ready set.
- */
-void _Scheduler_EDF_Extract(
-  Thread_Control     *the_thread
+Scheduler_Void_or_thread _Scheduler_EDF_Yield(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
 );
 
 /**
@@ -259,8 +236,9 @@ int _Scheduler_EDF_Priority_compare (
  *             has to be suspended.
  */
 void _Scheduler_EDF_Release_job (
-  Thread_Control  *the_thread,
-  uint32_t         deadline
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread,
+  uint32_t                 deadline
 );
 
 #ifdef __cplusplus

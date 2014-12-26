@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -14,6 +14,8 @@
 #include <tmacros.h>
 
 #include <rtems/score/objectimpl.h>
+
+const char rtems_test_name[] = "SP 41";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -31,7 +33,7 @@ rtems_task Init(
 {
   void *tmp;
 
-  puts( "\n\n*** TEST 41 ***" );
+  TEST_BEGIN();
 
   puts( "Init - overwrite internal value to trip case" );
   tmp = _Objects_Information_table[ OBJECTS_CLASSIC_API ][ 1 ];
@@ -41,7 +43,7 @@ rtems_task Init(
   rtems_iterate_over_all_threads(iterator);
   _Objects_Information_table[ OBJECTS_CLASSIC_API ][ 1 ] = tmp;
 
-  puts( "*** END OF TEST 41 ***" );
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -51,6 +53,8 @@ rtems_task Init(
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 
 #define CONFIGURE_MAXIMUM_TASKS         1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

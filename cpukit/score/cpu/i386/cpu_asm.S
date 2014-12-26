@@ -8,7 +8,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -26,13 +26,12 @@
  * Format of i386 Register structure
  */
 
-.set REG_EFLAGS,  0
-.set REG_ESP,     REG_EFLAGS + 4
-.set REG_EBP,     REG_ESP + 4
-.set REG_EBX,     REG_EBP + 4
-.set REG_ESI,     REG_EBX + 4
-.set REG_EDI,     REG_ESI + 4
-.set SIZE_REGS,   REG_EDI + 4
+.set REG_EFLAGS,  I386_CONTEXT_CONTROL_EFLAGS_OFFSET
+.set REG_ESP,     I386_CONTEXT_CONTROL_ESP_OFFSET
+.set REG_EBP,     I386_CONTEXT_CONTROL_EBP_OFFSET
+.set REG_EBX,     I386_CONTEXT_CONTROL_EBX_OFFSET
+.set REG_ESI,     I386_CONTEXT_CONTROL_ESI_OFFSET
+.set REG_EDI,     I386_CONTEXT_CONTROL_EDI_OFFSET
 
         BEGIN_CODE
 
@@ -58,7 +57,23 @@ SYM (_CPU_Context_switch):
         movl      esi,REG_ESI(eax)         /* save source register */
         movl      edi,REG_EDI(eax)         /* save destination register */
 
+#ifdef RTEMS_SMP
+        /* The executing context no longer executes on this processor */
+        movb      $0, I386_CONTEXT_CONTROL_IS_EXECUTING_OFFSET(eax)
+#endif
+
         movl      HEIRCONTEXT_ARG(esp),eax /* eax = heir threads context */
+
+#ifdef RTEMS_SMP
+        /* Wait for heir context to stop execution */
+1:
+        movb      I386_CONTEXT_CONTROL_IS_EXECUTING_OFFSET(eax), bl
+        testb     bl, bl
+        jne       1b
+
+        /* The heir context executes now on this processor */
+        movb      $1, I386_CONTEXT_CONTROL_IS_EXECUTING_OFFSET(eax)
+#endif
 
 restore:
         pushl     REG_EFLAGS(eax)          /* push eflags */
@@ -310,6 +325,49 @@ SYM (i386_Physical_to_logical):
         movl    ADDRESS_ARG(esp),ecx   /* ecx = address to convert */
         subl    eax,ecx                /* ecx = logical address equivalent */
         movl    ecx,eax                /* eax = ecx */
+        ret
+
+/*
+ *  int i386_Physical_to_real(
+ *     void     *address,
+ *     uint16_t *segment,
+ *     uint16_t *offset
+ *  );
+ *
+ *  Fills segment:offest real mode pointer counted from thirty-two bit physical
+ *  address.
+ *  Returns 0 if inconvertible, 1 if successfuly converted.
+ */
+
+.set PHYS_PTR_ARG,   4
+.set RM_PTR_SEG_ARG, 8
+.set RM_PTR_OFF_ARG, 12
+
+       PUBLIC (i386_Physical_to_real)
+
+SYM (i386_Physical_to_real):
+        movl    PHYS_PTR_ARG(esp),eax
+        cmpl    $0x10FFF0, eax
+        js      1f
+        movl    $0, eax
+        ret
+1:  	cmpl    $0x100000, eax
+        js      2f
+        subl    $0xFFFF0, eax
+        movl    RM_PTR_OFF_ARG(esp), ecx
+        movw    ax, (ecx)
+        movl    RM_PTR_SEG_ARG(esp), ecx
+        movw    $0xFFFF, (ecx)
+        movl    $1, eax
+        ret
+2: 	movl    eax, edx
+        and     $0xF, ax
+        movl    RM_PTR_OFF_ARG(esp), ecx
+        movw    ax, (ecx)
+        shrl    $4, edx
+        movl    RM_PTR_SEG_ARG(esp), ecx
+        movw    dx, (ecx)
+        movl    $1, eax
         ret
 
 END_CODE

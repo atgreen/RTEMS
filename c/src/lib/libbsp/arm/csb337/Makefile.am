@@ -56,6 +56,8 @@ libbsp_a_SOURCES = ../../shared/bsplibc.c ../../shared/bsppost.c \
     ../../shared/bspclean.c startup/bspreset.c \
     startup/memmap.c ../../shared/bootcard.c ../../shared/sbrk.c \
     ../../shared/gnatinstallhandler.c
+libbsp_a_SOURCES += ../../shared/cpucounterread.c
+libbsp_a_SOURCES += ../../shared/cpucounterdiff.c
 # console
 libbsp_a_SOURCES += ../../shared/console.c console/uarts.c \
     ../../shared/console_select.c  ../../shared/console_control.c \
@@ -83,6 +85,11 @@ endif
 if ENABLE_UMON_CONSOLE
 libbsp_a_SOURCES += ../../shared/umon/umoncons.c
 endif
+
+# Cache
+libbsp_a_SOURCES += ../../../libcpu/shared/src/cache_manager.c
+libbsp_a_SOURCES += ../../shared/include/cache_.h
+libbsp_a_CPPFLAGS = -I$(srcdir)/../../shared/include
 
 if HAS_NETWORKING
 network_CPPFLAGS = -D__INSIDE_RTEMS_BSD_TCPIP_STACK__

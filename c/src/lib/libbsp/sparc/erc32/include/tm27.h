@@ -5,11 +5,12 @@
  */
 
 /*
- *  tm27.h
+ *  COPYRIGHT (c) 2006.
+ *  Aeroflex Gaisler AB.
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_TMTEST27

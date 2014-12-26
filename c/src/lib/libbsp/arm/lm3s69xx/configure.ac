@@ -6,7 +6,7 @@
 #
 
 AC_PREREQ([2.69])
-AC_INIT([rtems-c-src-lib-libbsp-arm-lm3s69xx],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-c-src-lib-libbsp-arm-lm3s69xx],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([bsp_specs])
 RTEMS_TOP(../../../../../..)
 
@@ -20,10 +20,6 @@ RTEMS_PROG_CCAS
 
 RTEMS_CHECK_NETWORKING
 AM_CONDITIONAL(HAS_NETWORKING,test "$HAS_NETWORKING" = "yes")
-
-RTEMS_BSPOPTS_SET([BSP_SMALL_MEMORY],[*_qemu],[])
-RTEMS_BSPOPTS_SET([BSP_SMALL_MEMORY],[*],[1])
-RTEMS_BSPOPTS_HELP([BSP_SMALL_MEMORY],[disable testsuite samples with high memory demands])
 
 RTEMS_BSPOPTS_SET([LM3S69XX_SYSTEM_CLOCK],[lm3s*],[50000000U])
 RTEMS_BSPOPTS_SET([LM3S69XX_SYSTEM_CLOCK],[lm4f*],[80000000U])

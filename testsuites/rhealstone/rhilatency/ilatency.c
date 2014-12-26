@@ -15,7 +15,8 @@
 
 #define CONFIGURE_INIT
 #include <timesys.h>
-#include <rtems/timerdrv.h>
+#include <rtems/btimer.h>
+#include <rtems/score/schedulerpriorityimpl.h>
 #include <coverhd.h>
 
 /* configuration information */
@@ -32,6 +33,8 @@
 
 #define _RTEMS_TMTEST27
 #include <tm27.h>
+
+const char rtems_test_name[] = "RHILATENCY";
 
 #define BENCHMARKS 50000
 
@@ -56,9 +59,12 @@ rtems_task Init(
 
   Print_Warning();
 
-  puts( "*** START OF RHILATENCY ***" );
+  TEST_BEGIN();
 
-  if (_Scheduler.Operations.initialize != _Scheduler_priority_Initialize) {
+  if (
+    _Scheduler_Table[ 0 ].Operations.initialize
+      != _Scheduler_priority_Initialize
+  ) {
     puts( "  Error ==> " );
     puts( "Test only supported for deterministic priority scheduler\n" );
     rtems_test_exit( 0 );
@@ -93,7 +99,6 @@ rtems_task Task_1(
 {
   Install_tm27_vector( Isr_handler ) ;
   Interrupt_nest = 0;
-  _Thread_Dispatch_set_disable_level( 0 );
 
   /* Benchmark code */
   benchmark_timer_initialize();
@@ -108,7 +113,7 @@ rtems_task Task_1(
     0
   );
 
-  puts( "*** END OF RHILATENCY ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 

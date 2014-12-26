@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <string.h>
@@ -14,6 +14,7 @@
 #include <bsp.h>
 #include <rtems/bspIo.h>
 #include <libcpu/spr.h>
+#include <libcpu/powerpc-utility.h>
 
 void printBAT( int bat, uint32_t upper, uint32_t lower )
 {

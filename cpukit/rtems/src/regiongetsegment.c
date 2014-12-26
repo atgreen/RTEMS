@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -47,7 +47,7 @@ rtems_status_code rtems_region_get_segment(
 
   _RTEMS_Lock_allocator();
 
-    executing  = _Thread_Executing;
+    executing  = _Thread_Get_executing();
     the_region = _Region_Get( id, &location );
     switch ( location ) {
 
@@ -110,5 +110,6 @@ rtems_status_code rtems_region_get_segment(
     }
 
   _RTEMS_Unlock_allocator();
+
   return return_status;
 }

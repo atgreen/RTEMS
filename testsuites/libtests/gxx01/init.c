@@ -4,16 +4,19 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#include <errno.h>
 #include <tmacros.h>
 #include "test_support.h"
 #include <rtems/gxx_wrappers.h>
+
+const char rtems_test_name[] = "GXX 1";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -127,7 +130,6 @@ void test_key(void)
   int              sc;
   __gthread_key_t  key;
   void            *p;
-  __gthread_key    key_obj;
 
   puts( "rtems_gxx_key_create(&key, NULL) - OK" );
   sc = rtems_gxx_key_create(&key, NULL);
@@ -141,7 +143,11 @@ void test_key(void)
   sc = rtems_gxx_key_create(&key, key_dtor);
   rtems_test_assert( sc == 0 );
 
-  puts( "rtems_gxx_setspecific() - OK" );
+  puts( "rtems_gxx_getspecific(key) not set - OK" );
+  p = rtems_gxx_getspecific(key);
+  rtems_test_assert( p == NULL );
+
+  puts( "rtems_gxx_setspecific(key, 0x1234) - OK" );
   sc = rtems_gxx_setspecific(key, (void *)0x1234);
   rtems_test_assert( sc == 0 );
 
@@ -152,7 +158,8 @@ void test_key(void)
   puts( "rtems_gxx_key_delete(key) - OK" );
   sc = rtems_gxx_key_delete(key);
   rtems_test_assert( sc == 0 );
-  rtems_test_assert( key_dtor_ran == true );
+  /* pthread_key man-page: the dtor should _not_ be called */
+  rtems_test_assert( key_dtor_ran != true );
 
   key = calloc( 1, sizeof( *key ) );
   rtems_test_assert( key != NULL );
@@ -161,22 +168,28 @@ void test_key(void)
   p = rtems_gxx_getspecific( key );
   rtems_test_assert( p == NULL );
 
-  puts( "rtems_gxx_key_delete(key) - OK" );
+  puts( "rtems_gxx_key_delete(key) - NOT OK" );
   sc = rtems_gxx_key_delete( key );
-  rtems_test_assert( sc == 0 );
+  rtems_test_assert( sc != 0 );
 
-  memset( &key_obj, 0xff, sizeof( key_obj ) );
-  puts( "rtems_gxx_key_dtor(&key_obj) - OK" );
-  sc = rtems_gxx_key_dtor( &key_obj, key_dtor );
-  rtems_test_assert( sc == 0 );
-  rtems_test_assert( key_obj.val == 0 );
+  puts( "rtems_gxx_setspecific(NULL, 0x1234) - NOT OK" );
+  sc = rtems_gxx_setspecific( NULL, (void *)0x1234 );
+  rtems_test_assert( sc == EINVAL );
+
+  puts( "rtems_gxx_getspecific(NULL) - OK" );
+  p = rtems_gxx_getspecific( NULL );
+  rtems_test_assert( p == NULL );
+
+  puts( "rtems_gxx_key_delete(NULL) - NOT OK" );
+  sc = rtems_gxx_key_delete( NULL );
+  rtems_test_assert( sc == EINVAL );
 }
 
 rtems_task Init(
   rtems_task_argument argument
 )
 {
-  puts( "\n\n*** TEST GXX 01 ***" );
+  TEST_BEGIN();
 
   test_mutex();
   puts( "" );
@@ -190,7 +203,7 @@ rtems_task Init(
   test_key();
   puts( "" );
 
-  puts( "*** END OF TEST GXX 01 ***" );
+  TEST_END();
 
   rtems_test_exit( 0 );
 }
@@ -200,8 +213,13 @@ rtems_task Init(
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 
+#define CONFIGURE_MAXIMUM_POSIX_KEYS            1
+#define CONFIGURE_MAXIMUM_POSIX_KEY_VALUE_PAIRS 1
+
 #define CONFIGURE_MAXIMUM_TASKS        1
 #define CONFIGURE_MAXIMUM_SEMAPHORES   2
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

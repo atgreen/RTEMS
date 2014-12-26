@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  Modifications of respective RTEMS file:
  *  Copyright (c) 1998, National Research Council of Canada
@@ -21,10 +21,6 @@
 
 #ifndef _BSP_H
 #define _BSP_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
@@ -36,6 +32,10 @@ extern "C" {
 #include <rtems/bspIo.h>
 
 #include <mvme16x_hw.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* GCSR is in mvme16x_hw.h */
 /* LCSR is in mvme16x_hw.h */

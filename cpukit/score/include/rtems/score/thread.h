@@ -8,12 +8,14 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2009.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
+ *
+ *  Copyright (c) 2014 embedded brains GmbH.
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_THREAD_H
@@ -26,10 +28,19 @@
 #include <rtems/score/object.h>
 #include <rtems/score/percpu.h>
 #include <rtems/score/priority.h>
+#include <rtems/score/resource.h>
 #include <rtems/score/stack.h>
 #include <rtems/score/states.h>
 #include <rtems/score/threadq.h>
 #include <rtems/score/watchdog.h>
+
+#if defined(RTEMS_SMP)
+  #include <rtems/score/cpuset.h>
+#endif
+
+struct Scheduler_Control;
+
+struct Scheduler_Node;
 
 #ifdef __cplusplus
 extern "C" {
@@ -162,6 +173,7 @@ typedef enum {
  */
 typedef void (*Thread_CPU_budget_algorithm_callout )( Thread_Control * );
 
+#if !defined(RTEMS_SMP)
 /**
  *  @brief Forward reference to the per task variable structure..
  *
@@ -188,6 +200,7 @@ typedef struct {
   /** This field points to the destructor for this per task variable. */
   void                          (*dtor)(void *);
 } rtems_task_variable_t;
+#endif
 
 /**
  *  The following structure contains the information which defines
@@ -229,6 +242,8 @@ typedef struct {
   #endif
   /** This field is the initial stack area address. */
   void                                *stack;
+  /** The thread-local storage (TLS) area */
+  void                                *tls_area;
 } Thread_Start_information;
 
 /**
@@ -271,10 +286,6 @@ typedef struct {
    */
   uint32_t              return_code;
 
-  /** This field is the chain header for the second through Nth tasks
-   *  of the same priority blocked waiting on the same object.
-   */
-  Chain_Control         Block2n;
   /** This field points to the thread queue on which this thread is blocked. */
   Thread_queue_Control *queue;
 }   Thread_Wait_information;
@@ -289,6 +300,8 @@ typedef struct {
 typedef struct {
   /** This field is the object management structure for each proxy. */
   Objects_Control          Object;
+  /** This field is used to enqueue the thread on RBTrees. */
+  RBTree_Node              RBNode;
   /** This field is the current execution state of this proxy. */
   States_Control           current_state;
   /** This field is the current priority state of this proxy. */
@@ -331,12 +344,208 @@ typedef enum {
 /** This macro defines the last API which has threads. */
 #define THREAD_API_LAST  THREAD_API_POSIX
 
+typedef struct Thread_Action Thread_Action;
+
+/**
+ * @brief Thread action handler.
+ *
+ * The thread action handler will be called with interrupts disabled and the
+ * thread action lock acquired.  The handler must release the thread action
+ * lock with _Thread_Action_release_and_ISR_enable().  So the thread action
+ * lock can be used to protect private data fields of the particular action.
+ *
+ * Since the action is passed to the handler private data fields can be added
+ * below the common thread action fields.
+ *
+ * @param[in] thread The thread performing the action.
+ * @param[in] action The thread action.
+ * @param[in] cpu The processor of the thread.
+ * @param[in] level The ISR level for _Thread_Action_release_and_ISR_enable().
+ */
+typedef void ( *Thread_Action_handler )(
+  Thread_Control  *thread,
+  Thread_Action   *action,
+  Per_CPU_Control *cpu,
+  ISR_Level        level
+);
+
+/**
+ * @brief Thread action.
+ *
+ * Thread actions can be chained together to trigger a set of actions on
+ * particular events like for example a thread post-switch.  Use
+ * _Thread_Action_initialize() to initialize this structure.
+ *
+ * Thread actions are the building block for efficient implementation of
+ * - Classic signals delivery,
+ * - POSIX signals delivery,
+ * - thread restart notification,
+ * - thread delete notification,
+ * - forced thread migration on SMP configurations, and
+ * - the Multiprocessor Resource Sharing Protocol (MrsP).
+ *
+ * @see _Thread_Run_post_switch_actions().
+ */
+struct Thread_Action {
+  Chain_Node            Node;
+  Thread_Action_handler handler;
+};
+
+/**
+ * @brief Control block to manage thread actions.
+ *
+ * Use _Thread_Action_control_initialize() to initialize this structure.
+ */
+typedef struct {
+  Chain_Control Chain;
+} Thread_Action_control;
+
+/**
+ * @brief Thread life states.
+ *
+ * The thread life states are orthogonal to the thread states used for
+ * synchronization primitives and blocking operations.  They reflect the state
+ * changes triggered with thread restart and delete requests.
+ */
+typedef enum {
+  THREAD_LIFE_NORMAL = 0x0,
+  THREAD_LIFE_PROTECTED = 0x1,
+  THREAD_LIFE_RESTARTING = 0x2,
+  THREAD_LIFE_PROTECTED_RESTARTING = 0x3,
+  THREAD_LIFE_TERMINATING = 0x4,
+  THREAD_LIFE_PROTECTED_TERMINATING = 0x5,
+  THREAD_LIFE_RESTARTING_TERMINATING = 0x6,
+  THREAD_LIFE_PROTECTED_RESTARTING_TERMINATING = 0x7
+} Thread_Life_state;
+
+/**
+ * @brief Thread life control.
+ */
+typedef struct {
+  /**
+   * @brief Thread life action used to react upon thread restart and delete
+   * requests.
+   */
+  Thread_Action      Action;
+
+  /**
+   * @brief The current thread life state.
+   */
+  Thread_Life_state  state;
+
+  /**
+   * @brief The terminator thread of this thread.
+   *
+   * In case the thread is terminated and another thread (the terminator) waits
+   * for the actual termination completion, then this field references the
+   * terminator thread.
+   */
+  Thread_Control    *terminator;
+} Thread_Life_control;
+
+#if defined(RTEMS_SMP)
+/**
+ * @brief The thread state with respect to the scheduler.
+ */
+typedef enum {
+  /**
+   * @brief This thread is blocked with respect to the scheduler.
+   *
+   * This thread uses no scheduler nodes.
+   */
+  THREAD_SCHEDULER_BLOCKED,
+
+  /**
+   * @brief This thread is scheduled with respect to the scheduler.
+   *
+   * This thread executes using one of its scheduler nodes.  This could be its
+   * own scheduler node or in case it owns resources taking part in the
+   * scheduler helping protocol a scheduler node of another thread.
+   */
+  THREAD_SCHEDULER_SCHEDULED,
+
+  /**
+   * @brief This thread is ready with respect to the scheduler.
+   *
+   * None of the scheduler nodes of this thread is scheduled.
+   */
+  THREAD_SCHEDULER_READY
+} Thread_Scheduler_state;
+#endif
+
+/**
+ * @brief Thread scheduler control.
+ */
+typedef struct {
+#if defined(RTEMS_SMP)
+  /**
+   * @brief The current scheduler state of this thread.
+   */
+  Thread_Scheduler_state state;
+
+  /**
+   * @brief The own scheduler control of this thread.
+   *
+   * This field is constant after initialization.
+   */
+  const struct Scheduler_Control *own_control;
+
+  /**
+   * @brief The scheduler control of this thread.
+   *
+   * The scheduler helping protocol may change this field.
+   */
+  const struct Scheduler_Control *control;
+
+  /**
+   * @brief The own scheduler node of this thread.
+   *
+   * This field is constant after initialization.  It is used by change
+   * priority and ask for help operations.
+   */
+  struct Scheduler_Node *own_node;
+#endif
+
+  /**
+   * @brief The scheduler node of this thread.
+   *
+   * On uni-processor configurations this field is constant after
+   * initialization.
+   *
+   * On SMP configurations the scheduler helping protocol may change this
+   * field.
+   */
+  struct Scheduler_Node *node;
+
+#if defined(RTEMS_SMP)
+  /**
+   * @brief The processor assigned by the current scheduler.
+   */
+  Per_CPU_Control *cpu;
+
+#if defined(RTEMS_DEBUG)
+  /**
+   * @brief The processor on which this thread executed the last time or is
+   * executing.
+   */
+  Per_CPU_Control *debug_real_cpu;
+#endif
+#endif
+} Thread_Scheduler_control;
+
+typedef struct  {
+  uint32_t      flags;
+  void *        control;
+}Thread_Capture_control;
+
 /**
  *  This structure defines the Thread Control Block (TCB).
  */
 struct Thread_Control_struct {
   /** This field is the object management structure for each thread. */
   Objects_Control          Object;
+  /** This field is used to enqueue the thread on RBTrees. */
+  RBTree_Node              RBNode;
   /** This field is the current execution state of this thread. */
   States_Control           current_state;
   /** This field is the current priority state of this thread. */
@@ -359,6 +568,13 @@ struct Thread_Control_struct {
    */
   Chain_Control            lock_mutex;
 #endif
+#if defined(RTEMS_SMP)
+  /**
+   * @brief Resource node to build a dependency tree in case this thread owns
+   * resources or depends on a resource.
+   */
+  Resource_Node            Resource_node;
+#endif
      /*================= end of common block =================*/
 #if defined(RTEMS_MULTIPROCESSING)
   /** This field is true if the thread is offered globally */
@@ -366,45 +582,12 @@ struct Thread_Control_struct {
 #endif
   /** This field is true if the thread is preemptible. */
   bool                                  is_preemptible;
-#if defined(RTEMS_SMP)
-  /**
-   * @brief This field is true if the thread is scheduled.
-   *
-   * A thread is scheduled if it is ready and the scheduler allocated a
-   * processor for it.  A scheduled thread is assigned to exactly one
-   * processor.  There are exactly processor count scheduled threads in the
-   * system.
-   */
-  bool                                  is_scheduled;
 
   /**
-   * @brief This field is true if the thread is in the air.
-   *
-   * A thread is in the air if it has an allocated processor (it is an
-   * executing or heir thread on exactly one processor) and it is not a member
-   * of the scheduled chain.  The extract operation on a scheduled thread will
-   * produce threads in the air (see also _Thread_Set_transient()).  The next
-   * enqueue or schedule operation will decide what to do based on this state
-   * indication.  It can either place the thread back on the scheduled chain
-   * and the thread can keep its allocated processor, or it can take the
-   * processor away from the thread and give the processor to another thread of
-   * higher priority.
+   * @brief Scheduler related control.
    */
-  bool                                  is_in_the_air;
+  Thread_Scheduler_control              Scheduler;
 
-  /**
-   * @brief This field is true if the thread is executing.
-   *
-   * A thread is executing if it executes on a processor.  An executing thread
-   * executes on exactly one processor.  There are exactly processor count
-   * executing threads in the system.  An executing thread may have a heir
-   * thread and thread dispatching is necessary.  On SMP a thread dispatch on a
-   * remote processor needs help from an inter-processor interrupt, thus it
-   * will take some time to complete the state change.  A lot of things can
-   * happen in the meantime.
-   */
-  bool                                  is_executing;
-#endif
 #if __RTEMS_ADA__
   /** This field is the GNAT self context pointer. */
   void                                 *rtems_ada_self;
@@ -426,17 +609,13 @@ struct Thread_Control_struct {
    */
   Thread_CPU_usage_t                    cpu_time_used;
 
-  /** This pointer holds per-thread data for the scheduler and ready queue. */
-  void                                 *scheduler_info;
-
-#ifdef RTEMS_SMP
-  Per_CPU_Control                      *cpu;
-#endif
-
   /** This field contains information about the starting state of
    *  this thread.
    */
   Thread_Start_information              Start;
+
+  Thread_Action_control                 Post_switch_actions;
+
   /** This field contains the context of this thread. */
   Context_Control                       Registers;
 #if ( CPU_HARDWARE_FP == TRUE ) || ( CPU_SOFTWARE_FP == TRUE )
@@ -449,10 +628,36 @@ struct Thread_Control_struct {
   struct _reent                        *libc_reent;
   /** This array contains the API extension area pointers. */
   void                                 *API_Extensions[ THREAD_API_LAST + 1 ];
-  /** This field points to the user extension pointers. */
-  void                                **extensions;
+
+#if !defined(RTEMS_SMP)
   /** This field points to the set of per task variables. */
   rtems_task_variable_t                *task_variables;
+#endif
+
+  /**
+   * This is the thread key value chain's control, which is used
+   * to track all key value for specific thread, and when thread
+   * exits, we can remove all key value for specific thread by
+   * iterating this chain, or we have to search a whole rbtree,
+   * which is inefficient.
+   */
+  Chain_Control           Key_Chain;
+
+  /**
+   * @brief Thread life-cycle control.
+   *
+   * Control state changes triggered by thread restart and delete requests.
+   */
+  Thread_Life_control                   Life;
+
+  Thread_Capture_control                Capture;
+
+  /**
+   * @brief Variable length array of user extension pointers.
+   *
+   * The length is defined by the application via <rtems/confdefs.h>.
+   */
+  void                                 *extensions[ RTEMS_ZERO_LENGTH_ARRAY ];
 };
 
 #if (CPU_PROVIDES_IDLE_THREAD_BODY == FALSE)
@@ -506,6 +711,57 @@ RTEMS_INLINE_ROUTINE Thread_Control *_Thread_Get_executing( void )
 
   return executing;
 }
+
+/**
+ * @brief Thread control add-on.
+ */
+typedef struct {
+  /**
+   * @brief Offset of the pointer field in Thread_Control referencing an
+   * application configuration dependent memory area in the thread control
+   * block.
+   */
+  size_t destination_offset;
+
+  /**
+   * @brief Offset relative to the thread control block begin to an application
+   * configuration dependent memory area.
+   */
+  size_t source_offset;
+} Thread_Control_add_on;
+
+/**
+ * @brief Thread control add-ons.
+ *
+ * The thread control block contains fields that point to application
+ * configuration dependent memory areas, like the scheduler information, the
+ * API control blocks, the user extension context table, the RTEMS notepads and
+ * the Newlib re-entrancy support.  Account for these areas in the
+ * configuration and avoid extra workspace allocations for these areas.
+ *
+ * This array is provided via <rtems/confdefs.h>.
+ *
+ * @see _Thread_Control_add_on_count and _Thread_Control_size.
+ */
+extern const Thread_Control_add_on _Thread_Control_add_ons[];
+
+/**
+ * @brief Thread control add-on count.
+ *
+ * Count of entries in _Thread_Control_add_ons.
+ *
+ * This value is provided via <rtems/confdefs.h>.
+ */
+extern const size_t _Thread_Control_add_on_count;
+
+/**
+ * @brief Size of the thread control block of a particular application.
+ *
+ * This value is provided via <rtems/confdefs.h>.
+ *
+ * @see _Thread_Control_add_ons.
+ */
+extern const size_t _Thread_Control_size;
 
 /**@}*/
 

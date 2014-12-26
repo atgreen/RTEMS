@@ -25,15 +25,11 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _BSP_H
 #define _BSP_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
@@ -42,6 +38,10 @@ extern "C" {
 #include <rtems/console.h>
 #include <rtems/iosupp.h>
 #include <rtems/clockdrv.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  *  @defgroup gen68360_bsp Network driver
@@ -55,22 +55,6 @@ struct rtems_bsdnet_ifconfig;
 extern int rtems_scc1_driver_attach (struct rtems_bsdnet_ifconfig *config, int attaching);
 #define RTEMS_BSP_NETWORK_DRIVER_NAME	"scc1"
 #define RTEMS_BSP_NETWORK_DRIVER_ATTACH	rtems_scc1_driver_attach
-
-/*
- *  Simple spin delay in microsecond units for device drivers.
- *  This is very dependent on the clock speed of the target.
- */
-
-#define rtems_bsp_delay( microseconds ) \
-  { register uint32_t         _delay=(microseconds); \
-    register uint32_t         _tmp=123; \
-    __asm__ volatile( "0: \
-                     nbcd      %0 ; \
-                     nbcd      %0 ; \
-                     dbf       %1,0b" \
-                  : "=d" (_tmp), "=d" (_delay) \
-                  : "0"  (_tmp), "1"  (_delay) ); \
-  }
 
 extern rtems_isr_entry M68Kvec[];   /* vector table address */
 
@@ -117,6 +101,11 @@ rtems_isr_entry set_vector(
 #define PGH360_PB_SPI_DISP4_CE_MSK   (1<<14)
 #define PGH360_PB_SPI_EEP_CE_MSK     (1<< 0)
 #endif /* defined(PGH360) */
+
+/*
+ * Prototypes for BSP methods which cross file boundaries
+ */
+void _Init68360(void);
 
 #ifdef __cplusplus
 }

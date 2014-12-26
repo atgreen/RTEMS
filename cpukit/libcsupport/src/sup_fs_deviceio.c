@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -101,7 +101,7 @@ ssize_t rtems_deviceio_write(
 
   args.iop = iop;
   args.offset = iop->offset;
-  args.buffer = buf;
+  args.buffer = RTEMS_DECONST( void *, buf );
   args.count = nbyte;
   args.flags = iop->flags;
   args.bytes_moved = 0;

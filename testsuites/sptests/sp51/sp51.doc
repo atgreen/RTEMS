@@ -3,7 +3,7 @@
 #
 #  The license and distribution terms for this file may be
 #  found in the file LICENSE in this distribution or at
-#  http://www.rtems.com/license/LICENSE.
+#  http://www.rtems.org/license/LICENSE.
 #
 
 This file describes the directives and concepts tested by this test set.
@@ -23,3 +23,6 @@ concepts:
 
 + Ensure the when the binary semaphore lock fails to acquire the mutex,
   it is an error to release it since the lock failed.
+
++ Verify that creation of an initially locked priority inheritance mutex does
+  not change the priority of the executing thread.

@@ -14,7 +14,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -570,9 +570,12 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  *
  *  MOXIE Specific Information:
  *
- *  XXX
+ *  TODO: As of 7 October 2014, this method is not implemented.
  */
-#define _CPU_ISR_Disable( _isr_cookie ) (_isr_cookie) = 0
+#define _CPU_ISR_Disable( _isr_cookie ) \
+  do { \
+    (_isr_cookie) = 0; \
+  } while (0)
 
 /*
  *  Enable interrupts to the previous level (returned by _CPU_ISR_Disable).
@@ -581,9 +584,12 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  *
  *  MOXIE Specific Information:
  *
- *  XXX
+ *  TODO: As of 7 October 2014, this method is not implemented.
  */
-#define _CPU_ISR_Enable( _isr_cookie )
+#define _CPU_ISR_Enable( _isr_cookie ) \
+  do { \
+    (_isr_cookie) = (_isr_cookie); \
+  } while (0)
 
 /*
  *  This temporarily restores the interrupt to _level before immediately
@@ -593,9 +599,13 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  *
  *  MOXIE Specific Information:
  *
- *  XXX
+ *  TODO: As of 7 October 2014, this method is not implemented.
  */
-#define _CPU_ISR_Flash( _isr_cookie )
+#define _CPU_ISR_Flash( _isr_cookie ) \
+  do { \
+    _CPU_ISR_Enable( _isr_cookie ); \
+    _CPU_ISR_Disable( _isr_cookie ); \
+  } while (0)
 
 /*
  *  Map interrupt level in task mode onto the hardware that the CPU
@@ -609,7 +619,7 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  *
  *  MOXIE Specific Information:
  *
- *  XXX
+ *  TODO: As of 7 October 2014, this method is not implemented.
  */
 #define _CPU_ISR_Set_level( _new_level )        \
   {                                                     \
@@ -645,17 +655,20 @@ uint32_t   _CPU_ISR_Get_level( void );
  *
  *  MOXIE Specific Information:
  *
- *  XXX
+ *  TODO: As of 7 October 2014, this method does not ensure that the context
+ *  is set up with interrupts disabled/enabled as requested.
  */
 #define CPU_CCR_INTERRUPTS_ON  0x80
 #define CPU_CCR_INTERRUPTS_OFF 0x00
 
 #define _CPU_Context_Initialize( _the_context, _stack_base, _size, \
-                                 _isr, _entry_point, _is_fp )      \
+                                 _isr, _entry_point, _is_fp, _tls_area ) \
   /* Locate Me */                                                  \
   do {                                                             \
     uintptr_t   _stack;                                            \
                                                                    \
+    (void) _is_fp; /* avoid warning for being unused */            \
+    (void) _isr;   /* avoid warning for being unused */            \
     _stack = ((uintptr_t)(_stack_base)) + (_size) - 8;             \
     *((proc_ptr *)(_stack)) = (_entry_point);                      \
     _stack -= 4;                                                   \
@@ -733,8 +746,8 @@ uint32_t   _CPU_ISR_Get_level( void );
  *
  *  XXX
  */
-#define _CPU_Fatal_halt( _error ) \
-        printk("Fatal Error %d Halted\n",_error); \
+#define _CPU_Fatal_halt( _source, _error ) \
+        printk("Fatal Error %d.%d Halted\n",_source,_error); \
         for(;;)
 
 /* end of Fatal Error manager macros */
@@ -948,7 +961,7 @@ void _CPU_Context_switch(
  */
 void _CPU_Context_restore(
   Context_Control *new_context
-);
+) RTEMS_COMPILER_NO_RETURN_ATTRIBUTE;
 
 /*
  *  _CPU_Context_save_fp
@@ -1048,6 +1061,18 @@ static inline uint32_t   CPU_swap_u32(
 
 #define CPU_swap_u16( value ) \
   (((value&0xff) << 8) | ((value >> 8)&0xff))
+
+typedef uint32_t CPU_Counter_ticks;
+
+CPU_Counter_ticks _CPU_Counter_read( void );
+
+static inline CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  return second - first;
+}
 
 #ifdef __cplusplus
 }

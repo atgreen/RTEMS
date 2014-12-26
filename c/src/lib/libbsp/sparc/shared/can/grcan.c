@@ -1,18 +1,19 @@
 /*
  *  GRCAN driver
- *
+ */
+
+/*
  *  COPYRIGHT (c) 2007.
  *  Gaisler Research.
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *
  *  2007-06-13, Daniel Hellstrom <daniel@gaisler.com>
  *    New driver in sparc shared directory. Parts taken
  *    from rasta grhcan driver.
- *
  */
 
 #include <bsp.h>
@@ -1790,6 +1791,8 @@ static int grcan_register_internal(void)
   return 0;
 }
 
+
+int grcan_register_abs(struct grcan_device_info *devices, int dev_cnt);
 
 /* Use custom addresses and IRQs to find hardware */
 int GRCAN_PREFIX(_register_abs)(struct grcan_device_info *devices, int dev_cnt)

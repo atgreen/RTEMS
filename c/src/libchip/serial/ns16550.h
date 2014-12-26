@@ -21,12 +21,13 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _NS16550_H_
 #define _NS16550_H_
 
+#include <rtems/termiostypes.h>
 #include <libchip/serial.h>
 
 #ifdef __cplusplus
@@ -52,6 +53,42 @@ extern const console_flow ns16550_flow_DTRCTS;
  */
 void ns16550_outch_polled(console_tbl *c, char out);
 int ns16550_inch_polled(console_tbl *c);
+
+/* Alternative NS16550 driver using the Termios device context */
+
+typedef uint8_t (*ns16550_get_reg)(uintptr_t port, uint8_t reg);
+
+typedef void (*ns16550_set_reg)(uintptr_t port, uint8_t reg, uint8_t value);
+
+typedef struct {
+  rtems_termios_device_context base;
+  ns16550_get_reg get_reg;
+  ns16550_set_reg set_reg;
+  uintptr_t port;
+  rtems_vector_number irq;
+  uint32_t clock;
+  uint32_t initial_baud;
+  bool has_fractional_divider_register;
+  uint8_t modem_control;
+  size_t out_total;
+  size_t out_remaining;
+  size_t out_current;
+  const char *out_buf;
+  rtems_termios_tty *tty;
+} ns16550_context;
+
+extern const rtems_termios_device_handler ns16550_handler_interrupt;
+extern const rtems_termios_device_handler ns16550_handler_polled;
+extern const rtems_termios_device_handler ns16550_handler_task;
+
+extern const rtems_termios_device_flow ns16550_flow_rtscts;
+extern const rtems_termios_device_flow ns16550_flow_dtrcts;
+
+void ns16550_polled_putchar(rtems_termios_device_context *base, char out);
+
+int ns16550_polled_getchar(rtems_termios_device_context *base);
+
+bool ns16550_probe(rtems_termios_device_context *base);
 
 #ifdef __cplusplus
 }

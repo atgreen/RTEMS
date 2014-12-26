@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -20,17 +20,7 @@
 
 #include <rtems/score/todimpl.h>
 
-pthread_once_t nesting_once = PTHREAD_ONCE_INIT;
-
-void Test_init_routine_nesting( void );
-
-void Test_init_routine_nesting( void )
-{
-  int status;
-  puts( "Test_init_routine_nesting: invoked" );
-  status = pthread_once( &nesting_once, Test_init_routine_nesting );
-  rtems_test_assert( status == EINVAL );
-}
+const char rtems_test_name[] = "PSX 1";
 
 void *POSIX_Init(
   void *argument
@@ -42,7 +32,7 @@ void *POSIX_Init(
   pthread_t       thread_id;
   struct utsname  uts;
 
-  puts( "\n\n*** POSIX TEST 1 ***" );
+  TEST_BEGIN();
 
   /* print some system information */
 
@@ -105,11 +95,6 @@ void *POSIX_Init(
     tr.tv_sec,
     tr.tv_nsec
   );
-  rtems_test_assert( !status );
-
-  /* once nesting */
-  puts( "Init: pthread_once - SUCCESSFUL (init_routine_nesting executes)" );
-  status = pthread_once( &nesting_once, Test_init_routine_nesting );
   rtems_test_assert( !status );
 
   /* create a thread */

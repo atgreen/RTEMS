@@ -16,12 +16,13 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef __DOSFS_FAT_H__
 #define __DOSFS_FAT_H__
 
+#include <sys/param.h>
 #include <string.h>
 
 #include <rtems/seterr.h>
@@ -67,8 +68,6 @@ extern "C" {
 #    define CT_LE_W(v) (v)
 #    define CT_LE_L(v) (v)
 #endif
-
-#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
 
 #define FAT_HASH_SIZE   2
 #define FAT_HASH_MODULE FAT_HASH_SIZE

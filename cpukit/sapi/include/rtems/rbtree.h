@@ -14,7 +14,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RBTREE_H
@@ -55,13 +55,14 @@ typedef RBTree_Node rtems_rbtree_node;
 typedef RBTree_Control rtems_rbtree_control;
 
 /**
- * @typedef rtems_rbtree_compare_function
- *
- * This type defines function pointers for user-provided comparison
- * function. The function compares two nodes in order to determine
- * the order in a red-black tree.
+ * @copydoc RBTree_Compare_result
  */
-typedef RBTree_Compare_function rtems_rbtree_compare_function;
+typedef RBTree_Compare_result rtems_rbtree_compare_result;
+
+/**
+ * @copydoc RBTree_Compare
+ */
+typedef RBTree_Compare rtems_rbtree_compare;
 
 /**
  * @brief RBTree initializer for an empty rbtree with designator @a name.
@@ -76,16 +77,6 @@ typedef RBTree_Compare_function rtems_rbtree_compare_function;
   RBTREE_DEFINE_EMPTY(name)
 
 /**
-  * @brief macro to return the structure containing the @a node.
-  *
-  * This macro returns a pointer of type @a object_type that points 
-  * to the structure containing @a node, where @a object_member is the 
-  * field name of the rtems_rbtree_node structure in objects of @a object_type.
-  */
-#define rtems_rbtree_container_of(node,object_type, object_member) \
-  _RBTree_Container_of(node,object_type,object_member)
-
-/**
  * @brief Initialize a RBTree header.
  *
  * This routine initializes @a the_rbtree structure to manage the
@@ -93,15 +84,15 @@ typedef RBTree_Compare_function rtems_rbtree_compare_function;
  * @a starting_address.  Each node is of @a node_size bytes.
  */
 RTEMS_INLINE_ROUTINE void rtems_rbtree_initialize(
-  rtems_rbtree_control          *the_rbtree,
-  rtems_rbtree_compare_function  compare_function,
-  void                          *starting_address,
-  size_t                         number_nodes,
-  size_t                         node_size,
-  bool                           is_unique
+  rtems_rbtree_control *the_rbtree,
+  rtems_rbtree_compare  compare,
+  void                 *starting_address,
+  size_t                number_nodes,
+  size_t                node_size,
+  bool                  is_unique
 )
 {
-  _RBTree_Initialize( the_rbtree, compare_function, starting_address,
+  _RBTree_Initialize( the_rbtree, compare, starting_address,
     number_nodes, node_size, is_unique);
 }
 
@@ -111,12 +102,10 @@ RTEMS_INLINE_ROUTINE void rtems_rbtree_initialize(
  * This routine initializes @a the_rbtree to contain zero nodes.
  */
 RTEMS_INLINE_ROUTINE void rtems_rbtree_initialize_empty(
-  rtems_rbtree_control          *the_rbtree,
-  rtems_rbtree_compare_function  compare_function,
-  bool                           is_unique
+  rtems_rbtree_control *the_rbtree
 )
 {
-  _RBTree_Initialize_empty( the_rbtree, compare_function, is_unique );
+  _RBTree_Initialize_empty( the_rbtree );
 }
 
 /**
@@ -125,11 +114,11 @@ RTEMS_INLINE_ROUTINE void rtems_rbtree_initialize_empty(
  * This function sets the next and previous fields of the @a node to NULL
  * indicating the @a node is not part of any rbtree.
  */
-RTEMS_INLINE_ROUTINE void rtems_rbtree_set_off_rbtree(
+RTEMS_INLINE_ROUTINE void rtems_rbtree_set_off_tree(
   rtems_rbtree_node *node
 )
 {
-  _RBTree_Set_off_rbtree( node );
+  _RBTree_Set_off_tree( node );
 }
 
 /**
@@ -138,23 +127,11 @@ RTEMS_INLINE_ROUTINE void rtems_rbtree_set_off_rbtree(
  * This function returns true if the @a node is not on a rbtree. A @a node is
  * off rbtree if the next and previous fields are set to NULL.
  */
-RTEMS_INLINE_ROUTINE bool rtems_rbtree_is_node_off_rbtree(
+RTEMS_INLINE_ROUTINE bool rtems_rbtree_is_node_off_tree(
   const rtems_rbtree_node *node
 )
 {
-  return _RBTree_Is_node_off_rbtree( node );
-}
-
-/**
- * @brief Is the RBTree Node Pointer NULL.
- *
- * This function returns true if @a the_node is NULL and false otherwise.
- */
-RTEMS_INLINE_ROUTINE bool rtems_rbtree_is_null_node(
-  const rtems_rbtree_node *the_node
-)
-{
-  return _RBTree_Is_null_node( the_node );
+  return _RBTree_Is_node_off_tree( node );
 }
 
 /**
@@ -218,29 +195,13 @@ RTEMS_INLINE_ROUTINE rtems_rbtree_node *rtems_rbtree_right(
 }
 
 /**
- * @brief Return pointer to the parent child node from this node.
- *
- * This function returns a pointer to the parent node of @a the_node.
+ * @copydoc _RBTree_Parent()
  */
 RTEMS_INLINE_ROUTINE rtems_rbtree_node *rtems_rbtree_parent(
   const rtems_rbtree_node *the_node
 )
 {
   return _RBTree_Parent( the_node );
-}
-
-/**
- * @brief Are two nodes equal.
- *
- * This function returns true if @a left and @a right are equal,
- * and false otherwise.
- */
-RTEMS_INLINE_ROUTINE bool rtems_rbtree_are_nodes_equal(
-  const rtems_rbtree_node *left,
-  const rtems_rbtree_node *right
-)
-{
-  return _RBTree_Are_nodes_equal( left, right );
 }
 
 /**
@@ -284,32 +245,14 @@ RTEMS_INLINE_ROUTINE bool rtems_rbtree_is_max(
   return _RBTree_Is_first( the_rbtree, the_node, RBT_RIGHT );
 }
 
-
 /**
- * @brief Does this RBTree have only one node.
- *
- * This function returns true if there is only one node on @a the_rbtree and
- * false otherwise.
- */
-RTEMS_INLINE_ROUTINE bool rtems_rbtree_has_only_one_node(
-  const rtems_rbtree_control *the_rbtree
-)
-{
-  return _RBTree_Has_only_one_node( the_rbtree );
-}
-
-/**
- * @brief Is this node the RBTree root.
- *
- * This function returns true if @a the_node is the root of @a the_rbtree and
- * false otherwise.
+ * @copydoc _RBTree_Is_root()
  */
 RTEMS_INLINE_ROUTINE bool rtems_rbtree_is_root(
-  const rtems_rbtree_control *the_rbtree,
   const rtems_rbtree_node *the_node
 )
 {
-  return _RBTree_Is_root( the_rbtree, the_node );
+  return _RBTree_Is_root( the_node );
 }
 
 /**
@@ -317,10 +260,12 @@ RTEMS_INLINE_ROUTINE bool rtems_rbtree_is_root(
  */
 RTEMS_INLINE_ROUTINE rtems_rbtree_node* rtems_rbtree_find(
   const rtems_rbtree_control *the_rbtree,
-  const rtems_rbtree_node *the_node
+  const rtems_rbtree_node    *the_node,
+  rtems_rbtree_compare        compare,
+  bool                        is_unique
 )
 {
-  return _RBTree_Find( the_rbtree, the_node );
+  return _RBTree_Find( the_rbtree, the_node, compare, is_unique );
 }
 
 /**
@@ -411,13 +356,13 @@ RTEMS_INLINE_ROUTINE rtems_rbtree_node *rtems_rbtree_peek_max(
 }
 
 /**
- * @copydoc _RBTree_Find_header()
+ * @copydoc _RBTree_Find_control()
  */
-RTEMS_INLINE_ROUTINE rtems_rbtree_control *rtems_rbtree_find_header(
-  rtems_rbtree_node *the_node
+RTEMS_INLINE_ROUTINE rtems_rbtree_control *rtems_rbtree_find_control(
+  const rtems_rbtree_node *the_node
 )
 {
-  return _RBTree_Find_header( the_node );
+  return _RBTree_Find_control( the_node );
 }
 
 /**
@@ -425,20 +370,12 @@ RTEMS_INLINE_ROUTINE rtems_rbtree_control *rtems_rbtree_find_header(
  */
 RTEMS_INLINE_ROUTINE rtems_rbtree_node *rtems_rbtree_insert(
   rtems_rbtree_control *the_rbtree,
-  rtems_rbtree_node *the_node
+  rtems_rbtree_node    *the_node,
+  rtems_rbtree_compare  compare,
+  bool                  is_unique
 )
 {
-  return _RBTree_Insert( the_rbtree, the_node );
-}
-
-/** 
- * @brief Determines whether the tree is unique.
- */
-RTEMS_INLINE_ROUTINE bool rtems_rbtree_is_unique(
-  const rtems_rbtree_control *the_rbtree
-)
-{
-  return _RBTree_Is_unique(the_rbtree);
+  return _RBTree_Insert( the_rbtree, the_node, compare, is_unique );
 }
 
 /** @} */

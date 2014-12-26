@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -53,18 +53,16 @@ void _CORE_mutex_Seize_interrupt_blocking(
 {
 
   if ( _CORE_mutex_Is_inherit_priority( &the_mutex->Attributes ) ) {
-    if ( _Scheduler_Is_priority_higher_than(
-         executing->current_priority,
-         the_mutex->holder->current_priority)) {
-      _Thread_Change_priority(
-        the_mutex->holder,
-        executing->current_priority,
-        false
-      );
-    }
+    Thread_Control *holder = the_mutex->holder;
+
+    _Scheduler_Change_priority_if_higher(
+      _Scheduler_Get( holder ),
+      holder,
+      executing->current_priority,
+      false
+    );
   }
 
-  the_mutex->blocked_count++;
   _Thread_queue_Enqueue( &the_mutex->Wait_queue, executing, timeout );
 
   _Thread_Enable_dispatch();

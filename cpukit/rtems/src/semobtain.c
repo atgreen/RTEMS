@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2008.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -37,22 +37,41 @@ rtems_status_code rtems_semaphore_obtain(
   rtems_interval  timeout
 )
 {
-  register Semaphore_Control     *the_semaphore;
+  Semaphore_Control              *the_semaphore;
   Objects_Locations               location;
   ISR_Level                       level;
   Thread_Control                 *executing;
+  rtems_attribute                 attribute_set;
+  bool                            wait;
 
   the_semaphore = _Semaphore_Get_interrupt_disable( id, &location, &level );
   switch ( location ) {
 
     case OBJECTS_LOCAL:
       executing = _Thread_Executing;
-      if ( !_Attributes_Is_counting_semaphore(the_semaphore->attribute_set) ) {
+      attribute_set = the_semaphore->attribute_set;
+      wait = !_Options_Is_no_wait( option_set );
+#if defined(RTEMS_SMP)
+      if ( _Attributes_Is_multiprocessor_resource_sharing( attribute_set ) ) {
+        MRSP_Status mrsp_status;
+
+        _ISR_Enable( level );
+        mrsp_status = _MRSP_Obtain(
+          &the_semaphore->Core_control.mrsp,
+          executing,
+          wait,
+          timeout
+        );
+        _Objects_Put_for_get_isr_disable( &the_semaphore->Object );
+        return _Semaphore_Translate_MRSP_status_code( mrsp_status );
+      } else
+#endif
+      if ( !_Attributes_Is_counting_semaphore( attribute_set ) ) {
         _CORE_mutex_Seize(
           &the_semaphore->Core_control.mutex,
           executing,
           id,
-          ((_Options_Is_no_wait( option_set )) ? false : true),
+          wait,
           timeout,
           level
         );
@@ -66,7 +85,7 @@ rtems_status_code rtems_semaphore_obtain(
         &the_semaphore->Core_control.semaphore,
         executing,
         id,
-        ((_Options_Is_no_wait( option_set )) ? false : true),
+        wait,
         timeout,
         level
       );

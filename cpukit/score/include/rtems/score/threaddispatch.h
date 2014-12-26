@@ -8,7 +8,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_THREADDISPATCH_H
@@ -16,6 +16,7 @@
 
 #include <rtems/score/percpu.h>
 #include <rtems/score/smplock.h>
+#include <rtems/score/profiling.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -109,12 +110,15 @@ RTEMS_INLINE_ROUTINE void _Thread_Dispatch_initialization( void )
   void _Giant_Release( void );
 
   /**
-   *  @brief Sets thread dispatch level to the value passed in.
+   * @brief Releases the giant lock completely if held by the executing processor.
    *
-   * This routine sets thread dispatch level to the
-   * value passed in.
+   * The thread dispatch disable level is not altered by this function.
+   *
+   * The only use case for this operation is in _SMP_Request_shutdown().
+   *
+   * @param[in] self_cpu The current processor.
    */
-  uint32_t _Thread_Dispatch_set_disable_level(uint32_t value);
+  void _Giant_Drop( Per_CPU_Control *self_cpu );
 
   /**
    *  @brief Increments the thread dispatch level.
@@ -131,30 +135,28 @@ RTEMS_INLINE_ROUTINE void _Thread_Dispatch_initialization( void )
   uint32_t _Thread_Dispatch_decrement_disable_level(void);
 #else /* RTEMS_SMP */
   /**
-   * @brief Set thread dispatch disable level.
-   *
-   * This routine sets thread dispatch level to the
-   * value passed in.
-   */
-  RTEMS_INLINE_ROUTINE uint32_t _Thread_Dispatch_set_disable_level(uint32_t value)
-  {
-    _Thread_Dispatch_disable_level = value;
-    return value;
-  }
-
-  /**
    * @brief Increase thread dispatch disable level.
    *
    * This rountine increments the thread dispatch level
    */
   RTEMS_INLINE_ROUTINE uint32_t _Thread_Dispatch_increment_disable_level(void)
   {
-    uint32_t level = _Thread_Dispatch_disable_level;
+    uint32_t disable_level = _Thread_Dispatch_disable_level;
+#if defined( RTEMS_PROFILING )
+    ISR_Level level;
 
-    ++level;
-    _Thread_Dispatch_disable_level = level;
+    _ISR_Disable( level );
+    _Profiling_Thread_dispatch_disable( _Per_CPU_Get(), disable_level );
+#endif
 
-    return level;
+    ++disable_level;
+    _Thread_Dispatch_disable_level = disable_level;
+
+#if defined( RTEMS_PROFILING )
+    _ISR_Enable( level );
+#endif
+
+    return disable_level;
   }
 
   /**
@@ -164,12 +166,22 @@ RTEMS_INLINE_ROUTINE void _Thread_Dispatch_initialization( void )
    */
   RTEMS_INLINE_ROUTINE uint32_t _Thread_Dispatch_decrement_disable_level(void)
   {
-    uint32_t level = _Thread_Dispatch_disable_level;
+    uint32_t disable_level = _Thread_Dispatch_disable_level;
+#if defined( RTEMS_PROFILING )
+    ISR_Level level;
 
-    --level;
-    _Thread_Dispatch_disable_level = level;
+    _ISR_Disable( level );
+#endif
 
-    return level;
+    --disable_level;
+    _Thread_Dispatch_disable_level = disable_level;
+
+#if defined( RTEMS_PROFILING )
+    _Profiling_Thread_dispatch_enable( _Per_CPU_Get(), disable_level );
+    _ISR_Enable( level );
+#endif
+
+    return disable_level;
   }
 #endif /* RTEMS_SMP */
 

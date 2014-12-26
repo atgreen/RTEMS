@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -56,11 +56,8 @@ int _POSIX_Semaphore_Create_support(
   if (pshared != 0)
     rtems_set_errno_and_return_minus_one( ENOSYS );
 
-  _Thread_Disable_dispatch();
-
-  the_semaphore = _POSIX_Semaphore_Allocate();
+  the_semaphore = _POSIX_Semaphore_Allocate_unprotected();
   if ( !the_semaphore ) {
-    _Thread_Enable_dispatch();
     rtems_set_errno_and_return_minus_one( ENOSPC );
   }
 
@@ -72,7 +69,6 @@ int _POSIX_Semaphore_Create_support(
     name = _Workspace_String_duplicate( name_arg, name_len );
     if ( !name ) {
       _POSIX_Semaphore_Free( the_semaphore );
-      _Thread_Enable_dispatch();
       rtems_set_errno_and_return_minus_one( ENOMEM );
     }
   } else {
@@ -120,6 +116,5 @@ int _POSIX_Semaphore_Create_support(
 
   *the_sem = the_semaphore;
 
-  _Thread_Enable_dispatch();
   return 0;
 }

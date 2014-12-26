@@ -80,6 +80,25 @@ SECTIONS
   .rodata         : { *(.rodata*) *(.gnu.linkonce.r*) }	> CODE
   .rodata1        : { *(.rodata1) }	> CODE
 
+  .tdata : {
+    _TLS_Data_begin = .;
+    *(.tdata .tdata.* .gnu.linkonce.td.*)
+    _TLS_Data_end = .;
+  } >CODE
+
+  .tbss : {
+    _TLS_BSS_begin = .;
+    *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon)
+    _TLS_BSS_end = .;
+  } >CODE
+
+  _TLS_Data_size = _TLS_Data_end - _TLS_Data_begin;
+  _TLS_Data_begin = _TLS_Data_size != 0 ? _TLS_Data_begin : _TLS_BSS_begin;
+  _TLS_Data_end = _TLS_Data_size != 0 ? _TLS_Data_end : _TLS_BSS_begin;
+  _TLS_BSS_size = _TLS_BSS_end - _TLS_BSS_begin;
+  _TLS_Size = _TLS_BSS_end - _TLS_Data_begin;
+  _TLS_Alignment = MAX (ALIGNOF (.tdata), ALIGNOF (.tbss));
+
   /* Adjust the address for the data segment.  We want to adjust up to
      the same address within the page on the next page up.  */
   . = ALIGN(0x10000) + (. & (0x10000 - 1));
@@ -98,8 +117,7 @@ SECTIONS
   .fini_array     : { *(.fini_array) } >CODE
   PROVIDE (__fini_array_end = .);
 
-_SDA2_BASE_ = __SDATA2_START__ + 0x8000;
-  .sdata2         : { *(.sdata2 .sdata2.* .gnu.linkonce.s2.*) } >CODE
+  .sdata2         : {PROVIDE (_SDA2_BASE_ = 32768); *(.sdata2 .sdata2.* .gnu.linkonce.s2.*) } >CODE
   .sbss2          : { *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*) 
                         /* avoid empty sdata2/sbss2 area -- __eabi would not set up r2
                          * which may be important if run-time loading is used
@@ -198,8 +216,7 @@ _SDA2_BASE_ = __SDATA2_START__ + 0x8000;
   /* We want the small data sections together, so single-instruction offsets
      can access them all, and initialized data all before uninitialized, so
      we can shorten the on-disk segment size.  */
-_SDA_BASE_ = __SDATA_START__ + 0x8000;
-  .sdata	  : { *(.sdata*) *(.gnu.linkonce.s.*)	} >CODE
+  .sdata	  : { PROVIDE (_SDA_BASE_ = 32768); *(.sdata*) *(.gnu.linkonce.s.*)	} >CODE
   _edata  =  .;
   PROVIDE (edata = .);
   .sbss      :

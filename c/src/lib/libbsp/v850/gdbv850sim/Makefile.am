@@ -16,6 +16,7 @@ include_bsp_HEADERS = include/syscall.h
 
 nodist_include_HEADERS = include/bspopts.h
 nodist_include_bsp_HEADERS = ../../shared/include/bootcard.h
+nodist_include_bsp_HEADERS += ../../shared/include/console-polled.h
 DISTCLEANFILES = include/bspopts.h
 noinst_PROGRAMS =
 
@@ -46,6 +47,11 @@ libbsp_a_SOURCES += ../../shared/clock_driver_simidle.c
 libbsp_a_SOURCES += ../../shared/console-polled.c
 libbsp_a_SOURCES += console/console-io.c
 libbsp_a_SOURCES += ../../shared/timerstub.c
+
+# Cache
+libbsp_a_SOURCES += ../../../libcpu/shared/src/cache_manager.c
+libbsp_a_SOURCES += ../../shared/include/cache_.h
+libbsp_a_CPPFLAGS = -I$(srcdir)/../../shared/include
 
 noinst_LIBRARIES = libbsp.a
 

@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef LIBBSP_POWERPC_IRQ_H
@@ -222,6 +222,12 @@ extern "C" {
   /* PIT */
   #define MPC55XX_IRQ_PIT_CHANNEL(ch) \
     ((unsigned) (ch) < 9U ? 148U + (ch) : MPC55XX_IRQ_INVALID)
+
+  /* SIU external interrupts */
+  #define MPC55XX_IRQ_SIU_EXTERNAL_0 53U
+  #define MPC55XX_IRQ_SIU_EXTERNAL_1 54U
+  #define MPC55XX_IRQ_SIU_EXTERNAL_2 55U
+  #define MPC55XX_IRQ_SIU_EXTERNAL_3 56U
 
   /* eMIOS */
   #define MPC55XX_IRQ_EMIOS(ch) \

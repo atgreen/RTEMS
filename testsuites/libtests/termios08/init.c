@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -22,6 +22,8 @@
 #include <sys/ioctl.h>
 #include <rtems/dumpbuf.h>
 #include <rtems/termiostypes.h>
+
+const char rtems_test_name[] = "TERMIOS 8";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -113,7 +115,7 @@ rtems_task Init(
   rtems_task_argument argument
 )
 {
-  puts( "\n\n*** TEST TERMIOS08 ***" );
+  TEST_BEGIN();
 
   open_it();
   change_lflag( "non-canonical", ICANON, 0 );
@@ -141,7 +143,7 @@ rtems_task Init(
 
   close_it();
   
-  puts( "*** END OF TEST TERMIOS08 ***" );
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -159,6 +161,8 @@ rtems_task Init(
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 4
 
 #define CONFIGURE_MAXIMUM_TASKS             1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

@@ -28,10 +28,12 @@ SUBDIRS = . tools
 include_bsp_HEADERS  = ../../i386/shared/irq/irq.h
 include_bsp_HEADERS += ../../i386/shared/irq/irq_asm.h
 include_bsp_HEADERS += ../../i386/shared/comm/tty_drv.h
+include_bsp_HEADERS += ../../i386/shared/realmode_int/realmode_int.h
 include_bsp_HEADERS += ../../shared/include/irq-generic.h
 include_bsp_HEADERS += ../../shared/include/irq-info.h
 include_bsp_HEADERS += console/rtd316.h
 include_bsp_HEADERS += console/exar17d15x.h
+include_bsp_HEADERS += include/tblsizes.h
 
 if HAS_SMP
 include_bsp_HEADERS += ../../i386/shared/irq/apic.h
@@ -93,6 +95,7 @@ libbsp_a_SOURCES += console/kbd_parser.c
 libbsp_a_SOURCES += console/serial_mouse_config.c
 libbsp_a_SOURCES += ../../i386/shared/comm/uart.c
 libbsp_a_SOURCES += ../../i386/shared/comm/tty_drv.c
+libbsp_a_SOURCES += ../../i386/shared/realmode_int/realmode_int.c
 libbsp_a_SOURCES += ../../shared/console.c
 libbsp_a_SOURCES += console/console_select.c
 libbsp_a_SOURCES += ../../shared/console_read.c
@@ -103,10 +106,17 @@ libbsp_a_SOURCES += console/printk_support.c
 libbsp_a_SOURCES += console/vgacons.c
 libbsp_a_SOURCES += console/exar17d15x.c
 libbsp_a_SOURCES += console/rtd316.c
+if USE_VBE_RM
+include_bsp_HEADERS += include/vbe3.h
+include_HEADERS += include/edid.h
+include_bsp_HEADERS += include/fb_vesa.h
+libbsp_a_SOURCES += console/fb_vesa_rm.c
+else
 if USE_CIRRUS_GD5446
 libbsp_a_SOURCES += console/fb_cirrus.c
 else
 libbsp_a_SOURCES += console/fb_vga.c
+endif
 endif
 
 # gdb
@@ -137,7 +147,6 @@ libbsp_a_SOURCES += ../../i386/shared/irq/idt.c
 libbsp_a_SOURCES += ../../i386/shared/irq/irq.c
 libbsp_a_SOURCES += ../../i386/shared/irq/irq_init.c
 libbsp_a_SOURCES += ../../shared/bootcard.c
-libbsp_a_SOURCES += ../../shared/bspinit.c
 libbsp_a_SOURCES += ../../shared/sbrk.c
 libbsp_a_SOURCES += startup/ldsegs.S
 libbsp_a_SOURCES += ../../i386/shared/irq/irq_asm.S

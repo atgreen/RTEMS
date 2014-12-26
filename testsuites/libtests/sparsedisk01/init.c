@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -21,6 +21,8 @@
 #include "rtems/sparse-disk.h"
 
 #include "tmacros.h"
+
+const char rtems_test_name[] = "SPARSEDISK 1";
 
 /* Number of bytes for test pattern within a sparse disk container */
 #define STATIC_PATTERN_SIZE 4096
@@ -415,11 +417,11 @@ void test( void )
 static void Init( rtems_task_argument arg )
 {
   (void) arg;
-  puts( "\n\n*** TEST SPARSEDISK 1 ***" );
+  TEST_BEGIN();
 
   test();
 
-  puts( "*** END OF TEST SPARSEDISK 1 ***" );
+  TEST_END();
 
   rtems_test_exit( 0 );
 }
@@ -428,13 +430,14 @@ static void Init( rtems_task_argument arg )
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_LIBBLOCK
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 4
 
 #define CONFIGURE_MAXIMUM_TASKS 1
 #define CONFIGURE_MAXIMUM_SEMAPHORES 1
 
 #define CONFIGURE_INIT_TASK_STACK_SIZE ( 16 * 1024 )
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

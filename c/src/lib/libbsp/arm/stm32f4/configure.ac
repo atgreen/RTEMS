@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([rtems-c-src-lib-libbsp-arm-stm32f4],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-c-src-lib-libbsp-arm-stm32f4],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([bsp_specs])
 RTEMS_TOP(../../../../../..)
 
@@ -13,9 +13,6 @@ RTEMS_PROG_CCAS
 
 RTEMS_CHECK_NETWORKING
 AM_CONDITIONAL(HAS_NETWORKING,test "$HAS_NETWORKING" = "yes")
-
-RTEMS_BSPOPTS_SET([BSP_SMALL_MEMORY],[*],[])
-RTEMS_BSPOPTS_HELP([BSP_SMALL_MEMORY],[disable testsuite samples with high memory demands])
 
 RTEMS_BSPOPTS_SET([STM32F4_FAMILY_F10XXX],[stm32f1*],[1])
 RTEMS_BSPOPTS_HELP([STM32F4_FAMILY_F10XXX],[Chip belongs to the STM32F10XXX family.])

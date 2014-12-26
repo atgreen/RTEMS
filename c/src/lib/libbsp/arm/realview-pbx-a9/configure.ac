@@ -6,7 +6,7 @@
 #
 
 AC_PREREQ([2.69])
-AC_INIT([rtems-c-src-lib-libbsp-arm-realview-bpx-a9],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-c-src-lib-libbsp-arm-realview-bpx-a9],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([bsp_specs])
 RTEMS_TOP(../../../../../..)
 
@@ -23,6 +23,14 @@ AM_CONDITIONAL(HAS_NETWORKING,test "$HAS_NETWORKING" = "yes")
 
 RTEMS_BSPOPTS_SET([BSP_START_RESET_VECTOR],[*],[])
 RTEMS_BSPOPTS_HELP([BSP_START_RESET_VECTOR],[reset vector address for BSP start])
+
+RTEMS_BSPOPTS_SET([BSP_DATA_CACHE_ENABLED],[*qemu],[])
+RTEMS_BSPOPTS_SET([BSP_DATA_CACHE_ENABLED],[*],[1])
+RTEMS_BSPOPTS_HELP([BSP_DATA_CACHE_ENABLED],[enable data cache])
+
+RTEMS_BSPOPTS_SET([BSP_INSTRUCTION_CACHE_ENABLED],[*qemu],[])
+RTEMS_BSPOPTS_SET([BSP_INSTRUCTION_CACHE_ENABLED],[*],[1])
+RTEMS_BSPOPTS_HELP([BSP_INSTRUCTION_CACHE_ENABLED],[enable instruction cache])
 
 RTEMS_BSPOPTS_SET([BSP_ARM_A9MPCORE_PERIPHCLK],[*],[100000000U])
 RTEMS_BSPOPTS_HELP([BSP_ARM_A9MPCORE_PERIPHCLK],[ARM Cortex-A9 MPCore PERIPHCLK clock frequency in Hz])

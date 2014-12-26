@@ -15,7 +15,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_LIBIO__H
@@ -24,6 +24,7 @@
 #include <sys/uio.h>
 #include <errno.h>
 #include <limits.h>
+#include <pthread.h>
 
 #include <rtems.h>
 #include <rtems/libio.h>
@@ -238,6 +239,10 @@ void rtems_filesystem_location_free( rtems_filesystem_location_info_t *loc );
  */
 #include <rtems/userenv.h>
 
+void rtems_libio_free_user_env( void *env );
+
+extern pthread_key_t rtems_current_user_env_key;
+
 static inline void rtems_libio_lock( void )
 {
   rtems_semaphore_obtain( rtems_libio_semaphore, RTEMS_WAIT, RTEMS_NO_TIMEOUT );
@@ -261,13 +266,13 @@ static inline void rtems_filesystem_mt_unlock( void )
 extern rtems_interrupt_lock rtems_filesystem_mt_entry_lock_control;
 
 #define rtems_filesystem_mt_entry_declare_lock_context( ctx ) \
-  rtems_interrupt_level ctx
+  rtems_interrupt_lock_context ctx
 
 #define rtems_filesystem_mt_entry_lock( ctx ) \
-  rtems_interrupt_lock_acquire( &rtems_filesystem_mt_entry_lock_control, ctx )
+  rtems_interrupt_lock_acquire( &rtems_filesystem_mt_entry_lock_control, &ctx )
 
 #define rtems_filesystem_mt_entry_unlock( ctx ) \
-  rtems_interrupt_lock_release( &rtems_filesystem_mt_entry_lock_control, ctx )
+  rtems_interrupt_lock_release( &rtems_filesystem_mt_entry_lock_control, &ctx )
 
 static inline void rtems_filesystem_instance_lock(
   const rtems_filesystem_location_info_t *loc
@@ -369,7 +374,7 @@ void rtems_filesystem_eval_path_cleanup_with_parent(
  * Sets the start and current location to the new start location.  The caller
  * must terminate its current evaluation process.  The path evaluation
  * continues in the next loop iteration within
- * rtems_filesystem_eval_path_continue().  This avoids recursive invokations.
+ * rtems_filesystem_eval_path_continue().  This avoids recursive invocations.
  * The function obtains the new start location and clones it to set the new
  * current location.  The previous start and current locations are released.
  *
@@ -805,11 +810,30 @@ int rtems_filesystem_location_exists_in_same_instance_as(
   const rtems_filesystem_location_info_t *b
 );
 
+/**
+ * @brief Checks if access to an object is allowed for the current user.
+ *
+ * If the effective UID is zero or equals the UID of the object, then the user
+ * permission flags of the object will be used.  Otherwise if the effective GID
+ * is zero or equals the GID of the object or one of the supplementary group
+ * IDs is equal to the GID of the object, then the group permission flags of
+ * the object will be used.  Otherwise the other permission flags of the object
+ * will be used.
+ *
+ * @param[in] flags The flags determining the access type.  It can be
+ *   RTEMS_FS_PERMS_READ, RTEMS_FS_PERMS_WRITE or RTEMS_FS_PERMS_EXEC.
+ * @param[in] object_mode The mode of the object specifying the permission flags.
+ * @param[in] object_uid The UID of the object.
+ * @param[in] object_gid The GID of the object.
+ *
+ * @retval true Access is allowed.
+ * @retval false Otherwise.
+ */
 bool rtems_filesystem_check_access(
-  int eval_flags,
-  mode_t node_mode,
-  uid_t node_uid,
-  gid_t node_gid
+  int flags,
+  mode_t object_mode,
+  uid_t object_uid,
+  gid_t object_gid
 );
 
 bool rtems_filesystem_eval_path_check_access(

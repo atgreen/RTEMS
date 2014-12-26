@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,11 +13,13 @@
 #include <fcntl.h>
 #include <timesys.h>
 #include <errno.h>
-#include <rtems/timerdrv.h>
+#include <rtems/btimer.h>
 #include "test_support.h"
 #include <tmacros.h>
 #include <mqueue.h>
 #include <signal.h>   /* signal facilities */
+
+const char rtems_test_name[] = "PSXTMMQ 01";
 
 /* forward declarations to avoid warnings */
 void *POSIX_Init(void *argument);
@@ -256,7 +258,7 @@ void *POSIX_Init(
   void *argument
 )
 {
-  puts( "\n\n*** POSIX TIME TEST PSXTMMQ01 ***" );
+  TEST_BEGIN();
   /* create the first message queue READWRITE */
   benchmark_mq_open(1);
   /* send message using first queue */
@@ -287,7 +289,7 @@ void *POSIX_Init(
   /* closing the first queue */
   benchmark_mq_close(1);
 
-  puts( "*** END OF POSIX TIME TEST PSXTMMQ01 ***" );
+ TEST_END();
   rtems_test_exit(0);
 }
 

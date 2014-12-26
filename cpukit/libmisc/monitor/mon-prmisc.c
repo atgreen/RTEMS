@@ -103,7 +103,7 @@ rtems_monitor_dump_name(rtems_id id)
 
     rtems_object_get_name( id, sizeof(name_buffer), name_buffer );
 
-    return fprintf( stdout, name_buffer );
+    return fprintf(stdout, "%s", name_buffer);
 }
 
 int
@@ -116,7 +116,6 @@ rtems_monitor_dump_priority(rtems_task_priority priority)
 static const rtems_assoc_t rtems_monitor_state_assoc[] = {
     { "DORM",   STATES_DORMANT, 0 },
     { "SUSP",   STATES_SUSPENDED, 0 },
-    { "TRANS",  STATES_TRANSIENT, 0 },
     { "DELAY",  STATES_DELAYING, 0 },
     { "Wtime",  STATES_WAITING_FOR_TIME, 0 },
     { "Wbuf",   STATES_WAITING_FOR_BUFFER, 0 },
@@ -135,6 +134,10 @@ static const rtems_assoc_t rtems_monitor_state_assoc[] = {
     { "Wrwlk",  STATES_WAITING_FOR_RWLOCK, 0 },
     { "Wisig",  STATES_INTERRUPTIBLE_BY_SIGNAL, 0 },
     { "Wwkup",  STATES_WAITING_FOR_BSD_WAKEUP, 0 },
+    { "Wterm",  STATES_WAITING_FOR_TERMINATION, 0 },
+    { "ZOMBI",  STATES_ZOMBIE, 0 },
+    { "MIGRA",  STATES_MIGRATING, 0 },
+    { "RESTA",  STATES_RESTARTING, 0 },
     { 0, 0, 0 },
 };
 

@@ -20,7 +20,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,6 +38,8 @@
 #include <unistd.h>
 
 #include <pmacros.h>
+
+const char rtems_test_name[] = "PSX 13";
 
 int InitFiles(void);
 int DeviceLSeekTest(void);
@@ -572,7 +574,7 @@ int FPathConfTest (void)
     close(fd);
 
     fd = open("testfile1.tst", O_WRONLY);
-    
+
     error = fpathconf(fd, _PC_LINK_MAX);
 
     retval = TRUE;
@@ -647,7 +649,7 @@ int main(
 )
 #endif
 {
-  puts( "*** POSIX TEST 13 ***" );
+  TEST_BEGIN();
 
   if (InitFiles() == TRUE) {
     printf ("\nFiles initialized successfully.\n");
@@ -714,10 +716,10 @@ int main(
 
     printf ("Testing sync()...... ");
     sync();
-  }
-  else
-    printf ("\n\nError opening files for write!!!!\n");
+    printf ("Done.\n");
 
-  printf( "\n\n*** END OF TEST PSX13 ***" );
+    TEST_END();
+  }
+
   rtems_test_exit(0);
 }

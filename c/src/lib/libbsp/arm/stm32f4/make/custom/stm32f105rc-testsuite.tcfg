@@ -1,0 +1,23 @@
+#
+# stm32f105rc RTEMS Test Database.
+#
+# Format is one line per test that is _NOT_ built.
+#
+
+fileio
+flashdisk01
+fsdosfsname01
+ftp01
+iostream
+jffs2_fserror
+jffs2_fslink
+jffs2_fspatheval
+jffs2_fspermission
+jffs2_fsrdwr
+jffs2_fssymlink
+jffs2_fstime
+mghttpd01
+monitor02
+pppd
+rtems++
+utf8proc01

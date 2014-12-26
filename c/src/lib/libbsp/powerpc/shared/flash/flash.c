@@ -104,7 +104,7 @@ STATIC struct bankdesc *
 bankValidate(int bank, int quiet);
 
 static struct bankdesc *
-argcheck(int bank, uint32_t offset, char *src, uint32_t size);
+argcheck(int bank, uint32_t offset, const char *src, uint32_t size);
 
 /* Type definitions */
 
@@ -223,14 +223,14 @@ struct devdesc *rval;
  */
 
 STATIC uint32_t
-BSP_flashWriteDataRaw(struct bankdesc *b, uint32_t addr, char *src, uint32_t n_words, int quiet)
+BSP_flashWriteDataRaw(struct bankdesc *b, uint32_t addr, const char *src, uint32_t n_words, int quiet)
 {
-uint32_t sta;
-uint32_t N;
-uint32_t nxt, a, i, bufsz;
-uint32_t then, now;
-unsigned f;
-char     *s;
+uint32_t   sta;
+uint32_t   N;
+uint32_t   nxt, a, i, bufsz;
+uint32_t   then, now;
+unsigned   f;
+const char *s;
 
 #ifdef DEBUG
 	printf("\nflashWriteDataRaw(0x%08"PRIx32", %p, 0x%"PRIx32")\n", addr, src, n_words);
@@ -456,6 +456,11 @@ struct bankdesc *b = BSP_flashBspOps.bankcheck(bank, quiet);
 		return 0;
 	}
 
+	if ( !b->size && !(b->size = BSP_flashProbeSize(b)) ) {
+		fprintf(stderr,"Configuration Error - unable to determine flash size\n");
+		return 0;
+	}
+
 	if ( !b->dd && !(b->dd = BSP_flashCheckId(b, b->start,1)) ) {
 		fprintf(stderr,"Error: unable to detect flash device in bank #%i\n", bank);
 		return 0;
@@ -477,7 +482,7 @@ struct bankdesc *b = BSP_flashBspOps.bankcheck(bank, quiet);
  */
 
 static struct bankdesc *
-argcheck(int bank, uint32_t offset, char *src, uint32_t size)
+argcheck(int bank, uint32_t offset, const char *src, uint32_t size)
 {
 struct bankdesc *b;
 
@@ -485,10 +490,6 @@ struct bankdesc *b;
 		return 0;
 	}
 
-	if ( !b->size && !(b->size = BSP_flashProbeSize(b)) ) {
-		fprintf(stderr,"Configuration Error - unable to determine flash size\n");
-		return 0;
-	}
 	if ( offset + size > b->size ) {
 		fprintf(stderr,"Error: requested size exceeds available flash (0x%08"PRIx32" bytes)\n", b->size);
 		return 0;
@@ -514,7 +515,7 @@ struct bankdesc *b;
  *          - prints progress/messages.
  */
 STATIC int
-regionCheckAndErase(int bank, uint32_t offset, char *src, uint32_t n_bytes, int quiet)
+regionCheckAndErase(int bank, uint32_t offset, const char *src, uint32_t n_bytes, int quiet)
 {
 struct bankdesc *b;
 uint32_t         i;
@@ -594,14 +595,14 @@ uint32_t		a,e;
  */
 
 STATIC int
-BSP_flashWriteRegion(int bank, uint32_t offset, char *src, uint32_t n_bytes, int quiet)
+BSP_flashWriteRegion(int bank, uint32_t offset, const char *src, uint32_t n_bytes, int quiet)
 {
 struct bankdesc *b = BSP_flashBspOps.bankcheck(bank, 0);	/* caller did bankValidate() */
 uint32_t     ab = offset & ~(b->fblksz - 1);
 uint32_t     eb = (offset + n_bytes + b->fblksz - 1) & ~(b->fblksz - 1);
 uint32_t     o,i,a,e;
 int          err;
-char        *p;
+const char   *p;
 union bconv  buf;
 
 	/* unlock */
@@ -730,7 +731,7 @@ int              f;
 }
 
 int
-BSP_flashWrite(int bank, uint32_t offset, char *src, uint32_t n_bytes, int quiet)
+BSP_flashWrite(int bank, uint32_t offset, const char *src, uint32_t n_bytes, int quiet)
 {
 int      rval;
 
@@ -767,7 +768,7 @@ int got, avail;
 }
 
 int
-BSP_flashWriteFile(int bank, uint32_t offset, char *fname, int quiet)
+BSP_flashWriteFile(int bank, uint32_t offset, const char *fname, int quiet)
 {
 int             fd   = -1;
 struct stat     sb;

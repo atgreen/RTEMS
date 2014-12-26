@@ -1,7 +1,7 @@
 ## Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([rtems-c-src-lib-libbsp-powerpc-gen83xx],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-c-src-lib-libbsp-powerpc-gen83xx],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([bsp_specs])
 RTEMS_TOP(../../../../../..)
 
@@ -74,11 +74,15 @@ RTEMS_BSPOPTS_SET([HAS_UBOOT],[mpc8313erdb],[1])
 RTEMS_BSPOPTS_SET([HAS_UBOOT],[mpc8349eamds],[1])
 RTEMS_BSPOPTS_HELP([HAS_UBOOT],[if defined, enables U-Boot support])
 
-# Disable interrupt nesting for the MPC8313ERDB since the interrupt server
-# support requires that.  The interrupt server is necessary for the USB stack.
+# Disable interrupt nesting for the interrupt server support.  The interrupt
+# server is necessary for the USB stack.
 RTEMS_BSPOPTS_SET([GEN83XX_ENABLE_INTERRUPT_NESTING],[mpc8313erdb],[])
+RTEMS_BSPOPTS_SET([GEN83XX_ENABLE_INTERRUPT_NESTING],[br_uid],[])
 RTEMS_BSPOPTS_SET([GEN83XX_ENABLE_INTERRUPT_NESTING],[*],[1])
 RTEMS_BSPOPTS_HELP([GEN83XX_ENABLE_INTERRUPT_NESTING],[enable interrupt nesting])
+
+RTEMS_BSPOPTS_SET([BSP_USB_EHCI_MPC83XX_HAS_ULPI],[br_uid],[1])
+RTEMS_BSPOPTS_HELP([BSP_USB_EHCI_MPC83XX_HAS_ULPI],[the board has an ULPI PHY connected to the USB EHCI controller])
 
 RTEMS_CHECK_NETWORKING
 AM_CONDITIONAL(HAS_NETWORKING,test "$HAS_NETWORKING" = "yes")

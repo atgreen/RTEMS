@@ -4,10 +4,12 @@
  * This file's license is 2-clause BSD as in this distribution's LICENSE file.
  */
 
-#include <rtems/timerdrv.h>
 #include <timesys.h>
+#include <rtems/btimer.h>
 
 #define BENCHMARKS 50000
+
+const char rtems_test_name[] = "RHTASKSWITCH";
 
 rtems_task Task01( rtems_task_argument ignored );
 rtems_task Task02( rtems_task_argument ignored );
@@ -40,7 +42,7 @@ rtems_task Task02( rtems_task_argument ignored )
      dir_overhead              /* Overhead of rtems_task_wake_after directive */
   );
 
-  puts( "*** END OF RTASKSWITCH ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -65,7 +67,7 @@ rtems_task Init( rtems_task_argument ignored )
 {
   Print_Warning();
 
-  puts( "*** START OF RHTASKSWITCH ***" );
+  TEST_BEGIN();
 
   Task_name[0] = rtems_build_name( 'T','A','0','1' );
   status = rtems_task_create(

@@ -3,7 +3,7 @@
 #
 #  The license and distribution terms for this file may be
 #  found in the file LICENSE in this distribution or at
-#  http://www.rtems.com/license/LICENSE.
+#  http://www.rtems.org/license/LICENSE.
 #
 
 This file describes the directives and concepts tested by this test set.
@@ -23,3 +23,5 @@ concepts:
 + Verify the priority ceiling mutex getting released which results in a thread
   being unblocked and the unblocked thread's priority being elevated.
 
++ Verify that an initially locked priority ceiling mutex elevates the priority
+  of the creating task.

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -12,6 +12,8 @@
 #endif
 
 #include <tmacros.h>
+
+const char rtems_test_name[] = "SP 76";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -30,7 +32,7 @@ rtems_task Test_task(
   put_name( name, FALSE );
   puts( " - Successfully yielded it to higher priority task" );
 
-  puts( "*** END OF SP76 TEST ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -42,7 +44,7 @@ rtems_task Init(
   rtems_id              id;
   rtems_task_priority 	old;
 
-  puts( "\n\n*** SP76 (YIELD) TEST ***" );
+  TEST_BEGIN();
 
   status = rtems_task_ident( RTEMS_SELF, RTEMS_SEARCH_ALL_NODES, &id );
   directive_failed( status, "task ident" );
@@ -95,6 +97,8 @@ rtems_task Init(
 
 #define CONFIGURE_MAXIMUM_TASKS           3
 #define CONFIGURE_INIT_TASK_PRIORITY      2
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -19,6 +19,8 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+const char rtems_test_name[] = "PSXFCHX 1";
+
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument ignored);
 
@@ -29,7 +31,7 @@ rtems_task Init(
   int status = 0;
   int fd = 0;
 
-  puts( "*** TEST Posix file op tests - 01 ***" );
+  TEST_BEGIN();
 
   /****************************************************
    *                   fchdir tests
@@ -209,7 +211,7 @@ rtems_task Init(
 
   puts( "End of fchown tests" );
 
-  puts( "*** END OF TEST Posix file op tests - 01 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -218,10 +220,11 @@ rtems_task Init(
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 4
 
 #define CONFIGURE_MAXIMUM_TASKS 1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

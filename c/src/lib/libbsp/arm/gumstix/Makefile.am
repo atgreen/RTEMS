@@ -33,6 +33,8 @@ libbsp_a_SOURCES += ../../shared/bsplibc.c ../../shared/bsppost.c \
   ../../shared/bootcard.c ../../shared/sbrk.c \
   ../../shared/gnatinstallhandler.c ../../shared/bsppretaskinghook.c \
   ../../shared/bspclean.c startup/bspstart.c startup/bspreset.c startup/memmap.c
+libbsp_a_SOURCES += ../../shared/cpucounterread.c
+libbsp_a_SOURCES += ../../shared/cpucounterdiff.c
 
 #console
 libbsp_a_SOURCES += console/uarts.c ../../shared/console.c \
@@ -49,6 +51,12 @@ libbsp_a_SOURCES += ../../shared/src/irq-server.c
 libbsp_a_SOURCES += ../../shared/src/irq-shell.c
 #abort
 libbsp_a_SOURCES += ../shared/abort/abort.c
+
+# Cache
+libbsp_a_SOURCES += ../../../libcpu/shared/src/cache_manager.c
+libbsp_a_SOURCES += ../../shared/include/cache_.h
+libbsp_a_CPPFLAGS = -I$(srcdir)/../../shared/include
+
 #framebuffer
 if ON_SKYEYE
 libbsp_a_SOURCES += fb/fb.c
@@ -65,8 +73,7 @@ libbsp_a_LIBADD = ../../../libcpu/@RTEMS_CPU@/shared/arm920.rel \
     ../../../libcpu/@RTEMS_CPU@/@RTEMS_CPU_MODEL@/clock.rel \
     ../../../libcpu/@RTEMS_CPU@/@RTEMS_CPU_MODEL@/timer.rel \
     ../../../libcpu/@RTEMS_CPU@/@RTEMS_CPU_MODEL@/ffuart.rel \
-    ../../../libcpu/@RTEMS_CPU@/@RTEMS_CPU_MODEL@/irq.rel \
-    ../../../libcpu/@RTEMS_CPU@/@RTEMS_CPU_MODEL@/pmc.rel
+    ../../../libcpu/@RTEMS_CPU@/@RTEMS_CPU_MODEL@/irq.rel
 
 if ON_SKYEYE
 if HAS_NETWORKING

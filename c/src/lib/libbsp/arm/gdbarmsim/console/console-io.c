@@ -4,10 +4,11 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
+#include <bsp/console-polled.h>
 #include <rtems/libio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -23,8 +24,6 @@ void console_initialize_hardware(void)
   return;
 }
 
-int _write(int fd, char *ptr, int len);
-
 /*
  *  console_outbyte_polled
  *
@@ -35,7 +34,7 @@ void console_outbyte_polled(
   char ch
 )
 {
-  _write(2, &ch, 1);
+  gdbarmsim_writec(ch);
 }
 
 /*
@@ -53,7 +52,7 @@ int console_inbyte_nonblocking(
 
 #include <rtems/bspIo.h>
 
-void MyBSP_output_char(char c) { console_outbyte_polled( 0, c ); }
+static void MyBSP_output_char(char c) { console_outbyte_polled( 0, c ); }
 
 BSP_output_char_function_type           BSP_output_char = MyBSP_output_char;
 BSP_polling_getchar_function_type       BSP_poll_char = NULL;

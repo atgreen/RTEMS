@@ -60,15 +60,17 @@ uwrite(int uart, int reg, unsigned int val)
   }
 }
 
-#ifdef UARTDEBUG
-    static void
+static void
 uartError(int uart)
 {
   unsigned char uartStatus, dummy;
 
   uartStatus = uread(uart, LSR);
+  (void) uartStatus; /* avoid set but not used warning */
   dummy = uread(uart, RBR);
+  (void) dummy;      /* avoid set but not used warning */
 
+#ifdef UARTDEBUG
   if (uartStatus & OE)
     printk("********* Over run Error **********\n");
   if (uartStatus & PE)
@@ -79,15 +81,8 @@ uartError(int uart)
     printk("********* Parity Error   **********\n");
   if (uartStatus & ERFIFO)
     printk("********* Error receive Fifo **********\n");
-
-}
-#else
-inline void uartError(int uart)
-{
-  uread(uart, LSR);
-  uread(uart, RBR);
-}
 #endif
+}
 
 /*
  * Uart initialization, it is hardcoded to 8 bit, no parity,
@@ -452,24 +447,6 @@ static void ( *driver_input_handler_com1 )( void *,  char *, int ) = 0;
 static void ( *driver_input_handler_com2 )( void *,  char *, int ) = 0;
 
 /*
- * This routine sets the handler to handle the characters received
- * from the serial port.
- */
-void uart_set_driver_handler( int port, void ( *handler )( void *,  char *, int ) )
-{
-  switch( port )
-  {
-    case BSP_UART_COM1:
-     driver_input_handler_com1 = handler;
-     break;
-
-    case BSP_UART_COM2:
-     driver_input_handler_com2 = handler;
-     break;
-  }
-}
-
-/*
  * Set channel parameters
  */
 void
@@ -568,12 +545,12 @@ BSP_uart_termios_read_com2(int uart)
 ssize_t
 BSP_uart_termios_write_com1(int minor, const char *buf, size_t len)
 {
-  assert(buf != NULL);
-
   if(len <= 0)
     {
       return 0;
     }
+
+  assert(buf != NULL);
 
   /* If there TX buffer is busy - something is royally screwed up */
   assert((uread(BSP_UART_COM1, LSR) & THRE) != 0);
@@ -602,12 +579,12 @@ BSP_uart_termios_write_com1(int minor, const char *buf, size_t len)
 ssize_t
 BSP_uart_termios_write_com2(int minor, const char *buf, size_t len)
 {
-  assert(buf != NULL);
-
   if(len <= 0)
     {
       return 0;
     }
+
+  assert(buf != NULL);
 
   /* If there TX buffer is busy - something is royally screwed up */
   assert((uread(BSP_UART_COM2, LSR) & THRE) != 0);
@@ -634,7 +611,7 @@ BSP_uart_termios_write_com2(int minor, const char *buf, size_t len)
 }
 
 void
-BSP_uart_termios_isr_com1(void)
+BSP_uart_termios_isr_com1(void *ignored)
 {
   unsigned char buf[40];
   unsigned char val;
@@ -730,7 +707,7 @@ BSP_uart_termios_isr_com1(void)
 }
 
 void
-BSP_uart_termios_isr_com2(void)
+BSP_uart_termios_isr_com2(void *ignored)
 {
   unsigned char buf[40];
   unsigned char val;

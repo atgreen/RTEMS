@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -23,6 +23,8 @@
 
 #include <rtems/blkdev.h>
 #include <rtems/bdbuf.h>
+
+const char rtems_test_name[] = "BLOCK 14";
 
 #define ACTION_COUNT 7
 
@@ -189,11 +191,11 @@ static void test(void)
 
 static void Init(rtems_task_argument arg)
 {
-  puts("\n\n*** TEST BLOCK 14 ***");
+  TEST_BEGIN();
 
   test();
 
-  puts("*** END OF TEST BLOCK 14 ***");
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -208,9 +210,9 @@ static void Init(rtems_task_argument arg)
 #define CONFIGURE_BDBUF_MAX_READ_AHEAD_BLOCKS 1
 #define CONFIGURE_BDBUF_READ_AHEAD_TASK_PRIORITY 1
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 #define CONFIGURE_MAXIMUM_TASKS 1
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2010.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -93,10 +93,8 @@ rtems_status_code rtems_task_mode(
    */
   if ( mask & RTEMS_PREEMPT_MASK ) {
 #if defined( RTEMS_SMP )
-    if (
-      rtems_configuration_is_smp_enabled()
-        && !_Modes_Is_preempt( mode_set )
-    ) {
+    if ( rtems_configuration_is_smp_enabled() &&
+         !_Modes_Is_preempt( mode_set ) ) {
       return RTEMS_NOT_IMPLEMENTED;
     }
 #endif
@@ -107,7 +105,8 @@ rtems_status_code rtems_task_mode(
   if ( mask & RTEMS_TIMESLICE_MASK ) {
     if ( _Modes_Is_timeslice(mode_set) ) {
       executing->budget_algorithm = THREAD_CPU_BUDGET_ALGORITHM_RESET_TIMESLICE;
-      executing->cpu_time_budget  = _Thread_Ticks_per_timeslice;
+      executing->cpu_time_budget =
+        rtems_configuration_get_ticks_per_timeslice();
     } else
       executing->budget_algorithm = THREAD_CPU_BUDGET_ALGORITHM_NONE;
   }
@@ -130,6 +129,10 @@ rtems_status_code rtems_task_mode(
       _ASR_Swap_signals( asr );
       if ( _ASR_Are_signals_pending( asr ) ) {
         needs_asr_dispatching = true;
+        _Thread_Add_post_switch_action(
+          executing,
+          &api->Signal_action
+        );
       }
     }
   }

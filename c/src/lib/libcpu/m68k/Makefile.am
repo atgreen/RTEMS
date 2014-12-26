@@ -11,9 +11,9 @@ include_libcpudir = $(includedir)/libcpu
 include_libcpu_HEADERS = ../shared/include/cache.h
 
 noinst_PROGRAMS += shared/cache.rel
-shared_cache_rel_SOURCES = shared/cache/cache.c shared/cache/cache_.h \
-    ../shared/src/cache_aligned_malloc.c \
-    ../shared/src/cache_manager.c
+shared_cache_rel_SOURCES = shared/cache/cache.c
+shared_cache_rel_SOURCES += shared/cache/cache_.h
+shared_cache_rel_SOURCES += ../shared/src/cache_manager.c
 shared_cache_rel_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/shared/cache
 shared_cache_rel_LDFLAGS = $(RTEMS_RELLDFLAGS)
 
@@ -108,7 +108,7 @@ include_mcf5223x_HEADERS = mcf5223x/include/mcf5223x.h
 ## mcf5223x/cache
 noinst_PROGRAMS += mcf5223x/cachepd.rel
 mcf5223x_cachepd_rel_SOURCES = mcf5223x/cache/cachepd.c
-mcf5223x_cachepd_rel_CPPFLAGS = $(AM_CPPFLAGS)
+mcf5223x_cachepd_rel_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/shared/cache
 mcf5223x_cachepd_rel_LDFLAGS = $(RTEMS_RELLDFLAGS)
 endif
 
@@ -116,6 +116,13 @@ if mcf5225x
 ## mcf5225x/include
 include_mcf5225xdir = $(includedir)/mcf5225x
 include_mcf5225x_HEADERS = mcf5225x/include/mcf5225x.h
+
+# mcf5225x/cache
+noinst_PROGRAMS += mcf5225x/cachepd.rel
+mcf5225x_cachepd_rel_SOURCES = mcf5225x/cache/cachepd.c
+mcf5225x_cachepd_rel_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/shared/cache
+mcf5225x_cachepd_rel_LDFLAGS = $(RTEMS_RELLDFLAGS)
+
 # Network
 if HAS_NETWORKING
 include_mcf5225x_HEADERS += mcf5225x/include/fec.h
@@ -130,7 +137,7 @@ include_mcf5235_HEADERS = mcf5235/include/mcf5235.h
 ## mcf5235/cache
 noinst_PROGRAMS += mcf5235/cachepd.rel
 mcf5235_cachepd_rel_SOURCES = mcf5235/cache/cachepd.c
-mcf5235_cachepd_rel_CPPFLAGS = $(AM_CPPFLAGS)
+mcf5235_cachepd_rel_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/shared/cache
 mcf5235_cachepd_rel_LDFLAGS = $(RTEMS_RELLDFLAGS)
 endif
 
@@ -142,7 +149,7 @@ include_mcf532x_HEADERS = mcf532x/include/mcf532x.h
 ## mcf532x/cache
 noinst_PROGRAMS += mcf532x/cachepd.rel
 mcf532x_cachepd_rel_SOURCES = mcf532x/cache/cachepd.c
-mcf532x_cachepd_rel_CPPFLAGS = $(AM_CPPFLAGS)
+mcf532x_cachepd_rel_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/shared/cache
 mcf532x_cachepd_rel_LDFLAGS = $(RTEMS_RELLDFLAGS)
 endif
 
@@ -168,6 +175,11 @@ if mcf5282
 ## mcf5282/include
 include_mcf5282dir = $(includedir)/mcf5282
 include_mcf5282_HEADERS = mcf5282/include/mcf5282.h
+
+noinst_PROGRAMS += mcf5282/cachepd.rel
+mcf5282_cachepd_rel_SOURCES = mcf5282/cache/cachepd.c
+mcf5282_cachepd_rel_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/shared/cache
+mcf5282_cachepd_rel_LDFLAGS = $(RTEMS_RELLDFLAGS)
 endif
 
 if mcf548x

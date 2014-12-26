@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2007.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -26,23 +26,15 @@ rtems_status_code rtems_task_restart(
   uint32_t  argument
 )
 {
-  register Thread_Control *the_thread;
+  Thread_Control          *the_thread;
   Objects_Locations        location;
 
   the_thread = _Thread_Get( id, &location );
   switch ( location ) {
 
     case OBJECTS_LOCAL:
-      if ( _Thread_Restart( the_thread, NULL, argument ) ) {
-        if ( _Thread_Is_executing( the_thread ) ) {
-          _Objects_Put_and_keep_thread_dispatch_disabled(
-            &the_thread->Object
-          );
-          _Thread_Restart_self();
-        } else {
-          _Objects_Put( &the_thread->Object );
-        }
-
+      if ( _Thread_Restart( the_thread, _Thread_Executing, NULL, argument ) ) {
+        _Objects_Put( &the_thread->Object );
         return RTEMS_SUCCESSFUL;
       }
       _Objects_Put( &the_thread->Object );

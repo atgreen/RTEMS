@@ -9,17 +9,21 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
   #include "config.h"
 #endif
 
+#define TESTS_USE_PRINTF
 #include "tmacros.h"
 
 #include <stdio.h>
+#include <math.h>
 #include <inttypes.h>
+
+const char rtems_test_name[] = "SMPMIGRATION 1";
 
 #define CPU_COUNT 2
 
@@ -69,7 +73,7 @@ static void runner(rtems_task_argument self)
   test_counters *next_counters = &ctx->counters[next];
 
   while (true) {
-    uint32_t current_cpu = rtems_smp_get_current_processor();
+    uint32_t current_cpu = rtems_get_current_processor();
 
     ++counters->cycles_per_cpu[current_cpu].counter;
 
@@ -102,6 +106,11 @@ static void stopper(rtems_task_argument arg)
   }
 }
 
+static uint32_t abs_delta(uint32_t a, uint32_t b)
+{
+  return a > b ?  a - b : b - a;
+}
+
 static void test(void)
 {
   test_context *ctx = &ctx_instance;
@@ -110,6 +119,8 @@ static void test(void)
   rtems_id stopper_id;
   uint32_t expected_tokens;
   uint32_t total_delta;
+  uint64_t total_cycles;
+  uint32_t average_cycles;
 
   sc = rtems_task_create(
     rtems_build_name('S', 'T', 'O', 'P'),
@@ -144,21 +155,49 @@ static void test(void)
   sc = rtems_task_start(stopper_id, stopper, 0);
   rtems_test_assert(sc == RTEMS_SUCCESSFUL);
 
+  total_cycles = 0;
   for (runner_index = 0; runner_index < RUNNER_COUNT; ++runner_index) {
-    test_counters *counters = &ctx->counters[runner_index];
+    const test_counters *counters = &ctx->counters[runner_index];
+    size_t cpu;
+
+    for (cpu = 0; cpu < CPU_COUNT; ++cpu) {
+      total_cycles += counters->cycles_per_cpu[cpu].counter;
+    }
+  }
+  average_cycles = (uint32_t) (total_cycles / (RUNNER_COUNT * CPU_COUNT));
+
+  printf(
+    "total cycles %" PRIu64 "\n"
+    "average cycles %" PRIu32 "\n",
+    total_cycles,
+    average_cycles
+  );
+
+  for (runner_index = 0; runner_index < RUNNER_COUNT; ++runner_index) {
+    const test_counters *counters = &ctx->counters[runner_index];
     size_t cpu;
 
     printf("runner %" PRIuPTR "\n", runner_index);
 
     for (cpu = 0; cpu < CPU_COUNT; ++cpu) {
+      uint32_t tokens = counters->tokens_per_cpu[cpu].counter;
+      uint32_t cycles = counters->cycles_per_cpu[cpu].counter;
+      double cycle_deviation = ((double) cycles - average_cycles)
+        / average_cycles;
+
       printf(
         "\tcpu %zu tokens %" PRIu32 "\n"
-        "\tcpu %zu cycles %" PRIu32 "\n",
+        "\tcpu %zu cycles %" PRIu32 "\n"
+        "\tcpu %zu cycle deviation %f\n",
         cpu,
-        counters->tokens_per_cpu[cpu].counter,
+        tokens,
         cpu,
-        counters->cycles_per_cpu[cpu].counter
+        cycles,
+        cpu,
+        cycle_deviation
       );
+
+      rtems_test_assert(fabs(cycle_deviation) < 0.5);
     }
   }
 
@@ -170,8 +209,7 @@ static void test(void)
 
     for (cpu = 0; cpu < CPU_COUNT; ++cpu) {
       uint32_t tokens = counters->tokens_per_cpu[cpu].counter;
-      uint32_t delta = tokens > expected_tokens ?
-        tokens - expected_tokens : expected_tokens - tokens;
+      uint32_t delta = abs_delta(tokens, expected_tokens);
 
       rtems_test_assert(delta <= 1);
 
@@ -184,14 +222,13 @@ static void test(void)
 
 static void Init(rtems_task_argument arg)
 {
-  puts("\n\n*** TEST SMPMIGRATION 1 ***");
+  TEST_BEGIN();
 
-  if (rtems_smp_get_processor_count() >= 2) {
+  if (rtems_get_processor_count() >= 2) {
     test();
   }
 
-  puts("*** END OF TEST SMPMIGRATION 1 ***");
-
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -203,6 +240,10 @@ static void Init(rtems_task_argument arg)
 #define CONFIGURE_SMP_MAXIMUM_PROCESSORS CPU_COUNT
 
 #define CONFIGURE_MAXIMUM_TASKS (2 + RUNNER_COUNT)
+
+#define CONFIGURE_INIT_TASK_ATTRIBUTES RTEMS_FLOATING_POINT
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

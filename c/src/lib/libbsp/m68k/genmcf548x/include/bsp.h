@@ -41,7 +41,7 @@
 | The license and distribution terms for this file may be         |
 | found in the file LICENSE in this distribution or at            |
 |                                                                 |
-| http://www.rtems.com/license/LICENSE.                           |
+| http://www.rtems.org/license/LICENSE.                           |
 |                                                                 |
 +-----------------------------------------------------------------+
 |                                                                 |
@@ -54,9 +54,6 @@
 #ifndef __GENMCF548X_BSP_H
 #define __GENMCF548X_BSP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
 
@@ -79,12 +76,9 @@ extern "C" {
 /**  Hardware data structure headers                                      **/
 #include <mcf548x/mcf548x.h>
 
-/***************************************************************************/
-/**  Network driver configuration                                         **/
-struct rtems_bsdnet_ifconfig;
-extern int rtems_fec_driver_attach (struct rtems_bsdnet_ifconfig *config, int attaching );
-#define RTEMS_BSP_NETWORK_DRIVER_NAME     "fs1"
-#define RTEMS_BSP_NETWORK_DRIVER_ATTACH   rtems_fec_driver_attach
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /***************************************************************************/
 /**  User Definable configuration                                         **/
@@ -130,6 +124,13 @@ extern int rtems_mcf548x_fec_driver_attach_detach(struct rtems_bsdnet_ifconfig *
   
 #define DBUG_SETTINGS (*(const dbug_settings_t *)0xFC020000)
 #endif /* HAS_DBUG */
+
+void bsp_cacr_set_flags(uint32_t flags);
+
+void bsp_cacr_set_self_clear_flags(uint32_t flags);
+
+void bsp_cacr_clear_flags(uint32_t flags);
+
 #ifdef __cplusplus
 }
 #endif

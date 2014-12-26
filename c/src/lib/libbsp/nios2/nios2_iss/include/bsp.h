@@ -9,15 +9,11 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _BSP_H
 #define _BSP_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <stdint.h>
 #include <bspopts.h>
@@ -27,15 +23,9 @@ extern "C" {
 #include <rtems/console.h>
 #include <rtems/clockdrv.h>
 
-
-/*
- *  Simple spin delay in microsecond units for device drivers.
- *  This is very dependent on the clock speed of the target.
- */
-
-#define rtems_bsp_delay( microseconds ) \
-  { \
-  }
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* ============================================ */
 

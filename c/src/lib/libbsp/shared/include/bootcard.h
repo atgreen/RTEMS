@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (c) 2008-2013 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2008-2014 embedded brains GmbH.  All rights reserved.
  *
  *  embedded brains GmbH
  *  Dornierstr. 4
@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef LIBBSP_SHARED_BOOTCARD_H
@@ -195,6 +195,16 @@ static inline void bsp_work_area_initialize_with_table(
 void bsp_work_area_initialize(void);
 
 void bsp_libc_init(void);
+
+/**
+ * @brief Standard start routine for secondary processors.
+ *
+ * This function is usually called by low-level startup code of secondary
+ * processors or boot loaders starting a secondary processor.  The final step
+ * of this function is a call to
+ * _SMP_Start_multitasking_on_secondary_processor().
+ */
+void bsp_start_on_secondary_processor(void);
 
 /** @} */
 

@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may in
  *  the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -99,7 +99,7 @@ void test1()
     exit( 1 );
   }
 
-  destory_all_tasks("TEST1");
+  destroy_all_tasks("TEST1");
 
   the_information->auto_extend = auto_extend;
 

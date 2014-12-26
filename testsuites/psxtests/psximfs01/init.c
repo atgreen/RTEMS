@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -20,6 +20,8 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <rtems/libcsupport.h>
+
+const char rtems_test_name[] = "PSXIMFS 1";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -223,7 +225,7 @@ rtems_task Init(
   char buf [1];
   ssize_t n;
 
-  puts( "\n\n*** TEST IMFS 01 ***" );
+  TEST_BEGIN();
 
   for (i=0 ; i<sizeof(Buffer) ; i++ )
     Buffer[i] = (uint8_t) i;
@@ -265,7 +267,7 @@ rtems_task Init(
   close_it();
   unlink_it();
 
-  puts( "*** END OF TEST IMFS 01 ***" );
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -278,6 +280,8 @@ rtems_task Init(
 #define CONFIGURE_MAXIMUM_TASKS             1
 #define CONFIGURE_IMFS_MEMFILE_BYTES_PER_BLOCK 16
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 4
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

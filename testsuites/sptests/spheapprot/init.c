@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -22,7 +22,12 @@
 
 #include <bsp.h>
 
+#include <rtems/test.h>
 #include <rtems/score/heapimpl.h>
+
+#include <tmacros.h>
+
+const char rtems_test_name[] = "SPHEAPPROT";
 
 #ifdef HEAP_PROTECTION
   static void test_heap_block_error(Heap_Control *heap, Heap_Block *block)
@@ -121,11 +126,11 @@
 
 static rtems_task Init(rtems_task_argument argument)
 {
-  puts( "\n\n*** TEST HEAP PROTECTION ***" );
+  TEST_BEGIN();
 
   test_heap_protection();
 
-  puts( "*** END OF TEST HEAP PROTECTION ***" );
+  TEST_END();
 
   exit(0);
 }
@@ -135,10 +140,10 @@ static rtems_task Init(rtems_task_argument argument)
 #define CONFIGURE_APPLICATION_DOES_NOT_NEED_CLOCK_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 #define CONFIGURE_MAXIMUM_TASKS 2
 #define CONFIGURE_MAXIMUM_DRIVERS 1
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

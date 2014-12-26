@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -27,7 +27,7 @@ rtems_status_code rtems_task_set_priority(
   rtems_task_priority *old_priority
 )
 {
-  register Thread_Control *the_thread;
+  Thread_Control          *the_thread;
   Objects_Locations        location;
 
   if ( new_priority != RTEMS_CURRENT_PRIORITY &&
@@ -48,7 +48,7 @@ rtems_status_code rtems_task_set_priority(
         the_thread->real_priority = _RTEMS_tasks_Priority_to_Core(
                                       new_priority
                                     );
-        if ( the_thread->resource_count == 0 ||
+        if ( !_Thread_Owns_resources( the_thread ) ||
              the_thread->current_priority > new_priority )
           _Thread_Change_priority( the_thread, new_priority, false );
       }

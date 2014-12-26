@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -26,7 +26,7 @@
 
 #include <tmacros.h>
 
-#if !BSP_SMALL_MEMORY
+const char rtems_test_name[] = "SPSTKALLOC 2";
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -74,7 +74,7 @@ static rtems_task Init(rtems_task_argument argument)
   rtems_id id = RTEMS_ID_NONE;
   int i = 0;
 
-  puts("\n\n*** TEST STKALLOC 02 ***");
+  TEST_BEGIN();
 
   print_info();
 
@@ -112,7 +112,7 @@ static rtems_task Init(rtems_task_argument argument)
 
   print_info();
 
-  puts("*** END OF TEST STKALLOC 02 ***");
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -128,6 +128,8 @@ static rtems_task Init(rtems_task_argument argument)
 #define CONFIGURE_TASK_STACK_ALLOCATOR_AVOIDS_WORK_SPACE
 #define CONFIGURE_TASK_STACK_FROM_ALLOCATOR(stack_size) \
   ((stack_size) + HEAP_BLOCK_HEADER_SIZE + PAGE_SIZE - 1)
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
@@ -160,26 +162,3 @@ static void task_stack_free(void *addr)
 {
   _Heap_Free(&task_stack_heap, addr);
 }
-
-#else /* BSP_SMALL_MEMORY */
-
-static void Init(rtems_task_argument arg)
-{
-  puts("\n\n*** TEST STKALLOC 02 ***");
-  puts("NOT ENOUGH MEMORY TO RUN TEST");
-
-  rtems_test_exit(0);
-}
-
-#define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
-#define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
-
-#define CONFIGURE_MAXIMUM_TASKS 1
-
-#define CONFIGURE_RTEMS_INIT_TASKS_TABLE
-
-#define CONFIGURE_INIT
-
-#include <rtems/confdefs.h>
-
-#endif /* BSP_SMALL_MEMORY */

@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-1999.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -53,7 +53,7 @@ rtems_status_code rtems_partition_create(
   rtems_id        *id
 )
 {
-  register Partition_Control *the_partition;
+  Partition_Control *the_partition;
 
   if ( !rtems_is_name_valid( name ) )
     return RTEMS_INVALID_NAME;
@@ -77,12 +77,10 @@ rtems_status_code rtems_partition_create(
     return RTEMS_MP_NOT_CONFIGURED;
 #endif
 
-  _Thread_Disable_dispatch();               /* prevents deletion */
-
   the_partition = _Partition_Allocate();
 
   if ( !the_partition ) {
-    _Thread_Enable_dispatch();
+    _Objects_Allocator_unlock();
     return RTEMS_TOO_MANY;
   }
 
@@ -91,7 +89,7 @@ rtems_status_code rtems_partition_create(
        !( _Objects_MP_Allocate_and_open( &_Partition_Information, name,
                             the_partition->Object.id, false ) ) ) {
     _Partition_Free( the_partition );
-    _Thread_Enable_dispatch();
+    _Objects_Allocator_unlock();
     return RTEMS_TOO_MANY;
   }
 #endif
@@ -122,6 +120,6 @@ rtems_status_code rtems_partition_create(
     );
 #endif
 
-  _Thread_Enable_dispatch();
+  _Objects_Allocator_unlock();
   return RTEMS_SUCCESSFUL;
 }

@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if defined(USE_TIMER_SERVER)
@@ -26,6 +26,8 @@
 #endif
 
 #include <tmacros.h>
+
+const char rtems_test_name[] = "SP " TEST_NUMBER;
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -57,7 +59,7 @@ rtems_task Init(
   rtems_time_of_day global_time;
   rtems_time_of_day time_to_fire;
 
-  puts( "\n\n*** TEST " TEST_NUMBER " ***" );
+  TEST_BEGIN();
 
   /* build timer name*/
   timer_name = rtems_build_name('T', 'M', '1', ' ');
@@ -107,7 +109,7 @@ rtems_task Init(
 
   puts( TSR_MODE " Timer fired after setting time forward -- OK");
 
-  puts( "*** END OF TEST " TEST_NUMBER " ***" );
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -118,6 +120,8 @@ rtems_task Init(
 
 #define CONFIGURE_MAXIMUM_TASKS              2
 #define CONFIGURE_MAXIMUM_TIMERS             1
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

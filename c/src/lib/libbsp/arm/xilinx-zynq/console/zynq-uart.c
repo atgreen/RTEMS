@@ -9,11 +9,13 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp/zynq-uart.h>
 #include <bsp/zynq-uart-regs.h>
+
+#include <bspopts.h>
 
 #include <libchip/sersupp.h>
 
@@ -32,7 +34,7 @@ uint32_t zynq_uart_input_clock(void) __attribute__ ((weak));
 
 uint32_t zynq_uart_input_clock(void)
 {
-  return 100000000UL;
+  return ZYNQ_CLOCK_UART;
 }
 
 static int zynq_cal_baud_rate(uint32_t  baudrate,

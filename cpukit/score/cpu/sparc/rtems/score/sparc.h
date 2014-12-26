@@ -17,7 +17,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_SPARC_H
@@ -147,6 +147,13 @@ extern "C" {
 /** This constant is the starting bit position of the IMPL in the PSR. */
 #define SPARC_PSR_IMPL_BIT_POSITION 28   /* bits 28 - 31 */
 
+#define LEON3_ASR17_PROCESSOR_INDEX_SHIFT 28
+
+/* SPARC Software Trap number definitions */
+#define SPARC_SWTRAP_SYSCALL 0
+#define SPARC_SWTRAP_IRQDIS 9
+#define SPARC_SWTRAP_IRQEN 10
+
 #ifndef ASM
 
 /**
@@ -162,17 +169,37 @@ extern "C" {
  *
  * This macro returns the current contents of the PSR register in @a _psr.
  */
+#if defined(RTEMS_PARAVIRT)
+
+uint32_t _SPARC_Get_PSR( void );
+
+#define sparc_get_psr( _psr ) \
+  (_psr) = _SPARC_Get_PSR()
+
+#else /* RTEMS_PARAVIRT */
+
 #define sparc_get_psr( _psr ) \
   do { \
      (_psr) = 0; \
      __asm__ volatile( "rd %%psr, %0" :  "=r" (_psr) : "0" (_psr) ); \
   } while ( 0 )
 
+#endif /* RTEMS_PARAVIRT */
+
 /**
  * @brief Macro to set the PSR.
  *
  * This macro sets the PSR register to the value in @a _psr.
  */
+#if defined(RTEMS_PARAVIRT)
+
+void _SPARC_Set_PSR( uint32_t new_psr );
+
+#define sparc_set_psr( _psr ) \
+  _SPARC_Set_PSR( _psr )
+
+#else /* RTEMS_PARAVIRT */
+
 #define sparc_set_psr( _psr ) \
   do { \
     __asm__ volatile ( "mov  %0, %%psr " : "=r" ((_psr)) : "0" ((_psr)) ); \
@@ -181,26 +208,50 @@ extern "C" {
     nop(); \
   } while ( 0 )
 
+#endif /* RTEMS_PARAVIRT */
+
 /**
  * @brief Macro to obtain the TBR.
  *
  * This macro returns the current contents of the TBR register in @a _tbr.
  */
+#if defined(RTEMS_PARAVIRT)
+
+uint32_t _SPARC_Get_TBR( void );
+
+#define sparc_get_tbr( _tbr ) \
+  (_tbr) = _SPARC_Get_TBR()
+
+#else /* RTEMS_PARAVIRT */
+
 #define sparc_get_tbr( _tbr ) \
   do { \
      (_tbr) = 0; /* to avoid unitialized warnings */ \
      __asm__ volatile( "rd %%tbr, %0" :  "=r" (_tbr) : "0" (_tbr) ); \
   } while ( 0 )
 
+#endif /* RTEMS_PARAVIRT */
+
 /**
  * @brief Macro to set the TBR.
  *
  * This macro sets the TBR register to the value in @a _tbr.
  */
+#if defined(RTEMS_PARAVIRT)
+
+void _SPARC_Set_TBR( uint32_t new_tbr );
+
+#define sparc_set_tbr( _tbr ) \
+  _SPARC_Set_TBR((_tbr))
+
+#else /* RTEMS_PARAVIRT */
+
 #define sparc_set_tbr( _tbr ) \
   do { \
      __asm__ volatile( "wr %0, 0, %%tbr" :  "=r" (_tbr) : "0" (_tbr) ); \
   } while ( 0 )
+
+#endif /* RTEMS_PARAVIRT */
 
 /**
  * @brief Macro to obtain the WIM.
@@ -252,7 +303,12 @@ extern "C" {
  *
  * @return This method returns the entire PSR contents.
  */
-uint32_t sparc_disable_interrupts(void);
+static inline uint32_t sparc_disable_interrupts(void)
+{
+  register uint32_t psr __asm__("g1"); /* return value of trap handler */
+  __asm__ volatile ( "ta %1\n\t" : "=r" (psr) : "i" (SPARC_SWTRAP_IRQDIS));
+  return psr;
+}
 
 /**
  * @brief SPARC enable processor interrupts.
@@ -261,7 +317,36 @@ uint32_t sparc_disable_interrupts(void);
  *
  * @param[in] psr is the PSR returned by @ref sparc_disable_interrupts.
  */
-void sparc_enable_interrupts(uint32_t psr);
+static inline void sparc_enable_interrupts(uint32_t psr)
+{
+  register uint32_t _psr __asm__("g1") = psr; /* input to trap handler */
+  __asm__ volatile ( "ta %0\n" :: "i" (SPARC_SWTRAP_IRQEN), "r" (_psr));
+}
+
+/**
+ * @brief SPARC exit through system call 1
+ *
+ * This method is invoked to go into system error halt. The optional
+ * arguments can be given to hypervisor, hardware debugger, simulator or
+ * similar.
+ *
+ * System error mode is entered when taking a trap when traps have been
+ * disabled. What happens when error mode is entered depends on the motherboard.
+ * In a typical development systems the CPU relingish control to the debugger,
+ * simulator, hypervisor or similar. The following steps are taken:
+ *
+ * 1. Going into system error mode by Software Trap 0
+ * 2. %g1=1 (syscall 1 - Exit)
+ * 3. %g2=Primary exit code
+ * 4. %g3=Secondary exit code. Dependends on %g2 exit type.
+ *
+ * This function never returns.
+ *
+ * @param[in] exitcode1 Primary exit code stored in CPU g2 register after exit
+ * @param[in] exitcode2 Primary exit code stored in CPU g3 register after exit
+ */
+void sparc_syscall_exit(uint32_t exitcode1, uint32_t exitcode2)
+  RTEMS_COMPILER_NO_RETURN_ATTRIBUTE;
 
 /**
  * @brief SPARC flash processor interrupts.
@@ -291,6 +376,18 @@ void sparc_enable_interrupts(uint32_t psr);
     (_level) = \
       (_psr_level & SPARC_PSR_PIL_MASK) >> SPARC_PSR_PIL_BIT_POSITION; \
   } while ( 0 )
+
+static inline uint32_t _LEON3_Get_current_processor( void )
+{
+  uint32_t asr17;
+
+  __asm__ volatile (
+    "rd %%asr17, %0"
+    : "=&r" (asr17)
+  );
+
+  return asr17 >> LEON3_ASR17_PROCESSOR_INDEX_SHIFT;
+}
 
 #endif
 

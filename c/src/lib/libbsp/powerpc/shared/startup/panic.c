@@ -32,6 +32,8 @@ void _BSP_Fatal_error(unsigned int v)
   const char *err = 0;
 
   rtems_interrupt_disable(flags);
+  (void) flags; /* avoid set but not used warning */
+
   printk("%s\n",_RTEMS_version);
   printk("FATAL ERROR:\n");
   printk("Internal error: %s\n", ISITNL? "Yes":"No");
@@ -39,7 +41,7 @@ void _BSP_Fatal_error(unsigned int v)
   switch (THESRC) {
     case INTERNAL_ERROR_CORE:
       printk(" RTEMS Core\n");
-      err = rtems_internal_error_description(THEERR);
+      err = rtems_internal_error_text(THEERR);
     break;
 
       case INTERNAL_ERROR_RTEMS_API:

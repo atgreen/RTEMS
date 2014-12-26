@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -16,6 +16,8 @@
 #include <rtems/libio_.h>
 #include <rtems/malloc.h>
 #include <rtems/libcsupport.h>
+
+const char rtems_test_name[] = "SPPRIVENV 1";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -29,6 +31,9 @@ rtems_task task_routine(rtems_task_argument not_used)
 
   sc = rtems_libio_set_private_env();
   directive_failed( sc, "set private env" );
+  rtems_test_assert( sc == RTEMS_SUCCESSFUL );
+  rtems_test_assert( rtems_current_user_env != &rtems_global_user_env );
+
   sleep( 1 );
 
   rtems_task_delete( RTEMS_SELF );
@@ -40,11 +45,11 @@ rtems_task Init(
 {
   rtems_status_code       sc;
   void                   *opaque;
-  rtems_id                current_task_id;
   rtems_id                task_id;
   rtems_name              another_task_name;
+  rtems_user_env_t       *current_env;
 
-  puts( "\n\n*** TEST USER ENVIRONMENT ROUTINE - 01 ***" );
+  TEST_BEGIN();
 
   puts( "Init - allocating most of heap -- OK" );
   opaque = rtems_heap_greedy_allocate( NULL, 0 );
@@ -58,13 +63,24 @@ rtems_task Init(
 
   puts( "Init - allocating most of workspace memory" );
   opaque = rtems_workspace_greedy_allocate( NULL, 0 );
-  
-  puts( "Init - attempt to reset env - expect RTEMS_TOO_MANY" );
+
+  puts( "Init - attempt to reset env - expect RTEMS_SUCCESSFUL" );
   sc = rtems_libio_set_private_env();
-  rtems_test_assert( sc == RTEMS_TOO_MANY );
+  rtems_test_assert( sc == RTEMS_SUCCESSFUL );
+  rtems_test_assert( rtems_current_user_env != &rtems_global_user_env );
 
   puts( "Init - freeing the workspace memory" );
   rtems_workspace_greedy_free( opaque );
+
+  puts( "Init - Reset to global environment" );
+  rtems_libio_use_global_env();
+  rtems_test_assert( rtems_current_user_env == &rtems_global_user_env );
+
+  puts( "Init - Attempt to get a private environment" );
+  sc = rtems_libio_set_private_env();
+  rtems_test_assert( sc == RTEMS_SUCCESSFUL );
+  current_env = rtems_current_user_env;
+  rtems_test_assert( current_env != &rtems_global_user_env );
 
   puts( "Init - creating a task name and a task -- OK" );
 
@@ -83,35 +99,16 @@ rtems_task Init(
   sc = rtems_task_start( task_id, task_routine, 0);
   rtems_test_assert( sc == RTEMS_SUCCESSFUL );
 
-  puts( "Init - attempt to share the env with another task -- Expect error" );
-  sc = rtems_libio_share_private_env( task_id );
-  rtems_test_assert( sc == RTEMS_UNSATISFIED );
-
   sleep( 1 );
 
-  puts( "Init - attempt to share the env with another task -- OK" );
-  sc = rtems_libio_share_private_env( task_id );
-  rtems_test_assert( sc == RTEMS_SUCCESSFUL );
-  rtems_test_assert( rtems_current_user_env->task_id == task_id );
+  puts( "Init - Check current private environment. Should be same as before." );
+  rtems_test_assert( rtems_current_user_env == current_env );
 
-  puts( "Init - Get current task id" );
-  current_task_id = rtems_task_self();
+  puts( "Init - Reset to global environment" );
+  rtems_libio_use_global_env();
+  rtems_test_assert( rtems_current_user_env == &rtems_global_user_env );
 
-  puts( "Init - Attempt to reset current task's environment" );
-  sc = rtems_libio_set_private_env();
-  rtems_test_assert( sc == RTEMS_SUCCESSFUL );
-  rtems_test_assert( rtems_current_user_env->task_id == current_task_id );
-  
-  puts( "Init - attempt to share the env with another task -- OK" );
-  sc = rtems_libio_share_private_env( task_id );
-  rtems_test_assert( sc == RTEMS_SUCCESSFUL );
-  rtems_test_assert( rtems_current_user_env->task_id == task_id );
-
-  puts( "Init - attempt to share with self -- OK" );
-  sc = rtems_libio_share_private_env( task_id );
-  rtems_test_assert( sc == RTEMS_SUCCESSFUL );
-
-  puts( "*** END OF TEST USER ENVIRONMENT ROUTINE - 01 ***" );
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -122,7 +119,12 @@ rtems_task Init(
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 
 #define CONFIGURE_MAXIMUM_TASKS             3
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
+
+#define CONFIGURE_MAXIMUM_POSIX_KEYS 1
+#define CONFIGURE_MAXIMUM_POSIX_KEY_VALUE_PAIRS 2
 
 #define CONFIGURE_INIT
 

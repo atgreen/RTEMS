@@ -1,0 +1,13 @@
+This file describes the directives and concepts tested by this test set.
+
+test set name: smpipi01
+
+directives:
+
+  - _SMP_Send_message()
+
+concepts:
+
+  - Ensure that SMP message delivery works in the context of an SMP message
+    handler.
+  - Ensure that a flood of inter-processor interrupts works as expected.

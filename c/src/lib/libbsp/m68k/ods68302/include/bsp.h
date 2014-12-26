@@ -1,31 +1,34 @@
 /*  bsp.h
  *
  *  This include file contains all board IO definitions.
- *
+ */
+
+/*
  *  COPYRIGHT (c) 1989-2010.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _BSP_H
 #define _BSP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef ASM
 
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
 
-#define BSP_SMALL_MEMORY 1
 #include <rtems.h>
 #include <rtems/console.h>
 #include <rtems/iosupp.h>
 #include <rtems/clockdrv.h>
 #include <rtems/m68k/m68302.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef VARIANT
 #define VARIANT bare
@@ -35,22 +38,6 @@ extern "C" {
 #include HQUOTE(VARIANT)
 #undef HQUOTE
 #endif
-
-/*
- *  Simple spin delay in microsecond units for device drivers.
- *  This is very dependent on the clock speed of the target.
- */
-
-#define rtems_bsp_delay( microseconds ) \
-  { register uint32_t         _delay=(microseconds); \
-    register uint32_t         _tmp=123; \
-    __asm__ volatile( "0: \
-                     nbcd      %0 ; \
-                     nbcd      %0 ; \
-                     dbf       %1,0b" \
-                  : "=d" (_tmp), "=d" (_delay) \
-                  : "0"  (_tmp), "1"  (_delay) ); \
-  }
 
 /* Constants */
 
@@ -77,8 +64,37 @@ rtems_isr_entry set_vector(
   int                 type
 );
 
+/*
+ * Prototypes for methods called only from .S files
+ */
+void boot_phase_1(void);
+void boot_phase_2(void);
+void boot_phase_3(void);
+void trace_exception(
+  unsigned long d0,
+  unsigned long d1,
+  unsigned long d2,
+  unsigned long d3,
+  unsigned long d4,
+  unsigned long d5,
+  unsigned long d6,
+  unsigned long d7,
+  unsigned long a0,
+  unsigned long a1,
+  unsigned long a2,
+  unsigned long a3,
+  unsigned long a4,
+  unsigned long a5,
+  unsigned long a6,
+  unsigned long a7,
+  unsigned long sr_pch,
+  unsigned long pcl_format
+);
+
 #ifdef __cplusplus
 }
+#endif
+
 #endif
 
 #endif

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,6 +13,8 @@
 
 #include <tmacros.h>
 #include <rtems/chain.h>
+
+const char rtems_test_name[] = "SPCHAIN";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -106,7 +108,7 @@ static void test_chain_first_and_last(void)
 
   rtems_chain_initialize_empty( &chain );
   rtems_chain_append( &chain, &node1 );
-  rtems_chain_explicit_insert( &chain, &node1, &node2 );
+  rtems_chain_insert( &node1, &node2 );
 
   puts( "INIT - Verify rtems_chain_is_first" );
   cnode = rtems_chain_first(&chain);  
@@ -298,7 +300,7 @@ rtems_task Init(
   test_node            node1, node2;
   int                  id;
 
-  puts( "\n\n*** TEST OF RTEMS CHAIN API ***" );
+  TEST_BEGIN();
 
   puts( "Init - Initialize chain empty" );
   rtems_chain_initialize_empty( &chain1 );
@@ -308,7 +310,7 @@ rtems_task Init(
   node1.id = 1;
   node2.id = 2;
   rtems_chain_append( &chain1, &node1.Node );
-  rtems_chain_explicit_insert( &chain1, &node1.Node, &node2.Node );
+  rtems_chain_insert( &node1.Node, &node2.Node );
 
   for ( p = rtems_chain_first(&chain1), id = 1 ;
         !rtems_chain_is_tail(&chain1, p) ;
@@ -333,7 +335,7 @@ rtems_task Init(
   test_chain_node_count();
   test_chain_insert_ordered();
 
-  puts( "*** END OF RTEMS CHAIN API TEST ***" );
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -341,6 +343,8 @@ rtems_task Init(
 
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 #define CONFIGURE_MAXIMUM_TASKS 1

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -281,6 +281,6 @@ rtems_test_pause();
   puts( "TA1 - rtems_region_delete - walks heap if debug enabled" );
   rtems_region_delete(Region_id[ 1 ]);
 
-  puts( "*** END OF TEST 25 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

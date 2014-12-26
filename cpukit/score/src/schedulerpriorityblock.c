@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -23,12 +23,14 @@
 #include <rtems/score/schedulerpriorityimpl.h>
 
 void _Scheduler_priority_Block(
-  Thread_Control   *the_thread
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
 )
 {
   _Scheduler_Generic_block(
-    _Scheduler_priority_Ready_queue_extract,
-    _Scheduler_priority_Schedule_body,
-    the_thread
+    scheduler,
+    the_thread,
+    _Scheduler_priority_Extract_body,
+    _Scheduler_priority_Schedule_body
   );
 }

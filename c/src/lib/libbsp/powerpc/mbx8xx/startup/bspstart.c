@@ -1,16 +1,14 @@
-/*  bspstart.c
- *
- *  This set of routines starts the application.  It includes application,
- *  board, and monitor specific initialization and configuration.
- *  The generic CPU dependent initialization has been performed
- *  before this routine is invoked.
- *
+/*
+ *  This routine does the bulk of the system initialization.
+ */
+
+/*
  *  COPYRIGHT (c) 1989-2007.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  Modifications for MBX860:
  *  Copyright (c) 1999, National Research Council of Canada
@@ -18,7 +16,9 @@
 
 #include <bsp.h>
 #include <bsp/irq.h>
+#include <bsp/bootcard.h>
 #include <rtems/bspIo.h>
+#include <rtems/counter.h>
 #include <libcpu/cpuIdent.h>
 #include <libcpu/spr.h>
 #include <rtems/powerpc/powerpc.h>
@@ -82,15 +82,13 @@ void _BSP_Fatal_error(unsigned int v)
  */
 void bsp_start(void)
 {
-  ppc_cpu_id_t myCpu;
-  ppc_cpu_revision_t myCpuRevision;
-
   /*
-   * Get CPU identification dynamically. Note that the get_ppc_cpu_type() function
-   * store the result in global variables so that it can be used latter...
+   * Get CPU identification dynamically. Note that the get_ppc_cpu_type()
+   * function stores the result in global variables so that it can be used
+   * later...
    */
-  myCpu 	= get_ppc_cpu_type();
-  myCpuRevision = get_ppc_cpu_revision();
+  get_ppc_cpu_type();
+  get_ppc_cpu_revision();
 
   mmu_init();
 
@@ -113,7 +111,6 @@ void bsp_start(void)
 
   /* Initialize exception handler */
   ppc_exc_initialize(
-    PPC_INTERRUPT_DISABLE_MASK_DEFAULT,
     (uintptr_t) IntrStack_start,
     (uintptr_t) intrStack - (uintptr_t) IntrStack_start
   );
@@ -142,6 +139,7 @@ void bsp_start(void)
 #else
   bsp_clicks_per_usec = 1;  /* for 4MHz extclk */
 #endif
+  rtems_counter_initialize_converter(bsp_clicks_per_usec * 1000000);
 
   bsp_serial_per_sec = 10000000;
   bsp_serial_external_clock = true;

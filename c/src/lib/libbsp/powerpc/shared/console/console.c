@@ -17,7 +17,7 @@
  * Instituto Superior Tecnico * Lisboa * PORTUGAL
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <stdlib.h>
@@ -148,6 +148,7 @@ rtems_device_driver console_initialize(
   return RTEMS_SUCCESSFUL;
 } /* console_initialize */
 
+#if !defined(USE_POLLED_IO)
 static int console_first_open(int major, int minor, void *arg)
 {
   rtems_status_code status;
@@ -174,12 +175,15 @@ static int console_first_open(int major, int minor, void *arg)
 
   return 0;
 }
+#endif
 
+#if !defined(USE_POLLED_IO)
 static int console_last_close(int major, int minor, void *arg)
 {
   BSP_uart_remove_isr(minor, ttyS[minor].isr);
   return 0;
 }
+#endif
 
 /*-------------------------------------------------------------------------+
 | Console device driver OPEN entry point

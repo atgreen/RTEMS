@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if   defined(USE_WAIT)
@@ -30,10 +30,12 @@
 #include <sched.h>
 #include <timesys.h>
 #include <tmacros.h>
-#include <rtems/timerdrv.h>
+#include <rtems/btimer.h>
 #include "test_support.h"
 
 #include <pthread.h>
+
+const char rtems_test_name[] = "PSXTMCOND 08";
 
 /* forward declarations to avoid warnings */
 void *POSIX_Init(void *argument);
@@ -48,7 +50,7 @@ void *Low(
   void *argument
 )
 {
-  long end_time;
+  uint32_t end_time;
 
   end_time = benchmark_timer_read();
 
@@ -60,7 +62,7 @@ void *Low(
     0
   );
 
-  puts( "*** END OF POSIX TIME TEST PSXTMCOND" TEST_NUMBER " ***" );
+  TEST_END();
 
   rtems_test_exit( 0 );
   return NULL;
@@ -123,7 +125,7 @@ void *POSIX_Init(
   int             rc;
   struct timeval  tp;
 
-  puts( "\n\n*** POSIX TIME TEST PSXTMCOND" TEST_NUMBER " ***" );
+  TEST_BEGIN();
 
   rc =  gettimeofday(&tp, NULL);
   rtems_test_assert( rc == 0 );

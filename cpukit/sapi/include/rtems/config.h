@@ -8,12 +8,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2011.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_CONFIG_H
@@ -57,7 +57,6 @@ typedef void *posix_api_configuration_table;
 #include <rtems/rtems/config.h>
 
 #include <rtems/extension.h>
-#include <rtems/io.h>
 #if defined(RTEMS_MULTIPROCESSING)
 #include <rtems/score/mpci.h>
 #endif
@@ -143,6 +142,22 @@ typedef struct {
    */
   uint32_t                       maximum_extensions;
 
+  /**
+   * This field contains the maximum number of POSIX API
+   * keys which are configured for this application.
+   */
+  uint32_t                       maximum_keys;
+
+  /**
+   * This field contains the maximum number of POSIX API
+   * key value pairs which are configured for this application.
+   *
+   * @note There can be potentially be a key/value pair for
+   *       every thread to use every key. But normally this
+   *       many are not needed in a system.
+   */
+  uint32_t                            maximum_key_value_pairs;
+
   /** 
    * This field specifies the number of microseconds which elapse
    * between clock ticks.  This is the basis for RTEMS timing.
@@ -226,9 +241,6 @@ typedef struct {
     bool                         smp_enabled;
   #endif
 
-  uint32_t                       maximum_drivers;
-  uint32_t                       number_of_device_drivers;
-  rtems_driver_address_table    *Device_driver_table;
   uint32_t                       number_of_initial_extensions;
   const rtems_extensions_table  *User_extension_table;
   #if defined(RTEMS_MULTIPROCESSING)
@@ -318,15 +330,6 @@ extern const rtems_configuration_table Configuration;
   */
 #define rtems_configuration_get_do_zero_of_workspace() \
    (Configuration.do_zero_of_workspace)
-
-#define rtems_configuration_get_maximum_drivers() \
-        (Configuration.maximum_drivers)
-
-#define rtems_configuration_get_number_of_device_drivers() \
-        (Configuration.number_of_device_drivers)
-
-#define rtems_configuration_get_device_driver_table() \
-        (Configuration.Device_driver_table)
 
 #define rtems_configuration_get_number_of_initial_extensions() \
         (Configuration.number_of_initial_extensions)

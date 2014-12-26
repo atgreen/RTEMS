@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -125,6 +125,6 @@ rtems_task Task_1(
   status = rtems_partition_delete( ptid_2 );
   directive_failed( status, "rtems_partition_delete" );
 
-  puts( "*** END OF TEST 15 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

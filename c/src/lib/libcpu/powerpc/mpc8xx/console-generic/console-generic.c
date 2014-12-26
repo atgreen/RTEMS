@@ -39,7 +39,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
@@ -50,15 +50,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
+#include <bsp.h>
 #include <bsp/irq.h>
 #include <rtems/bspIo.h>   /* for printk */
-
-int BSP_irq_enabled_at_cpm(const rtems_irq_number irqLine);
-
-/* BSP supplied routine */
-extern int mbx8xx_console_get_configuration(void);
-
-extern uint32_t bsp_clock_speed;
 
 /*
  * Interrupt-driven input buffer
@@ -574,7 +568,7 @@ m8xx_smc2_interrupt_handler (void *unused)
   }
 }
 
-void m8xx_scc_enable(const rtems_irq_connect_data* ptr)
+static void m8xx_scc_enable(const rtems_irq_connect_data* ptr)
 {
   volatile m8xxSCCRegisters_t *sccregs = 0;
   switch (ptr->name) {
@@ -598,7 +592,7 @@ void m8xx_scc_enable(const rtems_irq_connect_data* ptr)
   sccregs->sccm = 3;
 }
 
-void m8xx_scc_disable(const rtems_irq_connect_data* ptr)
+static void m8xx_scc_disable(const rtems_irq_connect_data* ptr)
 {
   volatile m8xxSCCRegisters_t *sccregs = 0;
   switch (ptr->name) {
@@ -622,7 +616,7 @@ void m8xx_scc_disable(const rtems_irq_connect_data* ptr)
   sccregs->sccm &= (~3);
 }
 
-int m8xx_scc_isOn(const rtems_irq_connect_data* ptr)
+static int m8xx_scc_isOn(const rtems_irq_connect_data* ptr)
 {
  return BSP_irq_enabled_at_cpm (ptr->name);
 }
@@ -835,7 +829,7 @@ m8xx_uart_scc_initialize (int minor)
   }
 }
 
-void m8xx_smc_enable(const rtems_irq_connect_data* ptr)
+static void m8xx_smc_enable(const rtems_irq_connect_data* ptr)
 {
   volatile m8xxSMCRegisters_t *smcregs = 0;
   switch (ptr->name) {
@@ -851,7 +845,7 @@ void m8xx_smc_enable(const rtems_irq_connect_data* ptr)
   smcregs->smcm = 3;
 }
 
-void m8xx_smc_disable(const rtems_irq_connect_data* ptr)
+static void m8xx_smc_disable(const rtems_irq_connect_data* ptr)
 {
   volatile m8xxSMCRegisters_t *smcregs = 0;
   switch (ptr->name) {
@@ -867,7 +861,7 @@ void m8xx_smc_disable(const rtems_irq_connect_data* ptr)
   smcregs->smcm &= (~3);
 }
 
-int m8xx_smc_isOn(const rtems_irq_connect_data* ptr)
+static int m8xx_smc_isOn(const rtems_irq_connect_data* ptr)
 {
  return BSP_irq_enabled_at_cpm (ptr->name);
 }

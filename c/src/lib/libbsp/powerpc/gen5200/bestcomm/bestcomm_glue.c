@@ -11,7 +11,7 @@
 | The license and distribution terms for this file may be         |
 | found in the file LICENSE in this distribution or at            |
 |                                                                 |
-| http://www.rtems.com/license/LICENSE.                           |
+| http://www.rtems.org/license/LICENSE.                           |
 |                                                                 |
 +-----------------------------------------------------------------+
 | this file contains glue functions to the Freescale BestComm API |
@@ -127,7 +127,7 @@ void bestcomm_glue_irq_install
 /*=========================================================================*\
 | Function:                                                                 |
 \*-------------------------------------------------------------------------*/
-void bestcomm_glue_irq_dispatcher
+static void bestcomm_glue_irq_dispatcher
 (
 /*-------------------------------------------------------------------------*\
 | Purpose:                                                                  |

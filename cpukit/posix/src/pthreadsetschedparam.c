@@ -10,12 +10,12 @@
  *         P1003.1c/Draft 10, p. 124
  */
 
-/*  COPYRIGHT (c) 1989-2007.
+/*  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -30,6 +30,7 @@
 #include <rtems/posix/time.h>
 #include <rtems/score/threadimpl.h>
 #include <rtems/score/watchdogimpl.h>
+#include <rtems/config.h>
 
 int pthread_setschedparam(
   pthread_t           thread,
@@ -37,7 +38,7 @@ int pthread_setschedparam(
   struct sched_param *param
 )
 {
-  register Thread_Control             *the_thread;
+  Thread_Control                      *the_thread;
   POSIX_API_Control                   *api;
   Thread_CPU_budget_algorithms         budget_algorithm;
   Thread_CPU_budget_algorithm_callout  budget_callout;
@@ -73,6 +74,9 @@ int pthread_setschedparam(
 
       api->schedpolicy = policy;
       api->schedparam  = *param;
+      api->Attributes.schedpolicy = policy;
+      api->Attributes.schedparam  = *param;
+
       the_thread->budget_algorithm = budget_algorithm;
       the_thread->budget_callout   = budget_callout;
 
@@ -80,7 +84,8 @@ int pthread_setschedparam(
         case SCHED_OTHER:
         case SCHED_FIFO:
         case SCHED_RR:
-          the_thread->cpu_time_budget = _Thread_Ticks_per_timeslice;
+          the_thread->cpu_time_budget =
+            rtems_configuration_get_ticks_per_timeslice();
 
           the_thread->real_priority =
             _POSIX_Priority_To_core( api->schedparam.sched_priority );

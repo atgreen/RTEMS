@@ -3,7 +3,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -15,7 +15,10 @@
 #include <fcntl.h>
 
 #include "fstest.h"
+#include "fs_config.h"
 #include "pmacros.h"
+
+const char rtems_test_name[] = "FSSTATVFS " FILESYSTEM;
 
 static void statvfs_validate(struct statvfs *stat)
 {
@@ -82,7 +85,5 @@ static void statvfs_test01(void)
  */
 void test(void)
 {
-  puts( "\n\n*** STATVFS TEST ***");
   statvfs_test01();
-  puts( "*** END OF TEST STATVFS ***");
 }

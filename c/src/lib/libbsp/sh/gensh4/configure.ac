@@ -1,7 +1,7 @@
 ## Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([rtems-c-src-lib-libbsp-sh-gensh4],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-c-src-lib-libbsp-sh-gensh4],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([bsp_specs])
 RTEMS_TOP(../../../../../..)
 
@@ -23,12 +23,13 @@ AC_DEFINE_UNQUOTED(
 #  START_HW_INIT
 #	This switch selects whether 'early_hw_init()' is called from
 #	'start.S'; 'bsp_hw_init()' is always called from 'bspstart.c'
-#
-START_HW_INIT=${START_HW_INIT-1}
-AC_DEFINE_UNQUOTED(
-  [START_HW_INIT],
-  [$START_HW_INIT],
-  [Whether to call early_hw_init from start.S])
+RTEMS_BSPOPTS_SET([START_HW_INIT],[*],[0])
+RTEMS_BSPOPTS_HELP([START_HW_INIT],
+   [Whether to call early_hw_init from start.S])
+
+RTEMS_BSPOPTS_SET([COPY_DATA_FROM_ROM],[*],[0])
+RTEMS_BSPOPTS_HELP([COPY_DATA_FROM_ROM],
+   [Whether to copy data from ROM to RAM in start.S])
 
 RTEMS_BSP_CLEANUP_OPTIONS(0, 0)
 

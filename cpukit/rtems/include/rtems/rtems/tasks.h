@@ -28,12 +28,12 @@
  */
 
 /*
- * COPYRIGHT (c) 1989-2011.
+ * COPYRIGHT (c) 1989-2014.
  * On-Line Applications Research Corporation (OAR).
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_TASKS_H
@@ -449,17 +449,18 @@ rtems_status_code rtems_task_wake_after(
  *
  *  This directive returns a status indicating whether or not
  *  the specified task is suspended.
- *
- *  RTEMS Task Manager
  */
 rtems_status_code rtems_task_is_suspended(
   rtems_id   id
 );
 
+#if !defined(RTEMS_SMP)
 /**
  *  @brief RTEMS Add Task Variable
  *
  *  This directive adds a per task variable.
+ *
+ *  @note This service is not available in SMP configurations.
  */
 rtems_status_code rtems_task_variable_add(
   rtems_id  tid,
@@ -470,9 +471,9 @@ rtems_status_code rtems_task_variable_add(
 /**
  *  @brief Get a per-task variable
  *
- *  RTEMS Task Variable Get
- *
  *  This directive gets the value of a task variable.
+ *
+ *  @note This service is not available in SMP configurations.
  */
 rtems_status_code rtems_task_variable_get(
   rtems_id tid,
@@ -484,10 +485,107 @@ rtems_status_code rtems_task_variable_get(
  *  @brief RTEMS Delete Task Variable
  *
  *  This directive removes a per task variable.
+ *
+ *  @note This service is not available in SMP configurations.
  */
 rtems_status_code rtems_task_variable_delete(
   rtems_id  tid,
   void    **ptr
+);
+#endif
+
+#if defined(__RTEMS_HAVE_SYS_CPUSET_H__)
+/**
+ * @brief Gets the processor affinity set of a task.
+ *
+ * @param[in] id Identifier of the task.  Use @ref RTEMS_SELF to select the
+ * executing task.
+ * @param[in] cpusetsize Size of the specified affinity set buffer in
+ * bytes.  This value must be positive.
+ * @param[out] cpuset The current processor affinity set of the task.  A set
+ * bit in the affinity set means that the task can execute on this processor
+ * and a cleared bit means the opposite.
+ *
+ * @retval RTEMS_SUCCESSFUL Successful operation.
+ * @retval RTEMS_INVALID_ADDRESS The @a cpuset parameter is @c NULL.
+ * @retval RTEMS_INVALID_ID Invalid task identifier.
+ * @retval RTEMS_INVALID_NUMBER The affinity set buffer is too small for the
+ * current processor affinity set of the task.
+ */
+rtems_status_code rtems_task_get_affinity(
+  rtems_id             id,
+  size_t               cpusetsize,
+  cpu_set_t           *cpuset
+);
+
+/**
+ * @brief Sets the processor affinity set of a task.
+ *
+ * This function will not change the scheduler of the task.  The intersection
+ * of the processor affinity set and the set of processors owned by the
+ * scheduler of the task must be non-empty.  It is not an error if the
+ * processor affinity set contains processors that are not part of the set of
+ * processors owned by the scheduler instance of the task.  A task will simply
+ * not run under normal circumstances on these processors since the scheduler
+ * ignores them.  Some locking protocols may temporarily use processors that
+ * are not included in the processor affinity set of the task.  It is also not
+ * an error if the processor affinity set contains processors that are not part
+ * of the system.
+ *
+ * @param[in] id Identifier of the task.  Use @ref RTEMS_SELF to select the
+ * executing task.
+ * @param[in] cpusetsize Size of the specified affinity set buffer in
+ * bytes.  This value must be positive.
+ * @param[in] cpuset The new processor affinity set for the task.  A set bit in
+ * the affinity set means that the task can execute on this processor and a
+ * cleared bit means the opposite.
+ *
+ * @retval RTEMS_SUCCESSFUL Successful operation.
+ * @retval RTEMS_INVALID_ADDRESS The @a cpuset parameter is @c NULL.
+ * @retval RTEMS_INVALID_ID Invalid task identifier.
+ * @retval RTEMS_INVALID_NUMBER Invalid processor affinity set.
+ */
+rtems_status_code rtems_task_set_affinity(
+  rtems_id         id,
+  size_t           cpusetsize,
+  const cpu_set_t *cpuset
+);
+#endif
+
+/**
+ * @brief Gets the scheduler of a task.
+ *
+ * @param[in] task_id Identifier of the task.  Use @ref RTEMS_SELF to select
+ * the executing task.
+ * @param[out] scheduler_id Identifier of the scheduler.
+ *
+ * @retval RTEMS_SUCCESSFUL Successful operation.
+ * @retval RTEMS_INVALID_ADDRESS The @a scheduler_id parameter is @c NULL.
+ * @retval RTEMS_INVALID_ID Invalid task identifier.
+ */
+rtems_status_code rtems_task_get_scheduler(
+  rtems_id  task_id,
+  rtems_id *scheduler_id
+);
+
+/**
+ * @brief Sets the scheduler of a task.
+ *
+ * The scheduler of a task is initialized to the scheduler of the task that
+ * created it.
+ *
+ * @param[in] task_id Identifier of the task.  Use @ref RTEMS_SELF to select
+ * the executing task.
+ * @param[in] scheduler_id Identifier of the scheduler.
+ *
+ * @retval RTEMS_SUCCESSFUL Successful operation.
+ * @retval RTEMS_INVALID_ID Invalid task or scheduler identifier.
+ *
+ * @see rtems_scheduler_ident().
+ */
+rtems_status_code rtems_task_set_scheduler(
+  rtems_id task_id,
+  rtems_id scheduler_id
 );
 
 /**
@@ -496,6 +594,49 @@ rtems_status_code rtems_task_variable_delete(
  *  This directive returns the ID of the currently executing task.
  */
 rtems_id rtems_task_self(void);
+
+/**
+ * @brief Identifies a scheduler by its name.
+ *
+ * The scheduler name is determined by the scheduler configuration.
+ *
+ * @param[in] name The scheduler name.
+ * @param[out] id The scheduler identifier associated with the name.
+ *
+ * @retval RTEMS_SUCCESSFUL Successful operation.
+ * @retval RTEMS_INVALID_ADDRESS The @a id parameter is @c NULL.
+ * @retval RTEMS_INVALID_NAME Invalid scheduler name.
+ * @retval RTEMS_UNSATISFIED A scheduler with this name exists, but the
+ * processor set of this scheduler is empty.
+ */
+rtems_status_code rtems_scheduler_ident(
+  rtems_name  name,
+  rtems_id   *id
+);
+
+#if defined(__RTEMS_HAVE_SYS_CPUSET_H__)
+/**
+ * @brief Gets the set of processors owned by the scheduler.
+ *
+ * @param[in] scheduler_id Identifier of the scheduler.
+ * @param[in] cpusetsize Size of the specified processor set buffer in
+ * bytes.  This value must be positive.
+ * @param[out] cpuset The processor set owned by the scheduler.  A set bit in
+ * the processor set means that this processor is owned by the scheduler and a
+ * cleared bit means the opposite.
+ *
+ * @retval RTEMS_SUCCESSFUL Successful operation.
+ * @retval RTEMS_INVALID_ADDRESS The @a cpuset parameter is @c NULL.
+ * @retval RTEMS_INVALID_ID Invalid scheduler identifier.
+ * @retval RTEMS_INVALID_NUMBER The processor set buffer is too small for the
+ * set of processors owned by the scheduler.
+ */
+rtems_status_code rtems_scheduler_get_processor_set(
+  rtems_id   scheduler_id,
+  size_t     cpusetsize,
+  cpu_set_t *cpuset
+);
+#endif
 
 /**@}*/
 
@@ -514,12 +655,18 @@ typedef struct {
   Event_Control            System_event;
   /** This field contains the Classic API Signal information for this task. */
   ASR_Information          Signal;
+
+  /**
+   * @brief Signal post-switch action in case signals are pending.
+   */
+  Thread_Action            Signal_action;
+
   /**
    *  This field contains the notepads for this task.
    *
    *  @note MUST BE LAST ENTRY.
    */
-  uint32_t                 Notepads[ RTEMS_NUMBER_NOTEPADS ];
+  uint32_t                 Notepads[ RTEMS_ZERO_LENGTH_ARRAY ];
 }  RTEMS_API_Control;
 
 /**

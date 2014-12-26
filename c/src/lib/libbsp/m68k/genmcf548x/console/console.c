@@ -34,7 +34,7 @@
 | The license and distribution terms for this file may be         |
 | found in the file LICENSE in this distribution or at            |
 |                                                                 |
-| http://www.rtems.com/license/LICENSE.                           |
+| http://www.rtems.org/license/LICENSE.                           |
 |                                                                 |
 +-----------------------------------------------------------------+
 |                                                                 |
@@ -457,7 +457,6 @@ IntUartInitialize(void)
     unsigned int        chan;
 	struct IntUartInfoStruct   *info;
 	rtems_isr_entry old_handler;
-    int level;
 
 	for ( chan = 0; chan < MAX_UART_INFO; chan++ )
 	{
@@ -833,26 +832,3 @@ rtems_device_driver console_control(
 {
     return( rtems_termios_ioctl (arg) );
 }
-
-
-int DEBUG_OUTCHAR(int c)
-{
-    if(c == '\n')
-        DEBUG_OUTCHAR('\r');
-    _BSP_null_char(c);
-    return c;
-}
-void DEBUG_OUTSTR(const char *msg)
-{
-    while (*msg)
-        DEBUG_OUTCHAR(*msg++);
-}
-void DEBUG_OUTNUM(int i)
-{
-    int n;
-    static const char map[] = "0123456789ABCDEF";
-    DEBUG_OUTCHAR(' ');
-    for (n = 28 ; n >= 0 ; n -= 4)
-        DEBUG_OUTCHAR(map[(i >> n) & 0xF]);
-}
-

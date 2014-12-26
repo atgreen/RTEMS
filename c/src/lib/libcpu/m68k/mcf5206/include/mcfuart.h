@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef __MCFUART_H__
@@ -34,7 +34,7 @@ typedef struct mcfuart {
                                                 0 if polled I/O */
    void               *tty;              /* termios channel descriptor */
 
-   volatile const uint8_t  *tx_buf;      /* Transmit buffer from termios */
+   volatile const char     *tx_buf;      /* Transmit buffer from termios */
    volatile uint32_t        tx_buf_len;  /* Transmit buffer length */
    volatile uint32_t        tx_ptr;      /* Index of next char to transmit*/
    rtems_isr_entry          old_handler; /* Saved interrupt handler */

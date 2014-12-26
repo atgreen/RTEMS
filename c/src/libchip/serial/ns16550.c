@@ -27,7 +27,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <stdlib.h>
@@ -57,6 +57,87 @@
     #define BSP_FEATURE_IRQ_LEGACY_SHARED_HANDLER_SUPPORT
   #endif
 #endif
+
+typedef struct {
+  uint8_t ucModemCtrl;
+  int transmitFifoChars;
+} NS16550Context;
+
+/*
+ * Driver functions
+ */
+
+NS16550_STATIC void ns16550_init(int minor);
+
+NS16550_STATIC int ns16550_open(
+  int major,
+  int minor,
+  void  * arg
+);
+
+NS16550_STATIC int ns16550_close(
+  int major,
+  int minor,
+  void  * arg
+);
+
+NS16550_STATIC void ns16550_write_polled(
+  int   minor,
+  char  cChar
+);
+
+NS16550_STATIC int ns16550_assert_RTS(
+  int minor
+);
+
+NS16550_STATIC int ns16550_negate_RTS(
+  int minor
+);
+
+NS16550_STATIC int ns16550_assert_DTR(
+  int minor
+);
+
+NS16550_STATIC int ns16550_negate_DTR(
+  int minor
+);
+
+NS16550_STATIC void ns16550_initialize_interrupts(int minor);
+
+NS16550_STATIC void ns16550_cleanup_interrupts(int minor);
+
+NS16550_STATIC ssize_t ns16550_write_support_int(
+  int   minor,
+  const char *buf,
+  size_t len
+);
+
+NS16550_STATIC ssize_t ns16550_write_support_polled(
+  int   minor,
+  const char *buf,
+  size_t len
+  );
+
+int ns16550_inbyte_nonblocking_polled(
+  int minor
+);
+
+NS16550_STATIC void ns16550_enable_interrupts(
+  console_tbl *c,
+  int         mask
+);
+
+NS16550_STATIC int ns16550_set_attributes(
+  int                   minor,
+  const struct termios *t
+);
+
+#if defined(BSP_FEATURE_IRQ_EXTENSION) || defined(BSP_FEATURE_IRQ_LEGACY)
+  NS16550_STATIC void ns16550_isr(void *arg);
+#endif
+
+static rtems_interrupt_lock ns16550_lock =
+  RTEMS_INTERRUPT_LOCK_INITIALIZER("NS16550");
 
 /*
  * Flow control is only supported when using interrupts
@@ -139,12 +220,12 @@ void ns16550_init(int minor)
   uintptr_t               pNS16550;
   uint8_t                 ucDataByte;
   uint32_t                ulBaudDivisor;
-  ns16550_context        *pns16550Context;
+  NS16550Context        *pns16550Context;
   setRegister_f           setReg;
   getRegister_f           getReg;
   console_tbl             *c = Console_Port_Tbl [minor];
 
-  pns16550Context=(ns16550_context *)malloc(sizeof(ns16550_context));
+  pns16550Context=(NS16550Context *)malloc(sizeof(NS16550Context));
 
   if (pns16550Context == NULL) {
     printk( "%s: Error: Not enough memory\n", __func__);
@@ -271,7 +352,7 @@ void ns16550_outch_polled(console_tbl *c, char out)
   getRegister_f get = c->getRegister;
   setRegister_f set = c->setRegister;
   uint32_t status = 0;
-  rtems_interrupt_level level;
+  rtems_interrupt_lock_context lock_context;
 
   /* Save port interrupt mask */
   uint32_t interrupt_mask = get( port, NS16550_INTERRUPT_ENABLE);
@@ -281,7 +362,7 @@ void ns16550_outch_polled(console_tbl *c, char out)
 
   while (true) {
     /* Try to transmit the character in a critical section */
-    rtems_interrupt_disable( level);
+    rtems_interrupt_lock_acquire(&ns16550_lock, &lock_context);
 
     /* Read the transmitter holding register and check it */
     status = get( port, NS16550_LINE_STATUS);
@@ -290,10 +371,10 @@ void ns16550_outch_polled(console_tbl *c, char out)
       set( port, NS16550_TRANSMIT_BUFFER, out);
 
       /* Finished */
-      rtems_interrupt_enable( level);
+      rtems_interrupt_lock_release(&ns16550_lock, &lock_context);
       break;
     } else {
-      rtems_interrupt_enable( level);
+      rtems_interrupt_lock_release(&ns16550_lock, &lock_context);
     }
 
     /* Wait for transmitter holding register to be empty */
@@ -324,11 +405,11 @@ void ns16550_write_polled(int minor, char out)
 NS16550_STATIC int ns16550_assert_RTS(int minor)
 {
   uint32_t                pNS16550;
-  uint32_t                Irql;
-  ns16550_context        *pns16550Context;
+  rtems_interrupt_lock_context lock_context;
+  NS16550Context        *pns16550Context;
   setRegister_f           setReg;
 
-  pns16550Context=(ns16550_context *) Console_Port_Data[minor].pDeviceContext;
+  pns16550Context=(NS16550Context *) Console_Port_Data[minor].pDeviceContext;
 
   pNS16550 = Console_Port_Tbl[minor]->ulCtrlPort1;
   setReg   = Console_Port_Tbl[minor]->setRegister;
@@ -336,10 +417,10 @@ NS16550_STATIC int ns16550_assert_RTS(int minor)
   /*
    * Assert RTS
    */
-  rtems_interrupt_disable(Irql);
+  rtems_interrupt_lock_acquire(&ns16550_lock, &lock_context);
   pns16550Context->ucModemCtrl|=SP_MODEM_RTS;
   (*setReg)(pNS16550, NS16550_MODEM_CONTROL, pns16550Context->ucModemCtrl);
-  rtems_interrupt_enable(Irql);
+  rtems_interrupt_lock_release(&ns16550_lock, &lock_context);
   return 0;
 }
 
@@ -350,11 +431,11 @@ NS16550_STATIC int ns16550_assert_RTS(int minor)
 NS16550_STATIC int ns16550_negate_RTS(int minor)
 {
   uint32_t                pNS16550;
-  uint32_t                Irql;
-  ns16550_context        *pns16550Context;
+  rtems_interrupt_lock_context lock_context;
+  NS16550Context        *pns16550Context;
   setRegister_f           setReg;
 
-  pns16550Context=(ns16550_context *) Console_Port_Data[minor].pDeviceContext;
+  pns16550Context=(NS16550Context *) Console_Port_Data[minor].pDeviceContext;
 
   pNS16550 = Console_Port_Tbl[minor]->ulCtrlPort1;
   setReg   = Console_Port_Tbl[minor]->setRegister;
@@ -362,10 +443,10 @@ NS16550_STATIC int ns16550_negate_RTS(int minor)
   /*
    * Negate RTS
    */
-  rtems_interrupt_disable(Irql);
+  rtems_interrupt_lock_acquire(&ns16550_lock, &lock_context);
   pns16550Context->ucModemCtrl&=~SP_MODEM_RTS;
   (*setReg)(pNS16550, NS16550_MODEM_CONTROL, pns16550Context->ucModemCtrl);
-  rtems_interrupt_enable(Irql);
+  rtems_interrupt_lock_release(&ns16550_lock, &lock_context);
   return 0;
 }
 
@@ -381,11 +462,11 @@ NS16550_STATIC int ns16550_negate_RTS(int minor)
 NS16550_STATIC int ns16550_assert_DTR(int minor)
 {
   uint32_t                pNS16550;
-  uint32_t                Irql;
-  ns16550_context        *pns16550Context;
+  rtems_interrupt_lock_context lock_context;
+  NS16550Context        *pns16550Context;
   setRegister_f           setReg;
 
-  pns16550Context=(ns16550_context *) Console_Port_Data[minor].pDeviceContext;
+  pns16550Context=(NS16550Context *) Console_Port_Data[minor].pDeviceContext;
 
   pNS16550 = Console_Port_Tbl[minor]->ulCtrlPort1;
   setReg   = Console_Port_Tbl[minor]->setRegister;
@@ -393,10 +474,10 @@ NS16550_STATIC int ns16550_assert_DTR(int minor)
   /*
    * Assert DTR
    */
-  rtems_interrupt_disable(Irql);
+  rtems_interrupt_lock_acquire(&ns16550_lock, &lock_context);
   pns16550Context->ucModemCtrl|=SP_MODEM_DTR;
   (*setReg)(pNS16550, NS16550_MODEM_CONTROL, pns16550Context->ucModemCtrl);
-  rtems_interrupt_enable(Irql);
+  rtems_interrupt_lock_release(&ns16550_lock, &lock_context);
   return 0;
 }
 
@@ -407,11 +488,11 @@ NS16550_STATIC int ns16550_assert_DTR(int minor)
 NS16550_STATIC int ns16550_negate_DTR(int minor)
 {
   uint32_t                pNS16550;
-  uint32_t                Irql;
-  ns16550_context        *pns16550Context;
+  rtems_interrupt_lock_context lock_context;
+  NS16550Context        *pns16550Context;
   setRegister_f           setReg;
 
-  pns16550Context=(ns16550_context *) Console_Port_Data[minor].pDeviceContext;
+  pns16550Context=(NS16550Context *) Console_Port_Data[minor].pDeviceContext;
 
   pNS16550 = Console_Port_Tbl[minor]->ulCtrlPort1;
   setReg   = Console_Port_Tbl[minor]->setRegister;
@@ -419,10 +500,10 @@ NS16550_STATIC int ns16550_negate_DTR(int minor)
   /*
    * Negate DTR
    */
-  rtems_interrupt_disable(Irql);
+  rtems_interrupt_lock_acquire(&ns16550_lock, &lock_context);
   pns16550Context->ucModemCtrl&=~SP_MODEM_DTR;
   (*setReg)(pNS16550, NS16550_MODEM_CONTROL,pns16550Context->ucModemCtrl);
-  rtems_interrupt_enable(Irql);
+  rtems_interrupt_lock_release(&ns16550_lock, &lock_context);
   return 0;
 }
 
@@ -443,7 +524,7 @@ int ns16550_set_attributes(
   uint8_t                 ucLineControl;
   uint32_t                baud_requested;
   setRegister_f           setReg;
-  uint32_t                Irql;
+  rtems_interrupt_lock_context lock_context;
   const console_tbl      *c = Console_Port_Tbl [minor];
 
   pNS16550 = c->ulCtrlPort1;
@@ -451,9 +532,12 @@ int ns16550_set_attributes(
 
   /*
    *  Calculate the baud rate divisor
+   *
+   *  Assert ensures there is no division by 0.
    */
 
   baud_requested = rtems_termios_baud_to_number(t->c_cflag);
+  _Assert( baud_requested != 0 );
   ulBaudDivisor = NS16550_GetBaudDivisor(c, baud_requested);
 
   ucLineControl = 0;
@@ -497,7 +581,7 @@ int ns16550_set_attributes(
    *  Now actually set the chip
    */
 
-  rtems_interrupt_disable(Irql);
+  rtems_interrupt_lock_acquire(&ns16550_lock, &lock_context);
 
     /*
      *  Set the baud rate
@@ -516,7 +600,7 @@ int ns16550_set_attributes(
      */
     (*setReg)(pNS16550, NS16550_LINE_CONTROL, ucLineControl );
 
-  rtems_interrupt_enable(Irql);
+  rtems_interrupt_lock_release(&ns16550_lock, &lock_context);
 
   return 0;
 }
@@ -530,7 +614,7 @@ NS16550_STATIC void ns16550_process( int minor)
 {
   console_tbl *c = Console_Port_Tbl [minor];
   console_data *d = &Console_Port_Data [minor];
-  ns16550_context *ctx = d->pDeviceContext;
+  NS16550Context *ctx = d->pDeviceContext;
   uint32_t port = c->ulCtrlPort1;
   getRegister_f get = c->getRegister;
   int i = 0;
@@ -581,7 +665,7 @@ ssize_t ns16550_write_support_int(
 {
   console_tbl *c = Console_Port_Tbl [minor];
   console_data *d = &Console_Port_Data [minor];
-  ns16550_context *ctx = d->pDeviceContext;
+  NS16550Context *ctx = d->pDeviceContext;
   uint32_t port = c->ulCtrlPort1;
   setRegister_f set = c->setRegister;
   int i = 0;

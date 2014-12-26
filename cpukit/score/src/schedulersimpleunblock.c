@@ -11,23 +11,25 @@
  *
  *  The license and distribution terms for this file may be
  *  found in found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <rtems/system.h>
-#include <rtems/score/isr.h>
-#include <rtems/score/schedulersimple.h>
+#include <rtems/score/schedulersimpleimpl.h>
 #include <rtems/score/thread.h>
 
-void _Scheduler_simple_Unblock(
-  Thread_Control    *the_thread
+Scheduler_Void_or_thread _Scheduler_simple_Unblock(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
 )
 {
-  _Scheduler_simple_Ready_queue_enqueue(the_thread);
+  Scheduler_simple_Context *context =
+    _Scheduler_simple_Get_context( scheduler );
+
+  _Scheduler_simple_Insert_priority_fifo( &context->Ready, the_thread );
 
   /*
    *  If the thread that was unblocked is more important than the heir,
@@ -47,4 +49,6 @@ void _Scheduler_simple_Unblock(
         the_thread->current_priority == 0 )
       _Thread_Dispatch_necessary = true;
   }
+
+  SCHEDULER_RETURN_VOID_OR_NULL;
 }

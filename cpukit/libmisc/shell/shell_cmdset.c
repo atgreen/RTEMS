@@ -8,7 +8,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -29,6 +29,7 @@
 #include <rtems.h>
 #include <rtems/shell.h>
 #include <rtems/shellconfig.h>
+#include <rtems/libio_.h>
 #include "internal.h"
 
 /*
@@ -108,24 +109,28 @@ rtems_shell_cmd_t *rtems_shell_add_cmd_struct(
   rtems_shell_cmd_t *shell_cmd
 )
 {
-  rtems_shell_cmd_t *shell_pvt;
+  rtems_shell_cmd_t **next_ptr = &rtems_shell_first_cmd;
+  rtems_shell_cmd_t *existing;
 
-  shell_pvt = rtems_shell_first_cmd;
-  while (shell_pvt) {
-    if (strcmp(shell_pvt->name, shell_cmd->name) == 0)
+  /*
+   * Iterate through all commands and check if a command with this name is
+   * already present.
+   */
+  while ((existing = *next_ptr) != NULL) {
+    if (strcmp(existing->name, shell_cmd->name) == 0)
       return NULL;
-    shell_pvt = shell_pvt->next;
+
+    next_ptr = &existing->next;
   }
 
-  if ( !rtems_shell_first_cmd ) {
-    rtems_shell_first_cmd = shell_cmd;
-  } else {
-    shell_pvt = rtems_shell_first_cmd;
-    while (shell_pvt->next)
-      shell_pvt = shell_pvt->next;
-    shell_pvt->next = shell_cmd;
-  }
+  /* Ensure that the user can read and execute commands */
+  shell_cmd->mode |= S_IRUSR | S_IXUSR;
+
+  /* Append */
+  *next_ptr = shell_cmd;
+
   rtems_shell_add_topic( shell_cmd->topic );
+
   return shell_cmd;
 }
 
@@ -151,7 +156,7 @@ rtems_shell_cmd_t * rtems_shell_add_cmd(
   }
 
   /* Allocate command stucture */
-  shell_cmd = (rtems_shell_cmd_t *) malloc(sizeof(rtems_shell_cmd_t));
+  shell_cmd = (rtems_shell_cmd_t *) calloc(1, sizeof(*shell_cmd));
   if (shell_cmd == NULL) {
     return NULL;
   }
@@ -166,8 +171,6 @@ rtems_shell_cmd_t * rtems_shell_add_cmd(
   shell_cmd->topic   = my_topic;
   shell_cmd->usage   = my_usage;
   shell_cmd->command = command;
-  shell_cmd->alias   = NULL;
-  shell_cmd->next    = NULL;
 
   if (rtems_shell_add_cmd_struct(shell_cmd) == NULL) {
     /* Something is wrong, free allocated resources */
@@ -180,23 +183,6 @@ rtems_shell_cmd_t * rtems_shell_add_cmd(
   }
 
   return shell_cmd;
-}
-
-
-void rtems_shell_initialize_command_set(void)
-{
-  rtems_shell_cmd_t **c;
-  rtems_shell_alias_t **a;
-
-  for ( c = rtems_shell_Initial_commands ; *c  ; c++ ) {
-    rtems_shell_add_cmd_struct( *c );
-  }
-
-  for ( a = rtems_shell_Initial_aliases ; *a  ; a++ ) {
-    rtems_shell_alias_cmd( (*a)->name, (*a)->alias );
-  }
-
-  rtems_shell_register_monitor_commands();
 }
 
 /* ----------------------------------------------- *
@@ -224,9 +210,58 @@ rtems_shell_cmd_t *rtems_shell_alias_cmd(
          shell_cmd->usage,
          shell_cmd->command
       );
-      if (shell_aux)
+      if (shell_aux) {
         shell_aux->alias = shell_cmd;
+        shell_aux->mode = shell_cmd->mode;
+        shell_aux->uid = shell_cmd->uid;
+        shell_aux->gid = shell_cmd->gid;
+      }
     }
   }
   return shell_aux;
+}
+
+bool rtems_shell_can_see_cmd(const rtems_shell_cmd_t *shell_cmd)
+{
+  return rtems_filesystem_check_access(
+    RTEMS_FS_PERMS_READ,
+    shell_cmd->mode,
+    shell_cmd->uid,
+    shell_cmd->gid
+  );
+}
+
+static bool rtems_shell_can_execute_cmd(const rtems_shell_cmd_t *shell_cmd)
+{
+  return rtems_filesystem_check_access(
+    RTEMS_FS_PERMS_EXEC,
+    shell_cmd->mode,
+    shell_cmd->uid,
+    shell_cmd->gid
+  );
+}
+
+int rtems_shell_execute_cmd(const char *cmd, int argc, char *argv[])
+{
+  rtems_shell_cmd_t *shell_cmd;
+
+  if (argv[0] == NULL) {
+    return -1;
+  }
+
+  shell_cmd = rtems_shell_lookup_cmd(argv[0]);
+
+  if (shell_cmd != NULL && !rtems_shell_can_see_cmd(shell_cmd)) {
+    shell_cmd = NULL;
+  }
+
+  if (shell_cmd == NULL) {
+    return rtems_shell_script_file(argc, argv);
+  } else if (rtems_shell_can_execute_cmd(shell_cmd)) {
+    return shell_cmd->command(argc, argv);
+  } else {
+    fprintf(stderr, "%s: Permission denied\n", cmd);
+
+    return -1;
+  }
 }

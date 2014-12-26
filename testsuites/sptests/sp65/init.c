@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,6 +13,8 @@
 
 #include <tmacros.h>
 #include <unistd.h>
+
+const char rtems_test_name[] = "SP 65";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -26,6 +28,17 @@ rtems_task Task_1(rtems_task_argument arg);
   #define TASK_PRIORITY            1
 #endif
 
+static void assert_priority(rtems_task_priority expected)
+{
+  rtems_status_code sc;
+  rtems_task_priority prio;
+
+  sc = rtems_task_set_priority(RTEMS_SELF, RTEMS_CURRENT_PRIORITY, &prio);
+  rtems_test_assert(sc == RTEMS_SUCCESSFUL);
+
+  rtems_test_assert(prio == expected);
+}
+
 rtems_task Init(
   rtems_task_argument ignored
 )
@@ -33,7 +46,31 @@ rtems_task Init(
   int                  status;
   rtems_id             Mutex_id, Task_id;
 
-  puts( "\n\n*** TEST " TEST_NAME " ***" );
+  TEST_BEGIN();
+
+  /*
+   * Verify that an initially locked priority ceiling mutex elevates the
+   * priority of the creating task.
+   */
+
+  status = rtems_semaphore_create(
+    rtems_build_name( 's','e','m','1' ),
+    0,
+    RTEMS_BINARY_SEMAPHORE | RTEMS_PRIORITY | RTEMS_PRIORITY_CEILING,
+    1,
+    &Mutex_id
+  );
+  rtems_test_assert(status == RTEMS_SUCCESSFUL);
+
+  assert_priority(1);
+
+  status = rtems_semaphore_release(Mutex_id);
+  rtems_test_assert(status == RTEMS_SUCCESSFUL);
+
+  assert_priority(TASK_PRIORITY);
+
+  status = rtems_semaphore_delete(Mutex_id);
+  rtems_test_assert(status == RTEMS_SUCCESSFUL);
 
   /*
    *  Create binary semaphore (a.k.a. Mutex) with Priority Ceiling
@@ -74,7 +111,7 @@ rtems_task Init(
   status = rtems_semaphore_release( Mutex_id );
   directive_failed( status, "rtems_semaphore_release" );
 
-  puts( "*** END OF TEST 65 ***" );
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -104,6 +141,8 @@ rtems_task Task_1(
 #define CONFIGURE_MAXIMUM_TASKS         2
 #define CONFIGURE_MAXIMUM_SEMAPHORES    1
 #define CONFIGURE_INIT_TASK_PRIORITY    TASK_PRIORITY
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

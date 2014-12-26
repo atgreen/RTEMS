@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  */
 
@@ -42,12 +42,27 @@ extern "C" {
   || defined(__ARM_ARCH_7M__)
   #define ARM_MULTILIB_HAS_WFI
   #define ARM_MULTILIB_HAS_LOAD_STORE_EXCLUSIVE
+  #define ARM_MULTILIB_HAS_BARRIER_INSTRUCTIONS
 #endif
 
-#if defined(__ARM_NEON__)
-  #define ARM_MULTILIB_VFP_D32
-#elif !defined(__SOFTFP__)
-  #error "FPU support not implemented"
+#if defined(__ARM_ARCH_7A__) \
+  || defined(__ARM_ARCH_7R__)
+  #define ARM_MULTILIB_HAS_THREAD_ID_REGISTER
+#endif
+
+#if !defined(__SOFTFP__)
+  #if defined(__ARM_NEON__)
+    #define ARM_MULTILIB_VFP_D32
+  #elif defined(__VFP_FP__)
+    #define ARM_MULTILIB_VFP_D16
+  #else
+    #error "FPU support not implemented"
+  #endif
+#endif
+
+#if defined(ARM_MULTILIB_VFP_D16) \
+  || defined(ARM_MULTILIB_VFP_D32)
+  #define ARM_MULTILIB_VFP
 #endif
 
 /*

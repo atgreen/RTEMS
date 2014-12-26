@@ -7,17 +7,18 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2012.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <stdlib.h>
 
 #include <bsp.h>
+#include <rtems/clockdrv.h>
 
 /**
  * @defgroup bsp_clock Clock Support
@@ -58,13 +59,10 @@ void Clock_exit( void );
  *  This is the clock tick interrupt handler.
  *
  *  @param vector Vector number.
- *
- *  Output parameters:  NONE
- *
- *  Return values:      NONE
  */
 #if defined(BSP_FEATURE_IRQ_EXTENSION) || \
     (CPU_SIMPLE_VECTORED_INTERRUPTS != TRUE)
+void Clock_isr(void *arg);
 void Clock_isr(void *arg)
 {
 #else
@@ -85,7 +83,7 @@ rtems_isr Clock_isr(
     } while (
       _Thread_Heir == _Thread_Executing
         && _Thread_Executing->Start.entry_point
-          == rtems_configuration_get_idle_task()
+          == (Thread_Entry) rtems_configuration_get_idle_task()
     );
 
     Clock_driver_support_at_tick();
@@ -122,15 +120,7 @@ rtems_isr Clock_isr(
  *
  *  This routine allows the clock driver to exit by masking the interrupt and
  *  disabling the clock's counter.
- *
- *  Input parameters:   NONE
- *
- *  Output parameters:  NONE
- *
- *  Return values:      NONE
- *
  */
-
 void Clock_exit( void )
 {
   Clock_driver_support_shutdown_hardware();
@@ -149,7 +139,6 @@ void Clock_exit( void )
  *
  * @retval rtems_device_driver status code
  */
-
 rtems_device_driver Clock_initialize(
   rtems_device_major_number major,
   rtems_device_minor_number minor,

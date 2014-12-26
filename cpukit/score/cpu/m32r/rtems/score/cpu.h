@@ -25,7 +25,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -724,12 +724,12 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  *
  * Port Specific Information:
  *
- * XXX document implementation including references if appropriate
+ *  TODO: As of 8 October 2014, this method is not implemented.
  */
 #define _CPU_ISR_Disable( _isr_cookie ) \
-  { \
-    (_isr_cookie) = 0;   /* do something to prevent warnings */ \
-  }
+  do { \
+    (_isr_cookie) = 0; \
+  } while (0)
 
 /**
  * Enable interrupts to the previous level (returned by _CPU_ISR_Disable).
@@ -740,12 +740,12 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  *
  * Port Specific Information:
  *
- * XXX document implementation including references if appropriate
+ *  TODO: As of 8 October 2014, this method is not implemented.
  */
-#define _CPU_ISR_Enable( _isr_cookie )  \
-  { \
-    (_isr_cookie) = 0;   /* do something to prevent warnings */ \
-  }
+#define _CPU_ISR_Enable( _isr_cookie ) \
+  do { \
+    (_isr_cookie) = (_isr_cookie); \
+  } while (0)
 
 /**
  * This temporarily restores the interrupt to @a _isr_cookie before immediately
@@ -757,11 +757,13 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  *
  * Port Specific Information:
  *
- * XXX document implementation including references if appropriate
+ *  TODO: As of 8 October 2014, this method is not implemented.
  */
 #define _CPU_ISR_Flash( _isr_cookie ) \
-  { \
-  }
+  do { \
+    _CPU_ISR_Enable( _isr_cookie ); \
+    _CPU_ISR_Disable( _isr_cookie ); \
+  } while (0)
 
 /**
  * This routine and @ref _CPU_ISR_Get_level
@@ -776,11 +778,11 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  *
  * Port Specific Information:
  *
- * XXX document implementation including references if appropriate
+ *  TODO: As of 8 October 2014, this method is not implemented.
  */
-#define _CPU_ISR_Set_level( new_level ) \
-  { \
-  }
+static inline void _CPU_ISR_Set_level( unsigned int new_level )
+{
+}
 
 /**
  * Return the current interrupt disable level for this task in
@@ -790,7 +792,7 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  *
  * Port Specific Information:
  *
- * XXX document implementation including references if appropriate
+ *  TODO: As of 8 October 2014, this method is not implemented.
  */
 uint32_t   _CPU_ISR_Get_level( void );
 
@@ -828,6 +830,7 @@ uint32_t   _CPU_ISR_Get_level( void );
  *       point thread.  This is typically only used on CPUs where the
  *       FPU may be easily disabled by software such as on the SPARC
  *       where the PSR contains an enable FPU bit.
+ * @param[in] tls_area is the thread-local storage (TLS) area
  *
  * Port Specific Information:
  *
@@ -839,7 +842,8 @@ void _CPU_Context_Initialize(
   size_t            size,
   uint32_t          new_level,
   void             *entry_point,
-  bool              is_fp
+  bool              is_fp,
+  void             *tls_area
 );
 
 /**
@@ -859,7 +863,7 @@ void _CPU_Context_Initialize(
  */
 void _CPU_Context_Restart_self(
   Context_Control  *the_context
-);
+) RTEMS_COMPILER_NO_RETURN_ATTRIBUTE;
 
 /**
  * @ingroup CPUContext
@@ -922,7 +926,7 @@ void _CPU_Context_Restart_self(
  *
  * XXX document implementation including references if appropriate
  */
-#define _CPU_Fatal_halt( _error ) \
+#define _CPU_Fatal_halt( _source, _error ) \
   { \
   }
 
@@ -957,7 +961,7 @@ void _CPU_Context_Restart_self(
 /**
  * This routine sets @a _output to the bit number of the first bit
  * set in @a _value.  @a _value is of CPU dependent type
- * @a Priority_bit_map_Control.  This type may be either 16 or 32 bits
+ * @a Priority_bit_map_Word.  This type may be either 16 or 32 bits
  * wide although only the 16 least significant bits will be used.
  *
  * There are a number of variables in using a "find first bit" type
@@ -1271,6 +1275,18 @@ static inline uint32_t CPU_swap_u32(
  */
 #define CPU_swap_u16( value ) \
   (((value&0xff) << 8) | ((value >> 8)&0xff))
+
+typedef uint32_t CPU_Counter_ticks;
+
+CPU_Counter_ticks _CPU_Counter_read( void );
+
+static inline CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  return second - first;
+}
 
 #ifdef __cplusplus
 }

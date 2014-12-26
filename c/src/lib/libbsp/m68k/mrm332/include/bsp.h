@@ -1,21 +1,19 @@
 /*  bsp.h
  *
  *  This include file contains all mrm board IO definitions.
- *
+ */
+
+/*
  *  COPYRIGHT (c) 1989-2009.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _BSP_H
 #define _BSP_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
@@ -26,28 +24,12 @@ extern "C" {
 #include <rtems/console.h>
 #include <rtems/iosupp.h>
 #include <mrm332.h>
-#include <rtems/m68k/sim.h>
-#include <rtems/m68k/qsm.h>
 
-#define BSP_SMALL_MEMORY 1
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define CONSOLE_SCI
-
-/*
- *  Simple spin delay in microsecond units for device drivers.
- *  This is very dependent on the clock speed of the target.
- */
-
-#define rtems_bsp_delay( microseconds ) \
-  { register uint32_t         _delay=(microseconds); \
-    register uint32_t         _tmp=123; \
-    __asm__ volatile( "0: \
-                     nbcd      %0 ; \
-                     nbcd      %0 ; \
-                     dbf       %1,0b" \
-                  : "=d" (_tmp), "=d" (_delay) \
-                  : "0"  (_tmp), "1"  (_delay) ); \
-  }
 
 /* externals */
 
@@ -56,7 +38,7 @@ extern char _copy_start[];
 extern char _edata[];
 extern char _clear_start[];
 extern char end[];
-extern char _copy_data_from_rom[];
+extern bool _copy_data_from_rom;
 
 /* constants */
 

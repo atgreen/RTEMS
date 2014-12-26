@@ -9,56 +9,55 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <assert.h>
 
-#include <rtems/bspsmp.h>
+#include <rtems/score/smpimpl.h>
 
 #include <libcpu/arm-cp15.h>
 
 #include <bsp/irq.h>
+#include <bsp/linker-symbols.h>
 
-static void ipi_handler(void *arg)
+static void bsp_inter_processor_interrupt(void *arg)
 {
-  rtems_smp_process_interrupt();
+  _SMP_Inter_processor_interrupt_handler();
 }
 
-uint32_t bsp_smp_initialize(uint32_t configured_cpu_count)
+uint32_t _CPU_SMP_Initialize(void)
 {
-  rtems_status_code sc;
-  uint32_t max_cpu_count = arm_gic_irq_processor_count();
-  uint32_t used_cpu_count = configured_cpu_count < max_cpu_count ?
-    configured_cpu_count : max_cpu_count;
+  uint32_t hardware_count = arm_gic_irq_processor_count();
+  uint32_t linker_count = (uint32_t) bsp_processor_count;
 
-  sc = rtems_interrupt_handler_install(
-    ARM_GIC_IRQ_SGI_0,
-    "IPI",
-    RTEMS_INTERRUPT_UNIQUE,
-    ipi_handler,
-    NULL
-  );
-  assert(sc == RTEMS_SUCCESSFUL);
-
-  return used_cpu_count;
+  return hardware_count <= linker_count ? hardware_count : linker_count;
 }
 
-void bsp_smp_broadcast_interrupt(void)
+void _CPU_SMP_Finalize_initialization(uint32_t cpu_count)
 {
-  /*
-   * FIXME: This broadcasts the interrupt also to processors not used by RTEMS.
-   */
-  rtems_status_code sc = arm_gic_irq_generate_software_irq(
-    ARM_GIC_IRQ_SGI_0,
-    ARM_GIC_IRQ_SOFTWARE_IRQ_TO_ALL_EXCEPT_SELF,
-    0xff
-  );
+  if (cpu_count > 0) {
+    rtems_status_code sc;
+
+    sc = rtems_interrupt_handler_install(
+      ARM_GIC_IRQ_SGI_0,
+      "IPI",
+      RTEMS_INTERRUPT_UNIQUE,
+      bsp_inter_processor_interrupt,
+      NULL
+    );
+    assert(sc == RTEMS_SUCCESSFUL);
+
+#if defined(BSP_DATA_CACHE_ENABLED) || defined(BSP_INSTRUCTION_CACHE_ENABLED)
+    /* Enable unified L2 cache */
+    rtems_cache_enable_data();
+#endif
+  }
 }
 
 void _CPU_SMP_Send_interrupt( uint32_t target_processor_index )
 {
-  rtems_status_code sc = arm_gic_irq_generate_software_irq(
+  arm_gic_irq_generate_software_irq(
     ARM_GIC_IRQ_SGI_0,
     ARM_GIC_IRQ_SOFTWARE_IRQ_TO_ALL_IN_LIST,
     (uint8_t) (1U << target_processor_index)

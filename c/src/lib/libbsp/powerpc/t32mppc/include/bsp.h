@@ -1,15 +1,15 @@
 /*
- * Copyright (c) 2012 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2012-2014 embedded brains GmbH.  All rights reserved.
  *
  *  embedded brains GmbH
- *  Obere Lagerstr. 30
+ *  Dornierstr. 4
  *  82178 Puchheim
  *  Germany
  *  <rtems@embedded-brains.de>
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef LIBBSP_POWERPC_T32MPPC_BSP_H
@@ -20,6 +20,8 @@
 #ifndef ASM
 
 #include <rtems.h>
+#include <rtems/clockdrv.h>
+#include <rtems/console.h>
 
 #include <bsp/default-initial-extension.h>
 

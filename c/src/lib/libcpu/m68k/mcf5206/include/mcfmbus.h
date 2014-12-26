@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef __MCFBSP_MCFMBUS_H__
@@ -36,7 +36,7 @@ typedef struct mcfmbus {
     rtems_isr_entry        oldisr; /* Old interrupt handler */
     rtems_id               sema; /* MBUS semaphore */
     i2c_transfer_done      done; /* Transfer done function */
-    uint32_t       done_arg_ptr; /* Done function argument ptr */
+    uintptr_t      done_arg_ptr; /* Done function argument ptr */
 } mcfmbus;
 
 /* mcfmbus_initialize --

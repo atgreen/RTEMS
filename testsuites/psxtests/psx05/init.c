@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -18,6 +18,8 @@
 #include <errno.h>
 
 #include <rtems/score/todimpl.h>
+
+const char rtems_test_name[] = "PSX 5";
 
 #define MUTEX_BAD_ID 0xfffffffe
 
@@ -129,7 +131,7 @@ void *POSIX_Init(
   rtems_test_assert( MUTEX_BAD_ID != PTHREAD_MUTEX_INITIALIZER );
   Mutex_bad_id = MUTEX_BAD_ID;
 
-  puts( "\n\n*** POSIX TEST 5 ***" );
+  TEST_BEGIN();
 
   /* set the time of day, and print our buffer in multiple ways */
 
@@ -683,7 +685,7 @@ void *POSIX_Init(
     printf( "status recursive mutex :%d\n", status );
   rtems_test_assert( !status );
 
-  puts( "*** END OF POSIX TEST 5 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 
   return NULL; /* just so the compiler thinks we returned something */

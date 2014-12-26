@@ -1,13 +1,19 @@
-/*
- *  This test exercises the time of day services via the Classic
- *  and POSIX APIs to make sure they are consistent.
+/**
+ * @file
  *
- *  COPYRIGHT (c) 1989-2009.
+ * This test exercises the time of day services via the Classic
+ * and POSIX APIs to make sure they are consistent. It additionally
+ * exericses the adjtime() method.
+ * 
+ */
+
+/*
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -24,6 +30,8 @@
 #include <rtems.h>
 #include <rtems/libio.h>
 #include <sys/time.h>
+
+const char rtems_test_name[] = "PSXTIME";
 
 #if !HAVE_DECL_ADJTIME
 extern int adjtime(const struct timeval *delta, struct timeval *olddelta);
@@ -126,10 +134,17 @@ void test_adjtime(void)
   rtems_test_assert( errno == EINVAL );
 
   puts( "adjtime - delta out of range - EINVAL" );
+  delta.tv_sec = 0;
   delta.tv_usec = 1000000000; /* 100 seconds worth */
   sc = adjtime( &delta, &olddelta );
   rtems_test_assert( sc == -1 );
   rtems_test_assert( errno == EINVAL );
+
+  puts( "adjtime - delta range of 0 - OK" );
+  delta.tv_sec = 0;
+  delta.tv_usec = 0;
+  sc = adjtime( &delta, &olddelta );
+  rtems_test_assert( sc == 0 );
 
   puts( "adjtime - delta too small - do nothing" );
   delta.tv_sec = 0;
@@ -199,7 +214,7 @@ int main(
   int i;
   int sc;
 
-  puts( "\n\n*** POSIX TIME OF DAY TEST ***" );
+  TEST_BEGIN();
 
   puts( "gettimeofday( NULL, NULL ) - EFAULT" );
   sc = gettimeofday( NULL, NULL );
@@ -223,6 +238,6 @@ int main(
     i++;
   }
 
-  puts( "\n\n*** END OF TIME OF DAY TEST 01 ***" );
+  TEST_END();
   rtems_test_exit(0);
 }

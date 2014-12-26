@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 
@@ -19,6 +19,8 @@
 
 #undef OPERATION_COUNT
 #define OPERATION_COUNT    100000
+
+const char rtems_test_name[] = "TIME CHECKER";
 
 uint32_t Distribution[ MAXIMUM_DISTRIBUTION + 1 ];
 
@@ -43,7 +45,7 @@ rtems_task Init(
 
   Print_Warning();
 
-  puts( "\n\n*** TIME CHECKER ***" );
+  TEST_BEGIN();
 
   Task_name[ 1 ] = rtems_build_name( 'T', 'A', '1', ' ' ),
 
@@ -136,7 +138,7 @@ rtems_test_pause();
     0
   );
 
-  puts( "*** END OF TIME CHECKER ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 

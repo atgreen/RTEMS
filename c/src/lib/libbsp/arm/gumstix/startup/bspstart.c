@@ -3,7 +3,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
@@ -11,9 +11,6 @@
 #include <rtems/libcsupport.h>
 #include <rtems/libio.h>
 #include <pxa255.h>
-
-/* Function prototypes */
-void rtems_exception_init_mngt(void);
 
 /*
  *
@@ -29,10 +26,11 @@ void rtems_exception_init_mngt(void);
  *   Since RTEMS is not configured, no RTEMS functions can be called.
  *
  */
-void bsp_start_default( void )
+static void bsp_start_default( void )
 {
   /* disable interrupts */
   XSCALE_INT_ICMR = 0x0;
+  /* FIXME: Use shared start.S */
   rtems_exception_init_mngt();
   bsp_interrupt_initialize();
 } /* bsp_start */

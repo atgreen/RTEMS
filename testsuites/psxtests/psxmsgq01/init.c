@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -19,6 +19,8 @@
 #include <tmacros.h>
 #include <signal.h>   /* signal facilities */
 #include "test_support.h"
+
+const char rtems_test_name[] = "PSXMSGQ 1";
 
 /* forward declarations to avoid warnings */
 void Start_Test(char *description);
@@ -1272,7 +1274,7 @@ void *POSIX_Init(
   void *argument
 )
 {
-  puts( "\n\n*** POSIX MESSAGE QUEUE TEST ***" );
+  TEST_BEGIN();
 
   validate_mq_open_error_codes( );
   open_test_queues();
@@ -1291,7 +1293,7 @@ void *POSIX_Init(
   verify_mq_receive();
   verify_mq_send();
 
-  puts( "*** END OF POSIX MESSAGE QUEUE TEST ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 
   return NULL; /* just so the compiler thinks we returned something */

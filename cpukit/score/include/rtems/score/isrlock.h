@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_ISR_LOCK_H
@@ -51,19 +51,33 @@ extern "C" {
  * @brief ISR lock control.
  */
 typedef struct {
-  #if defined( RTEMS_SMP )
-    SMP_lock_Control lock;
-  #endif
+#if defined( RTEMS_SMP )
+  SMP_lock_Control lock;
+#endif
 } ISR_lock_Control;
 
 /**
+ * @brief Local ISR lock context for acquire and release pairs.
+ */
+typedef struct {
+#if defined( RTEMS_SMP )
+  SMP_lock_Context lock_context;
+#else
+  ISR_Level isr_level;
+#endif
+} ISR_lock_Context;
+
+/**
  * @brief Initializer for static initialization of ISR locks.
+ *
+ * @param _name The name for the interrupt lock.  It must be a string.  The
+ * name is only used if profiling is enabled.
  */
 #if defined( RTEMS_SMP )
-  #define ISR_LOCK_INITIALIZER \
-    { SMP_LOCK_INITIALIZER }
+  #define ISR_LOCK_INITIALIZER( name ) \
+    { SMP_LOCK_INITIALIZER( name ) }
 #else
-  #define ISR_LOCK_INITIALIZER \
+  #define ISR_LOCK_INITIALIZER( name ) \
     { }
 #endif
 
@@ -72,17 +86,39 @@ typedef struct {
  *
  * Concurrent initialization leads to unpredictable results.
  *
- * @param[in,out] _lock The ISR lock control.
+ * @param[in,out] lock The ISR lock control.
+ * @param[in] _name The name for the ISR lock.  This name must be a
+ * string persistent throughout the life time of this lock.  The name is only
+ * used if profiling is enabled.
  */
+static inline void _ISR_lock_Initialize(
+  ISR_lock_Control *lock,
+  const char *name
+)
+{
 #if defined( RTEMS_SMP )
-  #define _ISR_lock_Initialize( _lock ) \
-    _SMP_lock_Initialize( &( _lock )->lock )
+  _SMP_lock_Initialize( &lock->lock, name );
 #else
-  #define _ISR_lock_Initialize( _lock ) \
-    do { \
-      (void) _lock; \
-    } while (0)
+  (void) lock;
+  (void) name;
 #endif
+}
+
+/**
+ * @brief Destroys an ISR lock.
+ *
+ * Concurrent destruction leads to unpredictable results.
+ *
+ * @param[in,out] lock The ISR lock control.
+ */
+static inline void _ISR_lock_Destroy( ISR_lock_Control *lock )
+{
+#if defined( RTEMS_SMP )
+  _SMP_lock_Destroy( &lock->lock );
+#else
+  (void) lock;
+#endif
+}
 
 /**
  * @brief Acquires an ISR lock.
@@ -92,21 +128,24 @@ typedef struct {
  *
  * This function can be used in thread and interrupt context.
  *
- * @param[in,out] _lock The ISR lock control.
- * @param[out] _isr_cookie The interrupt status to restore will be returned.
+ * @param[in,out] lock The ISR lock control.
+ * @param[in,out] context The local ISR lock context for an acquire and release
+ * pair.
  *
  * @see _ISR_lock_Release_and_ISR_enable().
  */
+static inline void _ISR_lock_ISR_disable_and_acquire(
+  ISR_lock_Control *lock,
+  ISR_lock_Context *context
+)
+{
 #if defined( RTEMS_SMP )
-  #define _ISR_lock_ISR_disable_and_acquire( _lock, _isr_cookie ) \
-    _SMP_lock_ISR_disable_and_acquire( &( _lock )->lock, _isr_cookie )
+  _SMP_lock_ISR_disable_and_acquire( &lock->lock, &context->lock_context );
 #else
-  #define _ISR_lock_ISR_disable_and_acquire( _lock, _isr_cookie ) \
-    do { \
-      (void) _lock; \
-      _ISR_Disable( _isr_cookie ); \
-    } while (0)
+  (void) lock;
+  _ISR_Disable( context->isr_level );
 #endif
+}
 
 /**
  * @brief Releases an ISR lock.
@@ -116,21 +155,24 @@ typedef struct {
  *
  * This function can be used in thread and interrupt context.
  *
- * @param[in,out] _lock The ISR lock control.
- * @param[in] _isr_cookie The interrupt status to restore.
+ * @param[in,out] lock The ISR lock control.
+ * @param[in,out] context The local ISR lock context for an acquire and release
+ * pair.
  *
  * @see _ISR_lock_ISR_disable_and_acquire().
  */
+static inline void _ISR_lock_Release_and_ISR_enable(
+  ISR_lock_Control *lock,
+  ISR_lock_Context *context
+)
+{
 #if defined( RTEMS_SMP )
-  #define _ISR_lock_Release_and_ISR_enable( _lock, _isr_cookie ) \
-    _SMP_lock_Release_and_ISR_enable( &( _lock )->lock, _isr_cookie )
+  _SMP_lock_Release_and_ISR_enable( &lock->lock, &context->lock_context );
 #else
-  #define _ISR_lock_Release_and_ISR_enable( _lock, _isr_cookie ) \
-    do { \
-      (void) _lock; \
-      _ISR_Enable( _isr_cookie ); \
-    } while (0)
+  (void) lock;
+  _ISR_Enable( context->isr_level );
 #endif
+}
 
 /**
  * @brief Acquires an ISR lock inside an ISR disabled section.
@@ -142,19 +184,24 @@ typedef struct {
  * interrupts and these interrupts enter the critical section protected by this
  * lock, then the result is unpredictable.
  *
- * @param[in,out] _lock The ISR lock control.
+ * @param[in,out] lock The ISR lock control.
+ * @param[in,out] context The local ISR lock context for an acquire and release
+ * pair.
  *
  * @see _ISR_lock_Release().
  */
+static inline void _ISR_lock_Acquire(
+  ISR_lock_Control *lock,
+  ISR_lock_Context *context
+)
+{
 #if defined( RTEMS_SMP )
-  #define _ISR_lock_Acquire( _lock ) \
-    _SMP_lock_Acquire( &( _lock )->lock )
+  _SMP_lock_Acquire( &lock->lock, &context->lock_context );
 #else
-  #define _ISR_lock_Acquire( _lock ) \
-    do { \
-      (void) _lock; \
-    } while (0)
+  (void) lock;
+  (void) context;
 #endif
+}
 
 /**
  * @brief Releases an ISR lock inside an ISR disabled section.
@@ -162,19 +209,24 @@ typedef struct {
  * The interrupt status will remain unchanged.  On SMP configurations this
  * function releases an SMP lock.
  *
- * @param[in,out] _lock The ISR lock control.
+ * @param[in,out] lock The ISR lock control.
+ * @param[in,out] context The local ISR lock context for an acquire and release
+ * pair.
  *
  * @see _ISR_lock_Acquire().
  */
+static inline void _ISR_lock_Release(
+  ISR_lock_Control *lock,
+  ISR_lock_Context *context
+)
+{
 #if defined( RTEMS_SMP )
-  #define _ISR_lock_Release( _lock ) \
-    _SMP_lock_Release( &( _lock )->lock )
+  _SMP_lock_Release( &lock->lock, &context->lock_context );
 #else
-  #define _ISR_lock_Release( _lock ) \
-    do { \
-      (void) _lock; \
-    } while (0)
+  (void) lock;
+  (void) context;
 #endif
+}
 
 /** @} */
 

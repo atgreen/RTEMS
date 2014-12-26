@@ -1,15 +1,15 @@
 /*
- * Copyright (c) 2012 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2012-2014 embedded brains GmbH.  All rights reserved.
  *
  *  embedded brains GmbH
- *  Obere Lagerstr. 30
+ *  Dornierstr. 4
  *  82178 Puchheim
  *  Germany
  *  <rtems@embedded-brains.de>
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -17,53 +17,77 @@
 #endif
 
 #include <stdio.h>
+#include <inttypes.h>
 
 #include <rtems/libio_.h>
 #include <rtems/shell.h>
 #include <rtems/shellconfig.h>
 
-static void lsof(void)
+static void print_location( const rtems_filesystem_location_info_t *loc )
 {
-  rtems_chain_control *mt_chain = &rtems_filesystem_mount_table;
-  rtems_chain_node *mt_node = NULL;
+  fprintf(
+    stdout,
+    "\tloc = 0x%08" PRIxPTR "\n\t\tnode_access = 0x%08" PRIxPTR
+      ", node_access_2 = 0x%08" PRIxPTR ", handler = 0x%08" PRIxPTR "\n",
+    (uintptr_t) loc,
+    (uintptr_t) loc->node_access,
+    (uintptr_t) loc->node_access_2,
+    (uintptr_t) loc->handlers
+  );
+}
+
+static void print_mt_entry_locations(
+  const rtems_filesystem_mount_table_entry_t *mt_entry
+)
+{
+  const rtems_chain_control *mt_entry_chain = &mt_entry->location_chain;
+  const rtems_chain_node *mt_entry_node;
 
   for (
-    mt_node = rtems_chain_first( mt_chain );
+    mt_entry_node = rtems_chain_immutable_first( mt_entry_chain );
+    !rtems_chain_is_tail( mt_entry_chain, mt_entry_node );
+    mt_entry_node = rtems_chain_immutable_next( mt_entry_node )
+  ) {
+    const rtems_filesystem_location_info_t *loc =
+      (const rtems_filesystem_location_info_t *) mt_entry_node;
+
+    print_location( loc );
+  }
+}
+
+static void lsof(void)
+{
+  const rtems_chain_control *mt_chain = &rtems_filesystem_mount_table;
+  const rtems_chain_node *mt_node;
+
+  fprintf(
+    stdout,
+    "type = null, root loc = 0x%08" PRIxPTR "\n",
+    (uintptr_t) rtems_filesystem_null_mt_entry.mt_fs_root
+  );
+
+  print_mt_entry_locations( &rtems_filesystem_null_mt_entry );
+
+  for (
+    mt_node = rtems_chain_immutable_first( mt_chain );
     !rtems_chain_is_tail( mt_chain, mt_node );
-    mt_node = rtems_chain_next( mt_node )
+    mt_node = rtems_chain_immutable_next( mt_node )
   ) {
     rtems_filesystem_mount_table_entry_t *mt_entry =
       (rtems_filesystem_mount_table_entry_t *) mt_node;
-    rtems_chain_control *mt_entry_chain = &mt_entry->location_chain;
-    rtems_chain_node *mt_entry_node = NULL;
 
     fprintf(
       stdout,
-      "%c %c %s %s -> %s root 0x%08x -> 0x%08x\n",
-      mt_entry->mounted ? 'M' : 'U',
-      mt_entry->writeable ? 'W' : 'R',
+      "type = %s, %s, %s, target = %s, dev = %s, root loc = 0x%08" PRIxPTR "\n",
       mt_entry->type,
+      mt_entry->mounted ? "mounted" : "unmounted",
+      mt_entry->writeable ? "read-write" : "read-only",
       mt_entry->target,
-      mt_entry->dev == NULL ? "none" : mt_entry->dev,
-      (unsigned)mt_entry->mt_fs_root,
-      (unsigned)mt_entry->mt_fs_root->location.node_access
+      mt_entry->dev == NULL ? "NULL" : mt_entry->dev,
+      (uintptr_t) mt_entry->mt_fs_root
     );
 
-    for (
-      mt_entry_node = rtems_chain_first( mt_entry_chain );
-      !rtems_chain_is_tail( mt_entry_chain, mt_entry_node );
-      mt_entry_node = rtems_chain_next( mt_entry_node )
-    ) {
-      const rtems_filesystem_location_info_t *loc =
-        (const rtems_filesystem_location_info_t *) mt_entry_node;
-
-      fprintf(
-        stdout,
-        "\t0x%08x -> 0x%08x\n",
-        (unsigned)loc,
-        (unsigned)loc->node_access
-      );
-    }
+    print_mt_entry_locations( mt_entry );
   }
 }
 

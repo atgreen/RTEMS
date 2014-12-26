@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -14,6 +14,8 @@
 #define CONFIGURE_INIT
 #include "system.h"
 
+const char rtems_test_name[] = "SMP 8";
+
 void PrintTaskInfo(
   const char         *task_name,
   rtems_time_of_day  *_tb 
@@ -21,7 +23,7 @@ void PrintTaskInfo(
 {
   uint32_t cpu_num;
 
-  cpu_num = rtems_smp_get_current_processor();
+  cpu_num = rtems_get_current_processor();
 
   /* Print the cpu number and task name */
   locked_printf(
@@ -44,9 +46,10 @@ rtems_task Init(
   int               i;
   char              ch[4];
   rtems_id          id;
+
+  TEST_BEGIN();
  
   locked_print_initialize();
-  locked_printf( "\n\n*** SMP08 TEST ***\n" );
 
   time.year   = 1988;
   time.month  = 12;
@@ -73,7 +76,7 @@ rtems_task Init(
   /* Show that the init task is running on this cpu */
   PrintTaskInfo( "Init", &time );
 
-  for ( i=1; i <= rtems_smp_get_processor_count() *3; i++ ) {
+  for ( i=1; i <= rtems_get_processor_count() *3; i++ ) {
 
     sprintf(ch, "%02" PRId32, i );
     status = rtems_task_create(

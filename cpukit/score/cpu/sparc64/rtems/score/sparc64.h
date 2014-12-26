@@ -9,16 +9,15 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-1999.
- *  On-Line Applications Research Corporation (OAR).
+ *  COPYRIGHT (c) 1989-1999. On-Line Applications Research Corporation (OAR).
  *
  *  This file is based on the SPARC sparc.h file. Modifications are made
  *  to support the SPARC64 processor.
- *    COPYRIGHT (c) 2010. Gedare Bloom.
+ *  COPYRIGHT (c) 2010. Gedare Bloom.
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_SPARC_H
@@ -321,10 +320,11 @@ void sparc_enable_interrupts(uint32_t);
 
 #define sparc_flash_interrupts( _level ) \
   do { \
-    register uint32_t   _ignored = 0; \
+    uint32_t   _ignored; \
     \
     sparc_enable_interrupts( (_level) ); \
     _ignored = sparc_disable_interrupts(); \
+    (void) _ignored; \
   } while ( 0 )
 
 #define sparc64_get_interrupt_level( _level ) \

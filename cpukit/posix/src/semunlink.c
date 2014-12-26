@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2007.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -35,11 +35,12 @@ int sem_unlink(
   const char *name
 )
 {
-  int  status;
-  register POSIX_Semaphore_Control *the_semaphore;
-  Objects_Id the_semaphore_id;
-  size_t name_len;
+  int                      status;
+  POSIX_Semaphore_Control *the_semaphore;
+  Objects_Id               the_semaphore_id;
+  size_t                   name_len;
 
+  _Objects_Allocator_lock();
   _Thread_Disable_dispatch();
 
   status = _POSIX_Semaphore_Name_to_id( name, &the_semaphore_id, &name_len );
@@ -58,5 +59,7 @@ int sem_unlink(
   _POSIX_Semaphore_Delete( the_semaphore );
 
   _Thread_Enable_dispatch();
+  _Objects_Allocator_unlock();
+
   return 0;
 }

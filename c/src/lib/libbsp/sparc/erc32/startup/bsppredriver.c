@@ -1,14 +1,17 @@
 /*  Installs the BSP pre-driver hook
- *
+ */
+
+/*
  *  COPYRIGHT (c) 2011
  *  Aeroflex Gaisler
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
+#include <bsp/bootcard.h>
 
 /*
  *  bsp_predriver_hook

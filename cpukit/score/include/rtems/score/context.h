@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CONTEXT_H
@@ -60,9 +60,12 @@ extern "C" {
  *  @param[in] _entry is this thread's entry point
  *  @param[in] _is_fp is set to true if this thread has floating point
  *         enabled
+ *  @param[in] _tls_area The thread-local storage (TLS) area begin.
  */
-#define _Context_Initialize(_the_context, _stack, _size, _isr, _entry, _is_fp) \
-   _CPU_Context_Initialize( _the_context, _stack, _size, _isr, _entry, _is_fp )
+#define _Context_Initialize( _the_context, _stack, _size, _isr, _entry, \
+  _is_fp, _tls_area ) \
+    _CPU_Context_Initialize( _the_context, _stack, _size, _isr, _entry, \
+      _is_fp, _tls_area )
 
 /**
  *  This macro is invoked from _Thread_Handler to do whatever CPU
@@ -102,23 +105,6 @@ extern "C" {
  */
 #define _Context_Restart_self( _the_context ) \
    _CPU_Context_Restart_self( _the_context )
-
-#if defined(RTEMS_SMP)
-/*
- *  @brief Switch to first task on secondary core.
- *
- *  This routine is only used to switch to the first task on a
- *  secondary core in an SMP configuration.  Since the switch
- *  to the first task is done from an interrupt handler, this
- *  may be different from simply restarting the currently running
- *  task.
- *
- *  @param[in] _the_context is the context of the first thread to
- *             run on this core
- */
-#define _Context_Switch_to_first_task_smp( _the_context ) \
-   _CPU_Context_switch_to_first_task_smp( _the_context )
-#endif
 
 /**
  *  @brief Return starting address of floating point context.

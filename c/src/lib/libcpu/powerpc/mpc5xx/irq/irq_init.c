@@ -3,8 +3,9 @@
  *
  *  This file contains the implementation of rtems initialization
  *  related to interrupt handling.
- *
- *
+ */
+
+/*
  *  MPC5xx port sponsored by Defence Research and Development Canada - Suffield
  *  Copyright (C) 2004, Real-Time Systems Inc. (querbach@realtime.bc.ca)
  *
@@ -14,7 +15,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
@@ -89,7 +90,7 @@ static rtems_irq_prio irqPrioTable[CPU_IRQ_COUNT]={
   0
 };
 
-void CPU_USIU_irq_init(void)
+static void CPU_USIU_irq_init(void)
 {
   /*
    * In theory we should initialize two registers at least : SIMASK and
@@ -106,8 +107,7 @@ void CPU_USIU_irq_init(void)
 /*
  * Initialize UIMB interrupt management
  */
-void
-CPU_UIMB_irq_init(void)
+static void CPU_UIMB_irq_init(void)
 {
 }
 

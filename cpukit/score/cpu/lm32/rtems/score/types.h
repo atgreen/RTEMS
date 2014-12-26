@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  Jukka Pietarinen <jukka.pietarinen@mrf.fi>, 2008,
  *  Micro-Research Finland Oy
@@ -35,7 +35,7 @@ extern "C" {
  */
 
 /** This defines the type for a priority bit map entry. */
-typedef uint16_t Priority_bit_map_Control;
+typedef uint16_t Priority_bit_map_Word;
 
 #ifdef __cplusplus
 }

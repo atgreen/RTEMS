@@ -16,7 +16,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -63,13 +63,14 @@ int IMFS_make_generic_node(
     case S_IFCHR:
     case S_IFIFO:
     case S_IFREG:
+    case S_IFSOCK:
       break;
     default:
       errno = EINVAL;
       rv = -1;
       break;
   }
-  
+
   if ( rv == 0 ) {
     if ( node_control->imfs_type == IMFS_GENERIC ) {
       rtems_filesystem_eval_path_context_t ctx;

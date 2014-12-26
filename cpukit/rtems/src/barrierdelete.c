@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -28,6 +28,7 @@ rtems_status_code rtems_barrier_delete(
   Barrier_Control   *the_barrier;
   Objects_Locations  location;
 
+  _Objects_Allocator_lock();
   the_barrier = _Barrier_Get( id, &location );
   switch ( location ) {
 
@@ -39,10 +40,9 @@ rtems_status_code rtems_barrier_delete(
       );
 
       _Objects_Close( &_Barrier_Information, &the_barrier->Object );
-
-      _Barrier_Free( the_barrier );
-
       _Objects_Put( &the_barrier->Object );
+      _Barrier_Free( the_barrier );
+      _Objects_Allocator_unlock();
       return RTEMS_SUCCESSFUL;
 
 #if defined(RTEMS_MULTIPROCESSING)
@@ -51,6 +51,8 @@ rtems_status_code rtems_barrier_delete(
     case OBJECTS_ERROR:
       break;
   }
+
+  _Objects_Allocator_unlock();
 
   return RTEMS_INVALID_ID;
 }

@@ -1,19 +1,18 @@
-/*  timer_isr()
+/**
+ *  @file
  *
  *  This ISR is used to bump a count of interval "overflow" interrupts which
  *  have occurred since the timer was started. The number of overflows is taken
  *  into account in the benchmark_timer_read() routine.
- *
- *  Input parameters:  NONE
- *
- *  Output parameters:  NONE
- *
- *  COPYRIGHT (c) 1989-1999.
+ */
+
+/*
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  Modifications of respective RTEMS file: COPYRIGHT (c) 1994.
  *  Copyright (c) 1998, National Research Council of Canada

@@ -8,7 +8,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <tmacros.h>
@@ -48,7 +48,8 @@ void Fatal_extension(
 );
 
 #define CONFIGURE_INITIAL_EXTENSIONS \
-  { NULL, NULL, NULL, NULL, NULL, NULL, NULL, Fatal_extension }
+  { NULL, NULL, NULL, NULL, NULL, NULL, NULL, Fatal_extension }, \
+  RTEMS_TEST_INITIAL_EXTENSION
 
 #include <rtems/confdefs.h>
 

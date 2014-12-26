@@ -24,15 +24,11 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _BSP_H
 #define _BSP_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <bspopts.h>
 
@@ -48,6 +44,10 @@ extern "C" {
 #include <rtems/iosupp.h>
 #include <bsp/vectors.h>
 #include <bsp/default-initial-extension.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Constants */
 
@@ -66,20 +66,28 @@ extern uint32_t   BSP_mem_size;
 #define Processor_Synchronize() \
   __asm__ (" eieio ")
 
+/*
+ *  Network configuration
+ */
 struct rtems_bsdnet_ifconfig;
 
-int
-rtems_ifsim_attach(struct rtems_bsdnet_ifconfig *ifcfg, int attaching);
+int rtems_ifsim_attach(struct rtems_bsdnet_ifconfig *ifcfg, int attaching);
 
 #define RTEMS_BSP_NETWORK_DRIVER_NAME   "ifsim1"
 #define RTEMS_BSP_NETWORK_DRIVER_ATTACH rtems_ifsim_attach
 
-#endif /* ASM */
-
-#define BSP_HAS_NO_VME
+/*
+ *  Interfaces to required Clock Driver support methods
+ */
+int BSP_disconnect_clock_handler(void);
+int BSP_connect_clock_handler(void);
 
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* ASM */
+
+#define BSP_HAS_NO_VME
 
 #endif

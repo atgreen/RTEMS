@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2007.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -41,18 +41,34 @@ rtems_status_code rtems_semaphore_delete(
   rtems_id   id
 )
 {
-  register Semaphore_Control *the_semaphore;
+  Semaphore_Control          *the_semaphore;
   Objects_Locations           location;
+  rtems_attribute             attribute_set;
+
+  _Objects_Allocator_lock();
 
   the_semaphore = _Semaphore_Get( id, &location );
   switch ( location ) {
 
     case OBJECTS_LOCAL:
-      if ( !_Attributes_Is_counting_semaphore(the_semaphore->attribute_set) ) {
-        if ( _CORE_mutex_Is_locked( &the_semaphore->Core_control.mutex ) &&
-             !_Attributes_Is_simple_binary_semaphore(
-                 the_semaphore->attribute_set ) ) {
+      attribute_set = the_semaphore->attribute_set;
+#if defined(RTEMS_SMP)
+      if ( _Attributes_Is_multiprocessor_resource_sharing( attribute_set ) ) {
+        MRSP_Status mrsp_status = _MRSP_Destroy(
+          &the_semaphore->Core_control.mrsp
+        );
+        if ( mrsp_status != MRSP_SUCCESSFUL ) {
           _Objects_Put( &the_semaphore->Object );
+          _Objects_Allocator_unlock();
+          return _Semaphore_Translate_MRSP_status_code( mrsp_status );
+        }
+      } else
+#endif
+      if ( !_Attributes_Is_counting_semaphore( attribute_set ) ) {
+        if ( _CORE_mutex_Is_locked( &the_semaphore->Core_control.mutex ) &&
+             !_Attributes_Is_simple_binary_semaphore( attribute_set ) ) {
+          _Objects_Put( &the_semaphore->Object );
+          _Objects_Allocator_unlock();
           return RTEMS_RESOURCE_IN_USE;
         }
         _CORE_mutex_Flush(
@@ -66,14 +82,12 @@ rtems_status_code rtems_semaphore_delete(
           SEMAPHORE_MP_OBJECT_WAS_DELETED,
           CORE_SEMAPHORE_WAS_DELETED
         );
-     }
+      }
 
       _Objects_Close( &_Semaphore_Information, &the_semaphore->Object );
 
-      _Semaphore_Free( the_semaphore );
-
 #if defined(RTEMS_MULTIPROCESSING)
-      if ( _Attributes_Is_global( the_semaphore->attribute_set ) ) {
+      if ( _Attributes_Is_global( attribute_set ) ) {
 
         _Objects_MP_Close( &_Semaphore_Information, the_semaphore->Object.id );
 
@@ -85,12 +99,15 @@ rtems_status_code rtems_semaphore_delete(
         );
       }
 #endif
+
       _Objects_Put( &the_semaphore->Object );
+      _Semaphore_Free( the_semaphore );
+      _Objects_Allocator_unlock();
       return RTEMS_SUCCESSFUL;
 
 #if defined(RTEMS_MULTIPROCESSING)
     case OBJECTS_REMOTE:
-      _Thread_Dispatch();
+      _Objects_Allocator_unlock();
       return RTEMS_ILLEGAL_ON_REMOTE_OBJECT;
 #endif
 
@@ -98,5 +115,6 @@ rtems_status_code rtems_semaphore_delete(
       break;
   }
 
+  _Objects_Allocator_unlock();
   return RTEMS_INVALID_ID;
 }

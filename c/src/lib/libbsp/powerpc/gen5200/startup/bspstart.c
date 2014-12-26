@@ -14,7 +14,7 @@
 | The license and distribution terms for this file may be         |
 | found in the file LICENSE in this distribution or at            |
 |                                                                 |
-| http://www.rtems.com/license/LICENSE.                           |
+| http://www.rtems.org/license/LICENSE.                           |
 |                                                                 |
 +-----------------------------------------------------------------+
 | this file contains the BSP initialization code                  |
@@ -70,7 +70,7 @@
 /*                                                                     */
 /*   The license and distribution terms for this file may be           */
 /*   found in the file LICENSE in this distribution or at     */
-/*   http://www.rtems.com/license/LICENSE.                             */
+/*   http://www.rtems.org/license/LICENSE.                             */
 /*                                                                     */
 /*---------------------------------------------------------------------*/
 /*                                                                     */
@@ -95,6 +95,7 @@
 /***********************************************************************/
 
 #include <rtems.h>
+#include <rtems/counter.h>
 
 #include <libcpu/powerpc-utility.h>
 
@@ -123,23 +124,15 @@ void _BSP_Fatal_error(unsigned int v)
   __asm__ __volatile ("sc");
 }
 
-void mpc5200_fatal(mpc5200_fatal_code code)
-{
-  rtems_fatal(RTEMS_FATAL_SOURCE_BSP_SPECIFIC, code);
-}
-
 void bsp_start(void)
 {
-  ppc_cpu_id_t myCpu;
-  ppc_cpu_revision_t myCpuRevision;
-
   /*
    * Get CPU identification dynamically. Note that the get_ppc_cpu_type()
    * function store the result in global variables so that it can be used
    * later...
    */
-  myCpu         = get_ppc_cpu_type();
-  myCpuRevision = get_ppc_cpu_revision();
+  get_ppc_cpu_type();
+  get_ppc_cpu_revision();
 
   #if defined(HAS_UBOOT) && defined(SHOW_MORE_INIT_SETTINGS)
     {
@@ -164,11 +157,11 @@ void bsp_start(void)
 
   bsp_time_base_frequency = XLB_CLOCK / 4;
   bsp_clicks_per_usec    = (XLB_CLOCK/4000000);
+  rtems_counter_initialize_converter(bsp_time_base_frequency);
 
   /* Initialize exception handler */
   ppc_exc_cache_wb_check = 0;
   ppc_exc_initialize(
-    PPC_INTERRUPT_DISABLE_MASK_DEFAULT,
     (uintptr_t) bsp_interrupt_stack_start,
     (uintptr_t) bsp_interrupt_stack_size
   );

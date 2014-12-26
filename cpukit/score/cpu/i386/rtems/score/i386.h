@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_I386_H
@@ -183,6 +183,47 @@ void *i386_Logical_to_physical(
 void *i386_Physical_to_logical(
   unsigned short  segment,
   void           *address
+);
+
+/**
+ * @brief Converts real mode pointer {segment, offset} to physical address.
+ *
+ * i386_Real_to_physical
+ *
+ * @param[in] segment used with \p offset to compute physical address
+ * @param[in] offset used with \p segment to compute physical address
+ * @retval    physical address
+ */
+RTEMS_INLINE_ROUTINE void *i386_Real_to_physical(
+    uint16_t segment,
+    uint16_t offset)
+{
+    return (void *)(((uint32_t)segment<<4)+offset);
+}
+
+/**
+ * @brief Retreives real mode pointer elements {segmnet, offset} from
+ * physical address.
+ *
+ * i386_Physical_to_real
+ * Function returns the highest segment (base) address possible.
+ * Example:    input   address - 0x4B3A2
+ *             output  segment - 0x4B3A
+ *                     offset  - 0x2
+ *             input   address - 0x10F12E
+ *             output  segment - 0xFFFF
+ *                     offset  - 0xF13E
+ *
+ * @param[in]  address address to be converted, must be less than 0x10FFEF
+ * @param[out] segment segment computed from \p address
+ * @param[out] offset offset computed from \p address
+ * @retval  0 address not convertible
+ * @retval  1 segment and offset extracted
+ */
+int i386_Physical_to_real(
+  void *address,
+  uint16_t *segment,
+  uint16_t *offset
 );
 
 /*

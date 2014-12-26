@@ -1,5 +1,5 @@
 @c
-@c  COPYRIGHT (c) 1988-2010.
+@c  COPYRIGHT (c) 1988-2014.
 @c  On-Line Applications Research Corporation (OAR).
 @c  All rights reserved.
 
@@ -41,19 +41,13 @@ tar xjf ../archive/rtems-@value{RTEMSAPI}.<VERSION>.tar.bz2
 
 This creates the directory rtems-@value{RTEMSAPI}.<VERSION>
 
-@section Obtaining the RTEMS Source from CVS
+@section Obtaining the RTEMS Source from Git
 
 Instead of downloading release tarballs you may choose to check out the current
-RTEMS source from CVS. For details on accessing RTEMS CVS repository consult
-@uref{http://www.rtems.org/wiki/index.php/RTEMS_CVS_Repository, http://www.rtems.org/wiki/index.php/RTEMS_CVS_Repository}.  The steps required
-to obtain the source code from CVS are usually like the following:
-@example
-$ cvs -d :pserver:anoncvs@@www.rtems.com:/usr1/CVS login
-Logging in to :pserver:anoncvs@@www.rtems.com:2401/usr1/CVS
-CVS password:
-$ cvs -d :pserver:anoncvs@@www.rtems.com:/usr1/CVS -z 9 co -P rtems  # for the main RTEMS source
-$ cvs -d :pserver:anoncvs@@www.rtems.com:/usr1/CVS -z 9 co -P examples-v2  # for examples
-@end example
+RTEMS source from the project's source code repository. For details on
+accessing the RTEMS source repository consult:
+
+@uref{http://wiki.rtems.org/wiki/index.php/RTEMS_GIT_Repository, http://wiki.rtems.org/wiki/index.php/RTEMS_GIT_Repository}.
 
 @section Add <INSTALL_POINT>/bin to Executable PATH
 
@@ -143,8 +137,9 @@ command has numerous command line arguments. These arguments are
 discussed in detail in documentation that comes with the RTEMS
 distribution. A full list of these arguments can be obtained by running
 @code{../rtems-@value{RTEMSAPI}.<VERSION>/configure --help} If you
-followed the procedure described in the section @ref{Unarchive the
-RTEMS Source} or @ref{Obtaining the RTEMS Source from CVS}, these configuration options can be found in the file
+followed the procedure described in the section @ref{Unarchive
+the RTEMS Source} or @ref{Obtaining the RTEMS Source from Git},
+these configuration options can be found in the file
 rtems-@value{RTEMSAPI}.<VERSION>/README.configure.
 
 @b{NOTE}: The GNAT/RTEMS run-time implementation is based on the POSIX

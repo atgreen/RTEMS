@@ -16,7 +16,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
@@ -44,9 +44,9 @@ extern unsigned int LEON3_Atomic_Swap(uint32_t value, uint32_t *address);
 __asm__ (
     ".text\n"
     ".align 4\n"
-"LEON3_Atomic_Swap:\n"
-"	retl\n"
-"	swapa [%o1] 1, %o0\n"
+    "LEON3_Atomic_Swap:\n"
+    "  retl\n"
+    "  swapa [%o1] 1, %o0\n"
 );
 
 

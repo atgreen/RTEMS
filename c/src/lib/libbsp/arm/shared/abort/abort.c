@@ -1,6 +1,10 @@
 /*
  *  ARM CPU Dependent Source
  *
+ *  If you want a small footprint RTEMS, pls use simple_abort.c
+ */
+
+/*
  *  COPYRIGHT (c) 2007 Ray Xu.
  *  mailto: Rayx at gmail dot com
  *
@@ -10,55 +14,31 @@
  *  Copyright (c) 2002 Advent Networks, Inc
  *      Jay Monkman <jmonkman@adventnetworks.com>
  *
- *  If you want a small footprint RTEMS, pls use simple_abort.c
- *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  */
 
 #include <rtems/system.h>
 #include <rtems.h>
 #include <rtems/bspIo.h>
+#include "abort.h"
 
-#define INSN_MASK         0xc5
-
-#define INSN_STM1         0x80
-#define INSN_STM2         0x84
-#define INSN_STR          0x40
-#define INSN_STRB         0x44
-
-#define INSN_LDM1         0x81
-#define INSN_LDM23        0x85
-#define INSN_LDR          0x41
-#define INSN_LDRB         0x45
-
-#define GET_RD(x)         ((x & 0x0000f000) >> 12)
-#define GET_RN(x)         ((x & 0x000f0000) >> 16)
-
-#define GET_U(x)              ((x & 0x00800000) >> 23)
-#define GET_I(x)              ((x & 0x02000000) >> 25)
-
-#define GET_REG(r, ctx)      (((uint32_t   *)ctx)[r])
-#define SET_REG(r, ctx, v)   (((uint32_t   *)ctx)[r] = v)
-#define GET_OFFSET(insn)     (insn & 0xfff)
-
-uint32_t 	g_data_abort_cnt = 0;
+uint32_t g_data_abort_cnt = 0;
 /*this is a big overhead for MCU only got 16K RAM*/
-uint32_t 	g_data_abort_insn_list[1024];
+uint32_t g_data_abort_insn_list[1024];
 
 
 char *_print_full_context_mode2txt[0x20]={
-   [0x0]="user",  /* User */
-	[0x1]="fiq",   /* FIQ - Fast Interrupt Request */
-	[0x2]="irq",   /* IRQ - Interrupt Request */
-	[0x3]="super", /* Supervisor */
-	[0x7]="abort", /* Abort */
-	[0xb]="undef", /* Undefined */
-	[0xf]="system" /* System */
-    };
-
+  [0x0]="user",  /* User */
+  [0x1]="fiq",   /* FIQ - Fast Interrupt Request */
+  [0x2]="irq",   /* IRQ - Interrupt Request */
+  [0x3]="super", /* Supervisor */
+  [0x7]="abort", /* Abort */
+  [0xb]="undef", /* Undefined */
+  [0xf]="system" /* System */
+};
 
 void _print_full_context(uint32_t spsr)
 {
@@ -82,7 +62,7 @@ void _print_full_context(uint32_t spsr)
               : [arm_switch_reg] "=&r" (arm_switch_reg), [prev_sp] "=&r" (prev_sp), [prev_lr] "=&r" (prev_lr),
 		[cpsr] "=&r" (cpsr)
               : [spsr] "r" (spsr)
-	      : "cc");
+              : "cc");
 
     printk("Previous sp=0x%08x lr=0x%08x and actual cpsr=%08x\n",
            prev_sp, prev_lr, cpsr);
@@ -102,8 +82,11 @@ void _print_full_context(uint32_t spsr)
  * All unhandled instructions cause the system to hang.
  */
 
-void do_data_abort(uint32_t   insn, uint32_t   spsr,
-                    Context_Control *ctx)
+void do_data_abort(
+  uint32_t insn,
+  uint32_t spsr,
+  Context_Control *ctx
+)
 {
     /* Clarify, which type is correct, CPU_Exception_frame or Context_Control */
     uint8_t               decode;
@@ -153,9 +136,10 @@ void do_data_abort(uint32_t   insn, uint32_t   spsr,
 
     /* disable interrupts, wait forever */
     rtems_interrupt_disable(level);
+    (void) level; /* avoid set but unused warning */
+
     while(1) {
         continue;
     }
-    return;
 }
 

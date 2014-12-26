@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -14,6 +14,8 @@
 #include <tmacros.h>
 #include "test_support.h"
 #include <pthread.h>
+
+const char rtems_test_name[] = "PSX 16";
 
 /* forward declarations to avoid warnings */
 void *POSIX_Init(void *argument);
@@ -40,7 +42,7 @@ void *POSIX_Init(void *argument)
   pthread_attr_t  attr;
   void           *join_return;
 
-  puts( "\n\n*** POSIX TEST PSX16 ***" );
+  TEST_BEGIN();
 
   Index = 5;
 
@@ -63,7 +65,7 @@ void *POSIX_Init(void *argument)
   rtems_test_assert( *(int *)join_return == 7 );
   puts( "Successfully joined with TestThread" );
 
-  puts( "*** END OF POSIX TEST PSX16 ***" );
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -72,6 +74,8 @@ void *POSIX_Init(void *argument)
 
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_MAXIMUM_POSIX_THREADS        2
 

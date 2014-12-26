@@ -13,7 +13,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_H
@@ -25,10 +25,6 @@
  * RTEMS Classic API definitions and modules.
  */
 /**@{*/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <rtems/system.h>
 #include <rtems/rtems/status.h>
@@ -63,6 +59,10 @@ extern "C" {
 #include <rtems/rtems/smp.h>
 
 #include <rtems/rtems/support.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief Returns the pointer to the RTEMS version string.

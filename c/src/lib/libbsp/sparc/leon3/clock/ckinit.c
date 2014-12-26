@@ -15,12 +15,15 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
 #include <bspopts.h>
+#include <bsp/fatal.h>
+#include <rtems/rtems/intr.h>
 #include <ambapp.h>
+#include <rtems/score/profiling.h>
 
 #if SIMSPARC_FAST_IDLE==1
 #define CLOCK_DRIVER_USE_FAST_IDLE 1
@@ -30,19 +33,46 @@
  *  The Real Time Clock Counter Timer uses this trap type.
  */
 
-#if defined(RTEMS_MULTIPROCESSING)
-  #define LEON3_CLOCK_INDEX \
-    (rtems_configuration_get_user_multiprocessing_table() ? LEON3_Cpu_Index : 0)
-#else
-  #define LEON3_CLOCK_INDEX 0
-#endif
-
 volatile struct gptimer_regs *LEON3_Timer_Regs = 0;
 static int clkirq;
 
-#define CLOCK_VECTOR LEON_TRAP_TYPE( clkirq )
+static void leon3_clock_profiling_interrupt_delay(void)
+{
+#ifdef RTEMS_PROFILING
+  /*
+   * We need a small state machine to ignore the first clock interrupt, since
+   * it contains the sequential system initialization time.  Do the timestamp
+   * initialization on the fly.
+   */
+  static int state = 1;
 
-#define Clock_driver_support_at_tick()
+  volatile struct irqmp_timestamp_regs *irqmp_ts =
+    &LEON3_IrqCtrl_Regs->timestamp[0];
+  unsigned int s1_s2 = (1U << 25) | (1U << 26);
+
+  if (state == 0) {
+    unsigned int first = irqmp_ts->assertion;
+    unsigned int second = irqmp_ts->counter;
+
+    irqmp_ts->control |= s1_s2;
+
+    _Profiling_Update_max_interrupt_delay(_Per_CPU_Get(), second - first);
+  } else if (state == 1 && leon3_irqmp_has_timestamp(irqmp_ts)) {
+    unsigned int ks = 1U << 5;
+
+    state = 0;
+
+    irqmp_ts->control = ks | s1_s2 | (unsigned int) clkirq;
+  } else if (state == 1) {
+    state = 2;
+  }
+#endif
+}
+
+#define Clock_driver_support_at_tick() \
+  do { \
+    leon3_clock_profiling_interrupt_delay(); \
+  } while (0)
 
 #if defined(RTEMS_MULTIPROCESSING)
   #define Adjust_clkirq_for_node() \
@@ -74,8 +104,25 @@ static int clkirq;
 
 #define Clock_driver_support_install_isr( _new, _old ) \
   do { \
-    _old = set_vector( _new, CLOCK_VECTOR, 1 ); \
+    (_old) = NULL; \
+    bsp_clock_handler_install(_new); \
   } while(0)
+
+static void bsp_clock_handler_install(rtems_isr *new)
+{
+  rtems_status_code sc;
+
+  sc = rtems_interrupt_handler_install(
+    clkirq,
+    "Clock",
+    RTEMS_INTERRUPT_UNIQUE,
+    new,
+    NULL
+  );
+  if (sc != RTEMS_SUCCESSFUL) {
+    rtems_fatal(RTEMS_FATAL_SOURCE_BSP, LEON3_FATAL_CLOCK_INITIALIZATION);
+  }
+}
 
 #define Clock_driver_support_initialize_hardware() \
   do { \
@@ -83,8 +130,8 @@ static int clkirq;
       rtems_configuration_get_microseconds_per_tick() - 1; \
     \
     LEON3_Timer_Regs->timer[LEON3_CLOCK_INDEX].ctrl = \
-      LEON3_GPTIMER_EN | LEON3_GPTIMER_RL | \
-        LEON3_GPTIMER_LD | LEON3_GPTIMER_IRQEN; \
+      GPTIMER_TIMER_CTRL_EN | GPTIMER_TIMER_CTRL_RS | \
+        GPTIMER_TIMER_CTRL_LD | GPTIMER_TIMER_CTRL_IE; \
   } while (0)
 
 #define Clock_driver_support_shutdown_hardware() \

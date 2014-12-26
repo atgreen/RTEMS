@@ -14,7 +14,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -229,7 +229,8 @@ rtems_filesystem_mount_table_entry_t rtems_filesystem_null_mt_entry = {
   .mt_point_node = &rtems_filesystem_global_location_null,
   .mt_fs_root = &rtems_filesystem_global_location_null,
   .mounted = false,
-  .writeable = false
+  .writeable = false,
+  .type = ""
 };
 
 rtems_filesystem_global_location_t rtems_filesystem_global_location_null = {
@@ -257,4 +258,4 @@ rtems_user_env_t rtems_global_user_env = {
   .umask = S_IWGRP | S_IWOTH
 };
 
-rtems_user_env_t *rtems_current_user_env = &rtems_global_user_env;
+pthread_key_t rtems_current_user_env_key;

@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
@@ -19,7 +19,7 @@
 int Ttimer_val;
 bool benchmark_timer_find_average_overhead;
 
-rtems_isr_entry timerisr(rtems_vector_number);
+rtems_isr timerisr(rtems_vector_number);
 
 void benchmark_timer_initialize(void)
 {
@@ -49,7 +49,7 @@ void benchmark_timer_initialize(void)
 #define AVG_OVERHEAD      9  /* may not be right -- do this later */
 #define LEAST_VALID       10 /* Don't trust a value lower than this */
 
-uint32_t benchmark_timer_read(void)
+benchmark_timer_t benchmark_timer_read(void)
 {
   uint8_t         data;
   uint8_t          msb, osb, lsb;

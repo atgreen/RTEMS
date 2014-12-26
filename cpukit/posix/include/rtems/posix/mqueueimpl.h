@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_POSIX_MQUEUE_INL
@@ -167,19 +167,6 @@ RTEMS_INLINE_ROUTINE POSIX_Message_queue_Control *_POSIX_Message_queue_Get (
   return (POSIX_Message_queue_Control *)
     _Objects_Get( &_POSIX_Message_queue_Information, id, location );
 }
-
-/**
- *  @brief POSIX Message Queue Is NULL
- *
- *  This function returns TRUE if the_message_queue is NULL and FALSE otherwise.
- */
-RTEMS_INLINE_ROUTINE bool _POSIX_Message_queue_Is_null (
-  POSIX_Message_queue_Control *the_mq
-)
-{
-  return !the_mq;
-}
-
 
 /*
  *  @brief POSIX Message Queue Convert Message Priority to Score

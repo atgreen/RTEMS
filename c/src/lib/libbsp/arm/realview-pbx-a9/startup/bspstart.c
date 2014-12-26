@@ -9,19 +9,16 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
 #include <bsp/bootcard.h>
+#include <bsp/arm-a9mpcore-clock.h>
 #include <bsp/irq-generic.h>
-
-void rvpbxa9_fatal(rvpbxa9_fatal_code code)
-{
-  rtems_fatal(RTEMS_FATAL_SOURCE_BSP_SPECIFIC, code);
-}
 
 void bsp_start(void)
 {
+  a9mpcore_clock_initialize_early();
   bsp_interrupt_initialize();
 }

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,6 +17,8 @@
 #include <math.h>
 
 #include <stdio.h>
+
+const char rtems_test_name[] = "STRINGTO 1";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -138,7 +140,7 @@ rtems_task Init(
   rtems_task_argument ignored
 )
 {
-  puts( "\n\n*** STRING TO CONVERSION TEST ***" );
+  TEST_BEGIN();
   test_rtems_string_to_pointer();
   test_rtems_string_to_unsigned_char();
   test_rtems_string_to_int();
@@ -150,7 +152,7 @@ rtems_task Init(
 
   test_rtems_string_to_float();
   test_rtems_string_to_double();
-  puts( "*** END OF STRING TO CONVERSION TEST ***" );
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -162,6 +164,8 @@ rtems_task Init(
 #define CONFIGURE_USE_DEVFS_AS_BASE_FILESYSTEM
 
 #define CONFIGURE_INIT_TASK_ATTRIBUTES RTEMS_FLOATING_POINT
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

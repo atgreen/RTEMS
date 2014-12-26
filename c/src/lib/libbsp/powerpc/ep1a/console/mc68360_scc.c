@@ -1,12 +1,14 @@
 /*  This file contains the termios TTY driver for the
  *  Motorola MC68360 SCC ports.
- *
+ */
+
+/*
  *  COPYRIGHT (c) 1989-2008.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <stdio.h>
@@ -23,9 +25,7 @@
 #include <rtems/bspIo.h>
 #include <string.h>
 
-#if 0
-#define DEBUG_360
-#endif
+/* #define DEBUG_360 */
 
 #if 1   /* XXX */
 int EP1A_READ_LENGTH_GREATER_THAN_1 = 0;
@@ -33,43 +33,16 @@ int EP1A_READ_LENGTH_GREATER_THAN_1 = 0;
 #define MC68360_LENGTH_SIZE 400
 int mc68360_length_array[ MC68360_LENGTH_SIZE ];
 int mc68360_length_count=0;
-
-void mc68360_Show_length_array(void) {
-  int i;
-  for (i=0; i<MC68360_LENGTH_SIZE; i++)
-    printf(" %d", mc68360_length_array[i] );
-  printf("\n\n");
-}
 #endif
 
 
 M68360_t    M68360_chips = NULL;
 
 #define SYNC     eieio
-#define mc68360_scc_Is_422( _minor ) (Console_Port_Tbl[minor]->sDeviceName[7] == '4' )
+#define mc68360_scc_Is_422( _minor ) \
+  (Console_Port_Tbl[minor]->sDeviceName[7] == '4' )
 
-
-void mc68360_scc_nullFunc(void) {}
-
-uint8_t scc_read8(
-  const char       *name,
-  volatile uint8_t *address
-)
-{
-  uint8_t value;
-
-#ifdef DEBUG_360
-  printk( "RD8 %s 0x%08x ", name, address );
-#endif
-  value = *address;
-#ifdef DEBUG_360
-  printk( "0x%02x\n", value );
-#endif
-
-  return value;
-}
-
-void scc_write8(
+static void scc_write8(
   const char       *name,
   volatile uint8_t *address,
   uint8_t           value
@@ -81,8 +54,7 @@ void scc_write8(
   *address = value;
 }
 
-
-uint16_t scc_read16(
+static uint16_t scc_read16(
   const char        *name,
   volatile uint16_t *address
 )
@@ -100,7 +72,7 @@ uint16_t scc_read16(
   return value;
 }
 
-void scc_write16(
+static void scc_write16(
   const char        *name,
   volatile uint16_t *address,
   uint16_t           value
@@ -112,8 +84,7 @@ void scc_write16(
   *address = value;
 }
 
-
-uint32_t scc_read32(
+static uint32_t scc_read32(
   const char        *name,
   volatile uint32_t *address
 )
@@ -131,7 +102,7 @@ uint32_t scc_read32(
   return value;
 }
 
-void scc_write32(
+static void scc_write32(
   const char        *name,
   volatile uint32_t *address,
   uint32_t           value
@@ -141,15 +112,6 @@ void scc_write32(
   printk( "WR32 %s 0x%08x 0x%08x\n", name, address, value );
 #endif
   *address = value;
-}
-
-void mc68360_sccShow_Regs(int minor){
-  M68360_serial_ports_t  ptr;
-  ptr   = Console_Port_Tbl[minor]->pDeviceParams;
-
-  printk( "scce 0x%08x", &ptr->pSCCR->scce );
-  printk( " 0x%04x\n", ptr->pSCCR->scce );
-
 }
 
 #define TX_BUFFER_ADDRESS( _ptr ) \
@@ -179,21 +141,7 @@ void mc68360_sccShow_Regs(int minor){
 static int
 mc68360_sccBRGC(int baud, int m360_clock_rate)
 {
-   int data;
-#if 0
-   int divisor;
-   int div16;
-
-   div16 = 0;
-   divisor = ((m360_clock_rate / 16) + (baud / 2)) / baud;
-   if (divisor > 4096)
-   {
-      div16   = 1;
-      divisor = (divisor + 8) / 16;
-   }
-   return(M360_BRG_EN | M360_BRG_EXTC_BRGCLK |
-          ((divisor - 1) << 1) | div16);
-#endif
+  int data;
 
   /*
    * configure baud rate generator for 16x bit rate, where.....
@@ -219,25 +167,15 @@ mc68360_sccBRGC(int baud, int m360_clock_rate)
 }
 
 
-/**************************************************************************
- * Function: sccInterruptHandler                                          *
- **************************************************************************
- * Description:                                                           *
- *                                                                        *
- *    This is the interrupt service routine for the console UART.  It     *
- *    handles both receive and transmit interrupts.  The bulk of the      *
- *    work is done by termios.                                            *
- *                                                                        *
- * Inputs:                                                                *
- *                                                                        *
- *    chip  - structure of chip specific information                      *
- *                                                                        *
- * Output:                                                                *
- *                                                                        *
- *    none                                                                *
- *                                                                        *
- **************************************************************************/
-void mc68360_sccInterruptHandler( M68360_t chip )
+/*
+ * sccInterruptHandler
+ *
+ * This is the interrupt service routine for the console UART.  It
+ * handles both receive and transmit interrupts.  The bulk of the
+ * work is done by termios.
+ *
+ */
+static void mc68360_sccInterruptHandler( M68360_t chip )
 {
   volatile m360_t    *m360;
   int                port;
@@ -325,29 +263,24 @@ if (length > 1)
  *
  *  Default state is 9600 baud, 8 bits, No parity, and 1 stop bit.
  */
-
-int mc68360_scc_open(
+static int mc68360_scc_open(
   int      major,
   int      minor,
   void    * arg
 )
 {
   M68360_serial_ports_t  ptr;
-  volatile m360_t       *m360;
   uint32_t               data;
 
 #ifdef DEBUG_360
   printk("mc68360_scc_open %d\n", minor);
 #endif
 
-
-  ptr   = Console_Port_Tbl[minor]->pDeviceParams;
-  m360  = ptr->chip->m360;
+  ptr = Console_Port_Tbl[minor]->pDeviceParams;
 
   /*
    * Enable the receiver and the transmitter.
    */
-
   SYNC();
   data = scc_read32( "pSCCR->gsmr_l", &ptr->pSCCR->gsmr_l);
   scc_write32( "pSCCR->gsmr_l", &ptr->pSCCR->gsmr_l,
@@ -364,7 +297,7 @@ int mc68360_scc_open(
   return RTEMS_SUCCESSFUL;
 }
 
-uint32_t mc68360_scc_calculate_pbdat( M68360_t chip )
+static uint32_t mc68360_scc_calculate_pbdat( M68360_t chip )
 {
   uint32_t               i;
   uint32_t               pbdat_data;
@@ -389,8 +322,7 @@ uint32_t mc68360_scc_calculate_pbdat( M68360_t chip )
  *  This routine initializes the console's receive and transmit
  *  ring buffers and loads the appropriate vectors to handle the interrupts.
  */
-
-void mc68360_scc_initialize_interrupts(int minor)
+static void mc68360_scc_initialize_interrupts(int minor)
 {
   M68360_serial_ports_t  ptr;
   volatile m360_t       *m360;
@@ -652,11 +584,10 @@ void mc68360_scc_initialize_interrupts(int minor)
  *
  *  Console Termios output entry point when using interrupt driven output.
  */
-
-int mc68360_scc_write_support_int(
+static ssize_t mc68360_scc_write_support_int(
   int         minor,
   const char *buf,
-  int         len
+  size_t      len
 )
 {
   rtems_interrupt_level  Irql;
@@ -710,8 +641,7 @@ int mc68360_scc_write_support_int(
  *
  *  This routine polls out the requested character.
  */
-
-void mc68360_scc_write_polled(
+static void mc68360_scc_write_polled(
   int   minor,
   char  cChar
 )
@@ -727,63 +657,57 @@ void mc68360_scc_write_polled(
  *  This function sets the DUART channel to reflect the requested termios
  *  port settings.
  */
-
-int mc68360_scc_set_attributes(
+static int mc68360_scc_set_attributes(
   int minor,
   const struct termios *t
 )
 {
-   int                    baud;
-   volatile m360_t        *m360;
-   M68360_serial_ports_t  ptr;
-   uint16_t               value;
+  int                    baud;
+  M68360_serial_ports_t  ptr;
+  uint16_t               value;
 
 #ifdef DEBUG_360
 printk("mc68360_scc_set_attributes\n");
 #endif
 
-   ptr   = Console_Port_Tbl[minor]->pDeviceParams;
-   m360  = ptr->chip->m360;
+  ptr = Console_Port_Tbl[minor]->pDeviceParams;
 
-   switch (t->c_cflag & CBAUD)
-   {
-      case B50:      baud = 50;      break;
-      case B75:      baud = 75;      break;
-      case B110:     baud = 110;     break;
-      case B134:     baud = 134;     break;
-      case B150:     baud = 150;     break;
-      case B200:     baud = 200;     break;
-      case B300:     baud = 300;     break;
-      case B600:     baud = 600;     break;
-      case B1200:    baud = 1200;    break;
-      case B1800:    baud = 1800;    break;
-      case B2400:    baud = 2400;    break;
-      case B4800:    baud = 4800;    break;
-      case B9600:    baud = 9600;    break;
-      case B19200:   baud = 19200;   break;
-      case B38400:   baud = 38400;   break;
-      case B57600:   baud = 57600;   break;
-      case B115200:  baud = 115200;  break;
-      case B230400:  baud = 230400;  break;
-      case B460800:  baud = 460800;  break;
-      default:       baud = -1;      break;
-   }
+  switch (t->c_cflag & CBAUD) {
+    case B50:      baud = 50;      break;
+    case B75:      baud = 75;      break;
+    case B110:     baud = 110;     break;
+    case B134:     baud = 134;     break;
+    case B150:     baud = 150;     break;
+    case B200:     baud = 200;     break;
+    case B300:     baud = 300;     break;
+    case B600:     baud = 600;     break;
+    case B1200:    baud = 1200;    break;
+    case B1800:    baud = 1800;    break;
+    case B2400:    baud = 2400;    break;
+    case B4800:    baud = 4800;    break;
+    case B9600:    baud = 9600;    break;
+    case B19200:   baud = 19200;   break;
+    case B38400:   baud = 38400;   break;
+    case B57600:   baud = 57600;   break;
+    case B115200:  baud = 115200;  break;
+    case B230400:  baud = 230400;  break;
+    case B460800:  baud = 460800;  break;
+    default:       baud = -1;      break;
+  }
 
-   if (baud > 0)
-   {
-      scc_write32(
-        "pBRGC",
-        ptr->pBRGC,
-        mc68360_sccBRGC(baud, ptr->chip->m360_clock_rate)
-      );
-   }
+  if (baud > 0) {
+    scc_write32(
+      "pBRGC",
+      ptr->pBRGC,
+      mc68360_sccBRGC(baud, ptr->chip->m360_clock_rate)
+    );
+  }
 
   /* Initial value of PSMR should be 0 */
   value = M360_PSMR_UM_NORMAL;
 
   /* set the number of data bits, 8 is most common */
-  if (t->c_cflag & CSIZE)                     /* was it specified? */
-  {
+  if (t->c_cflag & CSIZE) {                   /* was it specified? */
     switch (t->c_cflag & CSIZE) {
       case CS5: value |= M360_PSMR_CL5; break;
       case CS6: value |= M360_PSMR_CL6; break;
@@ -803,8 +727,7 @@ printk("mc68360_scc_set_attributes\n");
   /* Set Parity M360_PSMR_PEN bit should be clear on no parity so
    * do nothing in that case
    */
-  if (t->c_cflag & PARENB)                /* enable parity detection? */
-  {
+  if (t->c_cflag & PARENB) {              /* enable parity detection? */
     value |= M360_PSMR_PEN;
     if (t->c_cflag & PARODD){
       value |= M360_PSMR_RPM_ODD;        /* select odd parity */
@@ -827,14 +750,13 @@ printk("mc68360_scc_set_attributes\n");
  *
  *  This function shuts down the requested port.
  */
-
-int mc68360_scc_close(
+static int mc68360_scc_close(
   int      major,
   int      minor,
   void    *arg
 )
 {
-  return(RTEMS_SUCCESSFUL);
+  return RTEMS_SUCCESSFUL;
 }
 
 /*
@@ -842,12 +764,11 @@ int mc68360_scc_close(
  *
  *  Console Termios polling input entry point.
  */
-
-int mc68360_scc_inbyte_nonblocking_polled(
+static int mc68360_scc_inbyte_nonblocking_polled(
   int minor
 )
 {
-    return -1;
+  return -1;
 }
 
 /*
@@ -856,8 +777,7 @@ int mc68360_scc_inbyte_nonblocking_polled(
  *  Console Termios output entry point when using polled output.
  *
  */
-
-ssize_t mc68360_scc_write_support_polled(
+static ssize_t mc68360_scc_write_support_polled(
   int         minor,
   const char *buf,
   size_t      len
@@ -873,8 +793,7 @@ ssize_t mc68360_scc_write_support_polled(
  *
  *  This function initializes the DUART to a quiecsent state.
  */
-
-void mc68360_scc_init(int minor)
+static void mc68360_scc_init(int minor)
 {
 #ifdef DEBUG_360
   printk("mc68360_scc_init\n");
@@ -952,8 +871,8 @@ int mc68360_scc_create_chip( PPMCQ1BoardData BoardData, uint8_t int_vector )
     chip->board_data->busNo,
     chip->board_data->slotNo,
     chip->board_data->funcNo,
-    &mc68360_sccInterruptHandler,
-    chip
+    (FUNCTION_PTR) &mc68360_sccInterruptHandler,
+    (uintptr_t) chip
   );
 
   return RTEMS_SUCCESSFUL;

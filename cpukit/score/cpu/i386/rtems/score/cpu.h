@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -128,6 +128,17 @@ extern "C" {
 
 #define CPU_PER_CPU_CONTROL_SIZE 0
 
+#define I386_CONTEXT_CONTROL_EFLAGS_OFFSET 0
+#define I386_CONTEXT_CONTROL_ESP_OFFSET 4
+#define I386_CONTEXT_CONTROL_EBP_OFFSET 8
+#define I386_CONTEXT_CONTROL_EBX_OFFSET 12
+#define I386_CONTEXT_CONTROL_ESI_OFFSET 16
+#define I386_CONTEXT_CONTROL_EDI_OFFSET 20
+
+#ifdef RTEMS_SMP
+  #define I386_CONTEXT_CONTROL_IS_EXECUTING_OFFSET 24
+#endif
+
 /* structures */
 
 #ifndef ASM
@@ -147,10 +158,30 @@ typedef struct {
   uint32_t    ebx;      /* extended bx register                      */
   uint32_t    esi;      /* extended source index register            */
   uint32_t    edi;      /* extended destination index flags register */
+#ifdef RTEMS_SMP
+  volatile bool is_executing;
+#endif
 }   Context_Control;
 
 #define _CPU_Context_Get_SP( _context ) \
   (_context)->esp
+
+#ifdef RTEMS_SMP
+  static inline bool _CPU_Context_Get_is_executing(
+    const Context_Control *context
+  )
+  {
+    return context->is_executing;
+  }
+
+  static inline void _CPU_Context_Set_is_executing(
+    Context_Control *context,
+    bool is_executing
+  )
+  {
+    context->is_executing = is_executing;
+  }
+#endif
 
 /*
  *  FP context save area for the i387 numeric coprocessors.
@@ -316,13 +347,6 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
 #define CPU_MPCI_RECEIVE_SERVER_EXTRA_STACK 1024
 
 /*
- *  i386 family supports 256 distinct vectors.
- */
-
-#define CPU_INTERRUPT_NUMBER_OF_VECTORS      256
-#define CPU_INTERRUPT_MAXIMUM_VECTOR_NUMBER  (CPU_INTERRUPT_NUMBER_OF_VECTORS - 1)
-
-/*
  *  This is defined if the port has a special way to report the ISR nesting
  *  level.  Most ports maintain the variable _ISR_Nest_level.
  */
@@ -442,11 +466,13 @@ uint32_t   _CPU_ISR_Get_level( void );
  */
 
 
+
 #define _CPU_Context_Initialize( _the_context, _stack_base, _size, \
-                                   _isr, _entry_point, _is_fp ) \
+                                   _isr, _entry_point, _is_fp, _tls_area ) \
   do { \
     uint32_t   _stack; \
     \
+    (void) _is_fp; /* avoid warning for being unused */ \
     if ( (_isr) ) (_the_context)->eflags = CPU_EFLAGS_INTERRUPTS_OFF; \
     else          (_the_context)->eflags = CPU_EFLAGS_INTERRUPTS_ON; \
     \
@@ -462,10 +488,13 @@ uint32_t   _CPU_ISR_Get_level( void );
    _CPU_Context_restore( (_the_context) );
 
 #if defined(RTEMS_SMP)
-  #define _CPU_Context_switch_to_first_task_smp( _the_context ) \
-     _CPU_Context_restore( (_the_context) );
+  uint32_t _CPU_SMP_Initialize( void );
 
-  RTEMS_COMPILER_PURE_ATTRIBUTE uint32_t _CPU_SMP_Get_current_processor( void );
+  bool _CPU_SMP_Start_processor( uint32_t cpu_index );
+
+  void _CPU_SMP_Finalize_initialization( uint32_t cpu_count );
+
+  uint32_t _CPU_SMP_Get_current_processor( void );
 
   void _CPU_SMP_Send_interrupt( uint32_t target_processor_index );
 
@@ -497,7 +526,7 @@ uint32_t   _CPU_ISR_Get_level( void );
  *    + disable interrupts and halt the CPU
  */
 
-#define _CPU_Fatal_halt( _error ) \
+#define _CPU_Fatal_halt( _source, _error ) \
   { \
     uint32_t _error_lvalue = ( _error ); \
     __asm__ volatile ( "cli ; \
@@ -696,6 +725,18 @@ static inline void _CPU_Context_validate( uintptr_t pattern )
 }
 
 void _CPU_Exception_frame_print( const CPU_Exception_frame *frame );
+
+typedef uint32_t CPU_Counter_ticks;
+
+CPU_Counter_ticks _CPU_Counter_read( void );
+
+static inline CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  return second - first;
+}
 
 #endif /* ASM */
 

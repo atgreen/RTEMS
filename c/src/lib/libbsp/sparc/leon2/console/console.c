@@ -2,19 +2,17 @@
  * @file
  * @ingroup sparc_leon2
  * @brief TTY driver driver for the serial ports on the LEON console
+ *
+ *  This file contains the TTY driver for the serial ports on the LEON.
  */
 
 /*
- *  This file contains the TTY driver for the serial ports on the LEON.
- *
- *  This driver uses the termios pseudo driver.
- *
- *  COPYRIGHT (c) 1989-1998.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
@@ -24,31 +22,13 @@
 #include <rtems/bspIo.h>
 
 /*
- *  Should we use a polled or interrupt drived console?
- *
- *  NOTE: This is defined in the custom/leon.cfg file.
- *
- *  WARNING:  In sis 1.6, it did not appear that the UART interrupts
- *            worked in a desirable fashion.  Immediately upon writing
- *            a character into the TX buffer, an interrupt was generated.
- *            This did not allow enough time for the program to put more
- *            characters in the buffer.  So every character resulted in
- *            "priming" the transmitter.   This effectively results in
- *            in a polled console with a useless interrupt per character
- *            on output.  It is reasonable to assume that input does not
- *            share this problem although it was not investigated.
- *
- */
-
-/*
  *  console_outbyte_polled
  *
  *  This routine transmits a character using polling.
  */
-
 void console_outbyte_polled(
-  int  port,
-  char ch
+  int           port,
+  unsigned char ch
 );
 
 /* body is in debugputs.c */
@@ -73,7 +53,7 @@ int console_inbyte_nonblocking( int port );
  *  Buffers between task and ISRs
  */
 
-#include <ringbuf.h>
+#include <rtems/ringbuf.h>
 
 Ring_buffer_t  TX_Buffer[ 2 ];
 bool           Is_TX_active[ 2 ];
@@ -293,7 +273,7 @@ void console_outbyte_interrupt(
  *
  */
 
-ssize_t console_write_support (int minor, const char *buf, size_t len)
+static ssize_t console_write_support (int minor, const char *buf, size_t len)
 {
   int nwrite = 0;
 
@@ -341,7 +321,7 @@ rtems_device_driver console_initialize(
 
   LEON_REG.UART_Control_1 |= LEON_REG_UART_CTRL_RE | LEON_REG_UART_CTRL_TE;
   LEON_REG.UART_Control_2 |= LEON_REG_UART_CTRL_RE | LEON_REG_UART_CTRL_TE |
-  	LEON_REG_UART_CTRL_RI;	/* rx irq default enable for remote debugger */
+      LEON_REG_UART_CTRL_RI;  /* rx irq default enable for remote debugger */
   LEON_REG.UART_Status_1 = 0;
   LEON_REG.UART_Status_2 = 0;
 #if (CONSOLE_USE_INTERRUPTS)
@@ -394,6 +374,7 @@ rtems_device_driver console_open(
 #else
   sc = rtems_termios_open (major, minor, arg, &pollCallbacks);
 #endif
+  (void) sc; /* avoid set but not used warning */
 
   return RTEMS_SUCCESSFUL;
 }

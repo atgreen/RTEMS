@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -47,6 +47,7 @@ int sem_init(
   if ( !sem )
     rtems_set_errno_and_return_minus_one( EINVAL );
 
+  _Objects_Allocator_lock();
   status = _POSIX_Semaphore_Create_support(
     NULL,
     0,
@@ -54,6 +55,7 @@ int sem_init(
     value,
     &the_semaphore
   );
+  _Objects_Allocator_unlock();
 
   if ( status != -1 )
     *sem = the_semaphore->Object.id;

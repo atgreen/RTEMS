@@ -1,24 +1,12 @@
-/*  Init
- *
- *  This routine is the initialization task for this test program.
- *  It is a user initialization task and has the responsibility for creating
- *  and starting the tasks that make up the test.  If the time of day
- *  clock is required for the test, it should also be set to a known
- *  value by this function.
- *
- *  Input parameters:
- *    argument - task argument
- *
- *  Output parameters:  NONE
- *
- *  COPYRIGHT (c) 1989-2011.
+/* 
+ *  COPYRIGHT (c) 1989-2011, 2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  Copyright (c) 2009, 2010 embedded brains GmbH.
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,6 +22,8 @@
 #include <errno.h>
 #include <rtems/score/protectedheap.h>
 #include <rtems/malloc.h>
+
+const char rtems_test_name[] = "MALLOCTEST";
 
 /*
  *  A simple test of realloc
@@ -1157,6 +1147,25 @@ static void test_rtems_heap_allocate_aligned_with_boundary(void)
   rtems_test_assert( p == NULL );
 }
 
+static void test_heap_size_with_overhead(void)
+{
+  uintptr_t s;
+
+  puts( "_Heap_Size_with_overhead" );
+
+  s = _Heap_Size_with_overhead(0, 0, 0);
+  rtems_test_assert(s == HEAP_BLOCK_HEADER_SIZE + CPU_ALIGNMENT - 1);
+
+  s = _Heap_Size_with_overhead(CPU_ALIGNMENT, 0, 0);
+  rtems_test_assert(s == HEAP_BLOCK_HEADER_SIZE + CPU_ALIGNMENT - 1);
+
+  s = _Heap_Size_with_overhead(CPU_ALIGNMENT, 0, 2 * CPU_ALIGNMENT);
+  rtems_test_assert(s == HEAP_BLOCK_HEADER_SIZE + 2 * CPU_ALIGNMENT - 1);
+
+  s = _Heap_Size_with_overhead(CPU_ALIGNMENT, 123, 0);
+  rtems_test_assert(s == HEAP_BLOCK_HEADER_SIZE + CPU_ALIGNMENT - 1 + 123);
+}
+
 /*
  *  A simple test of posix_memalign
  */
@@ -1167,9 +1176,17 @@ static void test_posix_memalign(void)
   int sc;
   int maximumShift;
 
+  /*
+   * posix_memalign() is declared as never having a NULL first parameter.
+   * We need to explicitly disable this compiler warning to make this code
+   * warning free.
+   */
+  COMPILER_DIAGNOSTIC_SETTINGS_PUSH
+  COMPILER_DIAGNOSTIC_SETTINGS_DISABLE_NONNULL
   puts( "posix_memalign - NULL return pointer -- EINVAL" );
   sc = posix_memalign( NULL, 32, 8 );
   fatal_posix_service_status( sc, EINVAL, "posix_memalign NULL pointer" );
+  COMPILER_DIAGNOSTIC_SETTINGS_POP
 
   puts( "posix_memalign - alignment of 0 -- EINVAL" );
   sc = posix_memalign( &p1, 0, 8 );
@@ -1230,7 +1247,7 @@ rtems_task Init(
   rtems_time_of_day time;
   rtems_status_code status;
 
-  puts( "\n\n*** MALLOC TEST ***" );
+  TEST_BEGIN();
 
   build_time( &time, 12, 31, 1988, 9, 0, 0, 0 );
   status = rtems_clock_set( &time );
@@ -1268,6 +1285,7 @@ rtems_task Init(
   test_heap_extend_allocation_order_with_empty_heap();
   test_heap_no_extend();
   test_heap_info();
+  test_heap_size_with_overhead();
   test_protected_heap_info();
   test_rtems_heap_allocate_aligned_with_boundary();
   test_greedy_allocate();

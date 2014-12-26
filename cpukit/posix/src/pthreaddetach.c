@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2007.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -31,7 +31,7 @@ int pthread_detach(
   pthread_t   thread
 )
 {
-  register Thread_Control *the_thread;
+  Thread_Control          *the_thread;
   POSIX_API_Control       *api;
   Objects_Locations        location;
 
@@ -42,6 +42,7 @@ int pthread_detach(
 
       api = the_thread->API_Extensions[ THREAD_API_POSIX ];
       api->detachstate = PTHREAD_CREATE_DETACHED;
+      api->Attributes.detachstate = PTHREAD_CREATE_DETACHED;
       _Objects_Put( &the_thread->Object );
       return 0;
 

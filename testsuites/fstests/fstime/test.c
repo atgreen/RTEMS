@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -24,7 +24,10 @@
 
 #ifdef __rtems__
 #include "fstest.h"
+#include "fs_config.h"
 #include "pmacros.h"
+
+const char rtems_test_name[] = "FSTIME " FILESYSTEM;
 #else
 #include <assert.h>
 #define rtems_test_assert(x) assert(x)
@@ -324,9 +327,7 @@ int main(int argc, char **argv)
 #endif
 {
 
-  puts( "\n\n*** TIME TEST ***" );
   time_test01();
-  puts( "*** END OF TIME TEST ***" );
 
 #ifndef __rtems__
   return 0;

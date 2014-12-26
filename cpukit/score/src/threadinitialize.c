@@ -2,15 +2,16 @@
  *  @file
  *
  *  @brief Initialize Thread
+ *
  *  @ingroup ScoreThread
  */
 /*
- *  COPYRIGHT (c) 1989-2011.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -18,16 +19,20 @@
 #endif
 
 #include <rtems/score/threadimpl.h>
+#include <rtems/score/resourceimpl.h>
 #include <rtems/score/schedulerimpl.h>
 #include <rtems/score/stackimpl.h>
+#include <rtems/score/tls.h>
 #include <rtems/score/userextimpl.h>
 #include <rtems/score/watchdogimpl.h>
 #include <rtems/score/wkspace.h>
+#include <rtems/score/cpusetimpl.h>
 #include <rtems/config.h>
 
 bool _Thread_Initialize(
   Objects_Information                  *information,
   Thread_Control                       *the_thread,
+  const Scheduler_Control              *scheduler,
   void                                 *stack_area,
   size_t                                stack_size,
   bool                                  is_fp,
@@ -39,21 +44,29 @@ bool _Thread_Initialize(
   Objects_Name                          name
 )
 {
-  size_t               actual_stack_size = 0;
-  void                *stack = NULL;
+  uintptr_t                tls_size = _TLS_Get_size();
+  size_t                   actual_stack_size = 0;
+  void                    *stack = NULL;
   #if ( CPU_HARDWARE_FP == TRUE ) || ( CPU_SOFTWARE_FP == TRUE )
-    void              *fp_area;
+    void                  *fp_area = NULL;
   #endif
-  void                *sched = NULL;
-  void                *extensions_area;
-  bool                 extension_status;
-  int                  i;
+  bool                     extension_status;
+  size_t                   i;
+  bool                     scheduler_node_initialized = false;
+  Per_CPU_Control         *cpu = _Per_CPU_Get_by_index( 0 );
 
 #if defined( RTEMS_SMP )
   if ( rtems_configuration_is_smp_enabled() && !is_preemptible ) {
     return false;
   }
 #endif
+
+  for ( i = 0 ; i < _Thread_Control_add_on_count ; ++i ) {
+    const Thread_Control_add_on *add_on = &_Thread_Control_add_ons[ i ];
+
+    *(void **) ( (char *) the_thread + add_on->destination_offset ) =
+      (char *) the_thread + add_on->source_offset;
+  }
 
   /*
    *  Initialize the Ada self pointer
@@ -62,18 +75,7 @@ bool _Thread_Initialize(
     the_thread->rtems_ada_self = NULL;
   #endif
 
-  /*
-   *  Zero out all the allocated memory fields
-   */
-  for ( i=0 ; i <= THREAD_API_LAST ; i++ )
-    the_thread->API_Extensions[i] = NULL;
-
-  extensions_area = NULL;
-  the_thread->libc_reent = NULL;
-
-  #if ( CPU_HARDWARE_FP == TRUE ) || ( CPU_SOFTWARE_FP == TRUE )
-    fp_area = NULL;
-  #endif
+  the_thread->Start.tls_area = NULL;
 
   /*
    *  Allocate and Initialize the stack for this thread.
@@ -105,6 +107,19 @@ bool _Thread_Initialize(
      actual_stack_size
   );
 
+  /* Thread-local storage (TLS) area allocation */
+  if ( tls_size > 0 ) {
+    uintptr_t tls_align = _TLS_Heap_align_up( (uintptr_t) _TLS_Alignment );
+    uintptr_t tls_alloc = _TLS_Get_allocation_size( tls_size, tls_align );
+
+    the_thread->Start.tls_area =
+      _Workspace_Allocate_aligned( tls_alloc, tls_align );
+
+    if ( the_thread->Start.tls_area == NULL ) {
+      goto failed;
+    }
+  }
+
   /*
    *  Allocate the floating point area for this thread
    */
@@ -130,33 +145,21 @@ bool _Thread_Initialize(
   #endif
 
   /*
-   *  Allocate the extensions area for this thread
-   */
-  if ( _Thread_Maximum_extensions ) {
-    extensions_area = _Workspace_Allocate(
-      (_Thread_Maximum_extensions + 1) * sizeof( void * )
-    );
-    if ( !extensions_area )
-      goto failed;
-  }
-  the_thread->extensions = (void **) extensions_area;
-
-  /*
    * Clear the extensions area so extension users can determine
    * if they are linked to the thread. An extension user may
    * create the extension long after tasks have been created
    * so they cannot rely on the thread create user extension
-   * call.
+   * call.  The object index starts with one, so the first extension context is
+   * unused.
    */
-  if ( the_thread->extensions ) {
-    for ( i = 0; i <= _Thread_Maximum_extensions ; i++ )
-      the_thread->extensions[i] = NULL;
-  }
+  for ( i = 1 ; i <= rtems_configuration_get_maximum_extensions() ; ++i )
+    the_thread->extensions[ i ] = NULL;
 
   /*
    *  General initialization
    */
 
+  the_thread->Start.isr_level        = isr_level;
   the_thread->Start.is_preemptible   = is_preemptible;
   the_thread->Start.budget_algorithm = budget_algorithm;
   the_thread->Start.budget_callout   = budget_callout;
@@ -167,7 +170,8 @@ bool _Thread_Initialize(
       break;
     #if defined(RTEMS_SCORE_THREAD_ENABLE_EXHAUST_TIMESLICE)
       case THREAD_CPU_BUDGET_ALGORITHM_EXHAUST_TIMESLICE:
-        the_thread->cpu_time_budget = _Thread_Ticks_per_timeslice;
+        the_thread->cpu_time_budget =
+          rtems_configuration_get_ticks_per_timeslice();
         break;
     #endif
     #if defined(RTEMS_SCORE_THREAD_ENABLE_SCHEDULER_CALLOUT)
@@ -176,25 +180,29 @@ bool _Thread_Initialize(
     #endif
   }
 
-  the_thread->Start.isr_level         = isr_level;
-
 #if defined(RTEMS_SMP)
-  the_thread->is_scheduled            = false;
-  the_thread->is_in_the_air           = false;
-  the_thread->is_executing            = false;
-
-  /* Initialize the cpu field for the non-SMP schedulers */
-  the_thread->cpu                     = _Per_CPU_Get_by_index( 0 );
+  the_thread->Scheduler.state = THREAD_SCHEDULER_BLOCKED;
+  the_thread->Scheduler.own_control = scheduler;
+  the_thread->Scheduler.control = scheduler;
+  the_thread->Scheduler.own_node = the_thread->Scheduler.node;
+  _Resource_Node_initialize( &the_thread->Resource_node );
+  _CPU_Context_Set_is_executing( &the_thread->Registers, false );
 #endif
+
+  _Thread_Debug_set_real_processor( the_thread, cpu );
+
+  /* Initialize the CPU for the non-SMP schedulers */
+  _Thread_Set_CPU( the_thread, cpu );
 
   the_thread->current_state           = STATES_DORMANT;
   the_thread->Wait.queue              = NULL;
   the_thread->resource_count          = 0;
   the_thread->real_priority           = priority;
   the_thread->Start.initial_priority  = priority;
-  sched =_Scheduler_Allocate( the_thread );
-  if ( !sched )
-    goto failed;
+
+  _Scheduler_Node_initialize( scheduler, the_thread );
+  scheduler_node_initialized = true;
+
   _Thread_Set_priority( the_thread, priority );
 
   /*
@@ -205,6 +213,23 @@ bool _Thread_Initialize(
   #else
     the_thread->cpu_time_used = 0;
   #endif
+
+  /*
+   * initialize thread's key vaule node chain
+   */
+  _Chain_Initialize_empty( &the_thread->Key_Chain );
+
+  _Thread_Action_control_initialize( &the_thread->Post_switch_actions );
+
+  _Thread_Action_initialize(
+    &the_thread->Life.Action,
+    _Thread_Life_action_handler
+  );
+  the_thread->Life.state = THREAD_LIFE_NORMAL;
+  the_thread->Life.terminator = NULL;
+
+  the_thread->Capture.flags = 0;
+  the_thread->Capture.control = NULL;
 
   /*
    *  Open the object
@@ -223,18 +248,16 @@ bool _Thread_Initialize(
     return true;
 
 failed:
-  _Workspace_Free( the_thread->libc_reent );
 
-  for ( i=0 ; i <= THREAD_API_LAST ; i++ )
-    _Workspace_Free( the_thread->API_Extensions[i] );
+  if ( scheduler_node_initialized ) {
+    _Scheduler_Node_destroy( scheduler, the_thread );
+  }
 
-  _Workspace_Free( extensions_area );
+  _Workspace_Free( the_thread->Start.tls_area );
 
   #if ( CPU_HARDWARE_FP == TRUE ) || ( CPU_SOFTWARE_FP == TRUE )
     _Workspace_Free( fp_area );
   #endif
-
-   _Workspace_Free( sched );
 
    _Thread_Stack_Free( the_thread );
   return false;

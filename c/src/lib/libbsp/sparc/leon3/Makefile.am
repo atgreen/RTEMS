@@ -32,17 +32,24 @@ noinst_LIBRARIES += libbsp.a
 libbsp_a_SOURCES =
 
 # startup
-libbsp_a_SOURCES += ../../shared/bspclean.c ../../shared/bsplibc.c \
+libbsp_a_SOURCES += startup/bspclean.c
+libbsp_a_SOURCES += ../../shared/bsplibc.c \
     ../../shared/bsppost.c ../../shared/bootcard.c startup/bspstart.c \
     ../../sparc/shared/bsppretaskinghook.c startup/bsppredriver.c \
-    ../../sparc/shared/startup/bspgetworkarea.c ../../shared/sbrk.c startup/setvec.c \
+    ../../sparc/shared/startup/bspgetworkarea.c ../../shared/sbrk.c \
+    startup/setvec.c \
     startup/spurious.c startup/bspidle.S startup/bspdelay.c \
-    ../../shared/bspinit.c ../../sparc/shared/startup/early_malloc.c
+    ../../sparc/shared/startup/early_malloc.c
+libbsp_a_SOURCES += startup/cpucounter.c
+libbsp_a_SOURCES += ../../sparc/shared/startup/bsp_fatal_exit.c
+libbsp_a_SOURCES += startup/bsp_fatal_halt.c
 
 # ISR Handler
+libbsp_a_SOURCES += ../../sparc/shared/cpu.c
 libbsp_a_SOURCES += ../../sparc/shared/irq_asm.S
 # gnatsupp
 libbsp_a_SOURCES += gnatsupp/gnatsupp.c ../../sparc/shared/gnatcommon.c
+include_bsp_HEADERS = ../shared/include/gnatcommon.h
 # AMBA bus
 include_HEADERS += include/amba.h
 include_HEADERS += ../../sparc/shared/include/ambapp.h
@@ -60,6 +67,7 @@ libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp_old.c
 libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp_names.c
 libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp_show.c
 # console
+libbsp_a_SOURCES += ../../shared/console-termios.c
 libbsp_a_SOURCES += console/console.c
 # debugio
 libbsp_a_SOURCES += console/printk_support.c
@@ -67,7 +75,7 @@ libbsp_a_SOURCES += console/printk_support.c
 libbsp_a_SOURCES += clock/ckinit.c
 libbsp_a_SOURCES += ../../shared/clockdrv_shell.h
 # IRQ
-include_bsp_HEADERS = \
+include_bsp_HEADERS += \
     ../../shared/include/irq-generic.h \
     ../../shared/include/irq-info.h \
     include/bsp/irq.h
@@ -104,9 +112,11 @@ libbsp_a_SOURCES += ../../sparc/shared/spw/grspw.c \
 
 # UART
 include_HEADERS += ../../sparc/shared/include/apbuart.h \
-    ../../sparc/shared/include/apbuart_pci.h
+    ../../sparc/shared/include/apbuart_pci.h \
+    ../../sparc/shared/include/apbuart_termios.h
 libbsp_a_SOURCES += ../../sparc/shared/uart/apbuart.c \
-    ../../sparc/shared/uart/apbuart_pci.c
+    ../../sparc/shared/uart/apbuart_pci.c \
+    ../../sparc/shared/uart/apbuart_termios.c
 
 # I2CMST
 include_HEADERS += ../../sparc/shared/include/i2cmst.h
@@ -115,9 +125,13 @@ libbsp_a_SOURCES += ../../sparc/shared/i2c/i2cmst.c
 # timer
 libbsp_a_SOURCES += timer/timer.c
 
+# Cache
+libbsp_a_SOURCES += ../../../libcpu/shared/src/cache_manager.c
+libbsp_a_SOURCES += include/cache_.h
+libbsp_a_CPPFLAGS = -I$(srcdir)/include
+
 if HAS_SMP
-libbsp_a_SOURCES += smp/getcpuid.c
-libbsp_a_SOURCES += smp/smp_leon3.c
+libbsp_a_SOURCES += startup/bspsmp.c
 endif
 
 if HAS_NETWORKING
@@ -153,7 +167,6 @@ endif
 
 libbsp_a_LIBADD = \
     ../../../libcpu/@RTEMS_CPU@/access.rel \
-    ../../../libcpu/@RTEMS_CPU@/cache.rel \
     ../../../libcpu/@RTEMS_CPU@/reg_win.rel \
     ../../../libcpu/@RTEMS_CPU@/syscall.rel
 

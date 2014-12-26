@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <libcpu/io.h>
@@ -22,7 +22,6 @@
  * For the 8240 and the 8245 there is no host bridge the
  * Open PIC device is built into the processor chip.
  */
-
 void detect_host_bridge(void)
 {
   OpenPIC=(volatile struct OpenPIC *) (EUMBBAR + BSP_OPEN_PIC_BASE_OFFSET );

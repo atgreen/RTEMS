@@ -63,7 +63,7 @@ SECTIONS
     *(.text*)
     . = ALIGN (16);
 
-    *(.eh_frame)
+    KEEP(*(.eh_frame*))
     . = ALIGN (16);
 
     *(.gnu.linkonce.t*)
@@ -87,13 +87,11 @@ SECTIONS
        The .ctor section from the crtend file contains the
        end of ctors marker and it must be last */
     KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .ctors))
-    KEEP (*(SORT(.ctors.*)))
-    KEEP (*(.ctors))
+    KEEP (*(SORT(.ctors*)))
     KEEP (*crtbegin.o(.dtors))
     KEEP (*crtbegin?.o(.dtors))
     KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .dtors))
-    KEEP (*(SORT(.dtors.*)))
-    KEEP (*(.dtors))
+    KEEP (*(SORT(.dtors*)))
 
     _rodata_start = . ;
     *(.rodata*)
@@ -102,12 +100,28 @@ SECTIONS
 
     etext = ALIGN(0x10);
     _etext = .;
-    KEEP(*(.init))
-    KEEP(*(.fini))
+    KEEP(*(.init*))
+    KEEP(*(.fini*))
     *(.lit)
     *(.shdata)
     . = ALIGN (16);
   } > ram
+  .tdata : {
+    _TLS_Data_begin = .;
+    *(.tdata .tdata.* .gnu.linkonce.td.*)
+    _TLS_Data_end = .;
+  } > ram
+  .tbss : {
+    _TLS_BSS_begin = .;
+    *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon)
+    _TLS_BSS_end = .;
+  } > ram
+  _TLS_Data_size = _TLS_Data_end - _TLS_Data_begin;
+  _TLS_Data_begin = _TLS_Data_size != 0 ? _TLS_Data_begin : _TLS_BSS_begin;
+  _TLS_Data_end = _TLS_Data_size != 0 ? _TLS_Data_end : _TLS_BSS_begin;
+  _TLS_BSS_size = _TLS_BSS_end - _TLS_BSS_begin;
+  _TLS_Size = _TLS_BSS_end - _TLS_Data_begin;
+  _TLS_Alignment = MAX (ALIGNOF (.tdata), ALIGNOF (.tbss));
   .rtemsroset : {
     /* for pre rtems-libbsd FreeBSD code */
     __start_set_sysctl_set = .;
@@ -135,6 +149,9 @@ SECTIONS
       *(.rela.got)
       *(.rela.bss .rela.bss.* .rela.gnu.linkonce.b.*)
     } >ram
+  .rtemsrwset : {
+    KEEP (*(SORT(.rtemsrwset.*)))
+  } >ram
   .data :
   {
     data_start = .;
@@ -142,14 +159,12 @@ SECTIONS
     _sdata = . ;
     *(.data*)
     *(.gnu.linkonce.d*)
+    . = ALIGN(0x10);
     *(.gcc_except_table*)
     . = ALIGN(0x10);
     edata = .;
     _edata = .;
   } > ram
-  .rtemsrwset : {
-    KEEP (*(SORT(.rtemsrwset.*)))
-  } >ram
   .dynamic	  : { *(.dynamic) 	} >ram
   .jcr		  : { *(.jcr) 		} >ram
   .got		  : { *(.got) 		} >ram

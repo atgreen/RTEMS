@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -146,7 +146,6 @@ void test_shutdown_filesystem(void)
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 #define CONFIGURE_FILESYSTEM_JFFS2
 
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 40
@@ -154,6 +153,11 @@ void test_shutdown_filesystem(void)
 #define CONFIGURE_MAXIMUM_TASKS 1
 
 #define CONFIGURE_INIT_TASK_STACK_SIZE (32 * 1024)
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
+#define CONFIGURE_MAXIMUM_POSIX_KEY_VALUE_PAIRS 1
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

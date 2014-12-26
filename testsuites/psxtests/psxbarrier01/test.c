@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -21,6 +21,8 @@
 #include <pthread.h>
 
 #include "tmacros.h"
+
+const char rtems_test_name[] = "PSXBARRIER 1";
 
 #define NUMBER_THREADS 2
 pthread_t ThreadIds[NUMBER_THREADS];
@@ -62,7 +64,7 @@ int main(
   int                   p;
   int                   i;
 
-  puts( "\n\n*** POSIX BARRIER TEST 01 ***" );
+  TEST_BEGIN();
 
   /*************** NULL POINTER CHECKS *****************/
   puts( "pthread_barrierattr_init( NULL ) -- EINVAL" );
@@ -235,6 +237,6 @@ int main(
   }
 
   /*************** END OF TEST *****************/
-  puts( "*** END OF POSIX BARRIER TEST 01 ***" );
+  TEST_END();
   exit(0);
 }

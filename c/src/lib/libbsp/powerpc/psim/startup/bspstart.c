@@ -9,7 +9,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <string.h>
@@ -20,6 +20,7 @@
 #include <bsp/bootcard.h>
 #include <bsp/linker-symbols.h>
 #include <rtems/bspIo.h>
+#include <rtems/counter.h>
 #include <rtems/powerpc/powerpc.h>
 
 #include <libcpu/cpuIdent.h>
@@ -92,12 +93,12 @@ void bsp_start( void )
   BSP_bus_frequency        = (unsigned int)PSIM_INSTRUCTIONS_PER_MICROSECOND;
   bsp_clicks_per_usec      = BSP_bus_frequency;
   BSP_time_base_divisor    = 1;
+  rtems_counter_initialize_converter(bsp_clicks_per_usec * 1000000);
 
   /*
    * Initialize default raw exception handlers.
    */
   ppc_exc_initialize_with_vector_base(
-    PPC_INTERRUPT_DISABLE_MASK_DEFAULT,
     (uintptr_t) bsp_section_work_begin,
     rtems_configuration_get_interrupt_stack_size(),
     (void *) 0xfff00000

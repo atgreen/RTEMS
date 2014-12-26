@@ -17,13 +17,13 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _INCLUDE_LEON_h
 #define _INCLUDE_LEON_h
 
-#include <rtems/score/sparc.h>
+#include <rtems.h>
 #include <amba.h>
 
 #ifdef __cplusplus
@@ -80,76 +80,45 @@ extern "C" {
  */
 
 #define LEON_REG_TIMER_CONTROL_EN    0x00000001  /* 1 = enable counting */
-                                                 /* 0 = hold scalar and counter */
+                                              /* 0 = hold scalar and counter */
 #define LEON_REG_TIMER_CONTROL_RL    0x00000002  /* 1 = reload at 0 */
-                                                 /* 0 = stop at 0 */
+                                              /* 0 = stop at 0 */
 #define LEON_REG_TIMER_CONTROL_LD    0x00000004  /* 1 = load counter */
-                                                 /* 0 = no function */
+                                              /* 0 = no function */
 
 /*
- *  The following defines the bits in the UART Control Registers.
- *
+ *  The following defines the bits in the LEON Cache Control Register.
  */
+#define LEON3_REG_CACHE_CTRL_FI      0x00200000 /* Flush instruction cache */
+#define LEON3_REG_CACHE_CTRL_DS      0x00800000 /* Data cache snooping */
 
-#define LEON_REG_UART_CONTROL_RTD  0x000000FF /* RX/TX data */
-
-/*
- *  The following defines the bits in the LEON UART Status Registers.
- */
-
-#define LEON_REG_UART_STATUS_DR   0x00000001 /* Data Ready */
-#define LEON_REG_UART_STATUS_TSE  0x00000002 /* TX Send Register Empty */
-#define LEON_REG_UART_STATUS_THE  0x00000004 /* TX Hold Register Empty */
-#define LEON_REG_UART_STATUS_BR   0x00000008 /* Break Error */
-#define LEON_REG_UART_STATUS_OE   0x00000010 /* RX Overrun Error */
-#define LEON_REG_UART_STATUS_PE   0x00000020 /* RX Parity Error */
-#define LEON_REG_UART_STATUS_FE   0x00000040 /* RX Framing Error */
-#define LEON_REG_UART_STATUS_ERR  0x00000078 /* Error Mask */
-
-/*
- *  The following defines the bits in the LEON UART Status Registers.
- */
-
-#define LEON_REG_UART_CTRL_RE     0x00000001 /* Receiver enable */
-#define LEON_REG_UART_CTRL_TE     0x00000002 /* Transmitter enable */
-#define LEON_REG_UART_CTRL_RI     0x00000004 /* Receiver interrupt enable */
-#define LEON_REG_UART_CTRL_TI     0x00000008 /* Transmitter interrupt enable */
-#define LEON_REG_UART_CTRL_PS     0x00000010 /* Parity select */
-#define LEON_REG_UART_CTRL_PE     0x00000020 /* Parity enable */
-#define LEON_REG_UART_CTRL_FL     0x00000040 /* Flow control enable */
-#define LEON_REG_UART_CTRL_LB     0x00000080 /* Loop Back enable */
-
-extern volatile struct irqmp_regs *LEON3_IrqCtrl_Regs;  /* LEON3 Interrupt Controller */
-extern volatile struct gptimer_regs *LEON3_Timer_Regs; /* LEON3 GP Timer */
+/* LEON3 Interrupt Controller */
+extern volatile struct irqmp_regs *LEON3_IrqCtrl_Regs;
+/* LEON3 GP Timer */
+extern volatile struct gptimer_regs *LEON3_Timer_Regs;
 
 /* LEON3 CPU Index of boot CPU */
-extern int LEON3_Cpu_Index;
+extern uint32_t LEON3_Cpu_Index;
 
 /* The external IRQ number, -1 if not external interrupts */
 extern int LEON3_IrqCtrl_EIrq;
 
 static __inline__ int bsp_irq_fixup(int irq)
 {
-       int eirq;
+  int eirq, cpu;
 
-       if (LEON3_IrqCtrl_EIrq != 0 && irq == LEON3_IrqCtrl_EIrq) {
-               /* Get interrupt number from IRQ controller */
-               eirq = LEON3_IrqCtrl_Regs->intid[LEON3_Cpu_Index] & 0x1f;
-               if (eirq & 0x10)
-                       irq = eirq;
-       }
+  if (LEON3_IrqCtrl_EIrq != 0 && irq == LEON3_IrqCtrl_EIrq) {
+    /* Get interrupt number from IRQ controller */
+    cpu = _LEON3_Get_current_processor();
+    eirq = LEON3_IrqCtrl_Regs->intid[cpu] & 0x1f;
+    if (eirq & 0x10)
+      irq = eirq;
+  }
 
-       return irq;
+  return irq;
 }
 
 /* Macros used for manipulating bits in LEON3 GP Timer Control Register */
-
-#define LEON3_GPTIMER_EN 1
-#define LEON3_GPTIMER_RL 2
-#define LEON3_GPTIMER_LD 4
-#define LEON3_GPTIMER_IRQEN 8
-
-#define LEON3_MP_IRQ    14        /* Irq used by shared memory driver */
 
 #define LEON3_IRQMPSTATUS_CPUNR     28
 #define LEON3_IRQMPSTATUS_BROADCAST 27
@@ -167,6 +136,14 @@ static __inline__ int bsp_irq_fixup(int irq)
  *        store the result back are vulnerable.
  */
 
+extern rtems_interrupt_lock LEON3_IrqCtrl_Lock;
+
+#define LEON3_IRQCTRL_ACQUIRE( _lock_context ) \
+  rtems_interrupt_lock_acquire( &LEON3_IrqCtrl_Lock, _lock_context )
+
+#define LEON3_IRQCTRL_RELEASE( _lock_context ) \
+  rtems_interrupt_lock_release( &LEON3_IrqCtrl_Lock, _lock_context )
+
 #define LEON_Clear_interrupt( _source ) \
   do { \
     LEON3_IrqCtrl_Regs->iclear = (1 << (_source)); \
@@ -180,47 +157,61 @@ static __inline__ int bsp_irq_fixup(int irq)
 #define LEON_Is_interrupt_pending( _source ) \
   (LEON3_IrqCtrl_Regs->ipend & (1 << (_source)))
 
-#define LEON_Is_interrupt_masked( _source ) \
-  do {\
-     (LEON3_IrqCtrl_Regs->mask[LEON3_Cpu_Index] & (1 << (_source))); \
-   } while (0)
+#define LEON_Cpu_Is_interrupt_masked( _source, _cpu ) \
+     (!(LEON3_IrqCtrl_Regs->mask[_cpu] & (1 << (_source))))
 
-#define LEON_Mask_interrupt( _source ) \
+#define LEON_Cpu_Mask_interrupt( _source, _cpu ) \
   do { \
-    uint32_t _level; \
-    _level = sparc_disable_interrupts(); \
-     LEON3_IrqCtrl_Regs->mask[LEON3_Cpu_Index]  &= ~(1 << (_source)); \
-    sparc_enable_interrupts( _level ); \
+    rtems_interrupt_lock_context _lock_context; \
+    LEON3_IRQCTRL_ACQUIRE( &_lock_context ); \
+     LEON3_IrqCtrl_Regs->mask[_cpu]  &= ~(1 << (_source)); \
+    LEON3_IRQCTRL_RELEASE( &_lock_context ); \
   } while (0)
 
-#define LEON_Unmask_interrupt( _source ) \
+#define LEON_Cpu_Unmask_interrupt( _source, _cpu ) \
   do { \
-    uint32_t _level; \
-    _level = sparc_disable_interrupts(); \
-    LEON3_IrqCtrl_Regs->mask[LEON3_Cpu_Index]  |= (1 << (_source)); \
-    sparc_enable_interrupts( _level ); \
+    rtems_interrupt_lock_context _lock_context; \
+    LEON3_IRQCTRL_ACQUIRE( &_lock_context ); \
+    LEON3_IrqCtrl_Regs->mask[_cpu]  |= (1 << (_source)); \
+    LEON3_IRQCTRL_RELEASE( &_lock_context ); \
   } while (0)
 
-#define LEON_Disable_interrupt( _source, _previous ) \
+#define LEON_Cpu_Disable_interrupt( _source, _previous, _cpu ) \
   do { \
-    uint32_t _level; \
+    rtems_interrupt_lock_context _lock_context; \
     uint32_t _mask = 1 << (_source); \
-    _level = sparc_disable_interrupts(); \
-     (_previous) = LEON3_IrqCtrl_Regs->mask[LEON3_Cpu_Index]; \
-     LEON3_IrqCtrl_Regs->mask[LEON3_Cpu_Index] = _previous & ~_mask; \
-    sparc_enable_interrupts( _level ); \
+    LEON3_IRQCTRL_ACQUIRE( &_lock_context ); \
+     (_previous) = LEON3_IrqCtrl_Regs->mask[_cpu]; \
+     LEON3_IrqCtrl_Regs->mask[_cpu] = _previous & ~_mask; \
+    LEON3_IRQCTRL_RELEASE( &_lock_context ); \
     (_previous) &= _mask; \
   } while (0)
 
-#define LEON_Restore_interrupt( _source, _previous ) \
+#define LEON_Cpu_Restore_interrupt( _source, _previous, _cpu ) \
   do { \
-    uint32_t _level; \
+    rtems_interrupt_lock_context _lock_context; \
     uint32_t _mask = 1 << (_source); \
-    _level = sparc_disable_interrupts(); \
-      LEON3_IrqCtrl_Regs->mask[LEON3_Cpu_Index] = \
-        (LEON3_IrqCtrl_Regs->mask[LEON3_Cpu_Index] & ~_mask) | (_previous); \
-    sparc_enable_interrupts( _level ); \
+    LEON3_IRQCTRL_ACQUIRE( &_lock_context ); \
+      LEON3_IrqCtrl_Regs->mask[_cpu] = \
+        (LEON3_IrqCtrl_Regs->mask[_cpu] & ~_mask) | (_previous); \
+    LEON3_IRQCTRL_RELEASE( &_lock_context ); \
   } while (0)
+
+/* Map single-cpu operations to local CPU */
+#define LEON_Is_interrupt_masked( _source ) \
+  LEON_Cpu_Is_interrupt_masked(_source, _LEON3_Get_current_processor())
+
+#define LEON_Mask_interrupt(_source) \
+  LEON_Cpu_Mask_interrupt(_source, _LEON3_Get_current_processor())
+
+#define LEON_Unmask_interrupt(_source) \
+  LEON_Cpu_Unmask_interrupt(_source, _LEON3_Get_current_processor())
+
+#define LEON_Disable_interrupt(_source, _previous) \
+  LEON_Cpu_Disable_interrupt(_source, _previous, _LEON3_Get_current_processor())
+
+#define LEON_Restore_interrupt(_source, _previous) \
+  LEON_Cpu_Restore_interrupt(_source, _previous, _LEON3_Get_current_processor())
 
 /* Make all SPARC BSPs have common macros for interrupt handling */
 #define BSP_Clear_interrupt(_source) LEON_Clear_interrupt(_source)
@@ -233,6 +224,18 @@ static __inline__ int bsp_irq_fixup(int irq)
         LEON_Disable_interrupt(_source, _prev)
 #define BSP_Restore_interrupt(_source, _previous) \
         LEON_Restore_interrupt(_source, _previous)
+
+/* Make all SPARC BSPs have common macros for interrupt handling on any CPU */
+#define BSP_Cpu_Is_interrupt_masked(_source, _cpu) \
+        LEON_Cpu_Is_interrupt_masked(_source, _cpu)
+#define BSP_Cpu_Unmask_interrupt(_source, _cpu) \
+        LEON_Cpu_Unmask_interrupt(_source, _cpu)
+#define BSP_Cpu_Mask_interrupt(_source, _cpu) \
+        LEON_Cpu_Mask_interrupt(_source, _cpu)
+#define BSP_Cpu_Disable_interrupt(_source, _previous, _cpu) \
+        LEON_Cpu_Disable_interrupt(_source, _prev, _cpu)
+#define BSP_Cpu_Restore_interrupt(_source, _previous, _cpu) \
+        LEON_Cpu_Restore_interrupt(_source, _previous, _cpu)
 
 /*
  *  Each timer control register is organized as follows:
@@ -265,12 +268,116 @@ static __inline__ int bsp_irq_fixup(int irq)
 #define LEON_REG_TIMER_COUNTER_DEFINED_MASK       0x00000003
 #define LEON_REG_TIMER_COUNTER_CURRENT_MODE_MASK  0x00000003
 
+#if defined(RTEMS_MULTIPROCESSING)
+  #define LEON3_CLOCK_INDEX \
+   (rtems_configuration_get_user_multiprocessing_table() ? LEON3_Cpu_Index : 0)
+#else
+  #define LEON3_CLOCK_INDEX 0
+#endif
+
+/*
+ * We assume that a boot loader (usually GRMON) initialized the GPTIMER 0 to
+ * run with 1MHz.  This is used to determine all clock frequencies of the PnP
+ * devices.  See also ambapp_freq_init() and ambapp_freq_get().
+ */
+#define LEON3_GPTIMER_0_FREQUENCY_SET_BY_BOOT_LOADER 1000000
+
 /* Load 32-bit word by forcing a cache-miss */
 static inline unsigned int leon_r32_no_cache(uintptr_t addr)
 {
-	unsigned int tmp;
-	asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr));
-	return tmp;
+  unsigned int tmp;
+  __asm__ volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr));
+  return tmp;
+}
+
+/* Let user override which on-chip APBUART will be debug UART
+ * 0 = Default APBUART. On MP system CPU0=APBUART0, CPU1=APBUART1...
+ * 1 = APBUART[0]
+ * 2 = APBUART[1]
+ * 3 = APBUART[2]
+ * ...
+ */
+extern int syscon_uart_index;
+
+/* Let user override which on-chip APBUART will be debug UART
+ * 0 = Default APBUART. On MP system CPU0=APBUART0, CPU1=APBUART1...
+ * 1 = APBUART[0]
+ * 2 = APBUART[1]
+ * 3 = APBUART[2]
+ * ...
+ */
+extern int debug_uart_index;
+
+void leon3_cpu_counter_initialize(void);
+
+/* GRLIB extended IRQ controller register */
+void leon3_ext_irq_init(void);
+
+void bsp_debug_uart_init(void);
+
+void leon3_power_down_loop(void) RTEMS_COMPILER_NO_RETURN_ATTRIBUTE;
+
+static inline uint32_t leon3_get_cpu_count(
+  volatile struct irqmp_regs *irqmp
+)
+{
+  uint32_t mpstat = irqmp->mpstat;
+
+  return ((mpstat >> LEON3_IRQMPSTATUS_CPUNR) & 0xf)  + 1;
+}
+
+static inline void leon3_set_system_register(uint32_t addr, uint32_t val)
+{
+  __asm__ volatile(
+    "sta %1, [%0] 2"
+    :
+    : "r" (addr), "r" (val)
+  );
+}
+
+static inline uint32_t leon3_get_system_register(uint32_t addr)
+{
+  uint32_t val;
+
+  __asm__ volatile(
+    "lda [%1] 2, %0"
+    : "=r" (val)
+    : "r" (addr)
+  );
+
+  return val;
+}
+
+static inline void leon3_set_cache_control_register(uint32_t val)
+{
+  leon3_set_system_register(0x0, val);
+}
+
+static inline uint32_t leon3_get_cache_control_register(void)
+{
+  return leon3_get_system_register(0x0);
+}
+
+static inline bool leon3_data_cache_snooping_enabled(void)
+{
+  return leon3_get_cache_control_register() & LEON3_REG_CACHE_CTRL_DS;
+}
+
+static inline uint32_t leon3_get_inst_cache_config_register(void)
+{
+  return leon3_get_system_register(0x8);
+}
+
+static inline uint32_t leon3_get_data_cache_config_register(void)
+{
+  return leon3_get_system_register(0xc);
+}
+
+static inline bool leon3_irqmp_has_timestamp(
+  volatile struct irqmp_timestamp_regs *irqmp_ts
+)
+{
+  return (irqmp_ts->control >> 27) > 0;
 }
 
 #endif /* !ASM */

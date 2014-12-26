@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,6 +13,8 @@
 
 #define CONFIGURE_INIT
 #include "system.h"
+#include <sys/param.h>
+#include <crypt.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -31,6 +33,8 @@
 #include <rtems/nvdisk.h>
 #include <rtems/nvdisk-sram.h>
 #include <rtems/shell.h>
+
+const char rtems_test_name[] = "FILE I/O";
 
 #if FILEIO_BUILD
 
@@ -210,8 +214,6 @@ fstab_t fs_table[] = {
     0
   }
 };
-
-#define MIN(a,b) (((a) > (b)) ? (b) : (a))
 
 #define USE_SHELL
 
@@ -631,18 +633,25 @@ static void fileio_start_shell(void)
     printf( "mkdir /etc: %s:\n", strerror(errno) );
   }
 
+  sc = mkdir("/chroot", 0777);
+  if ( sc ) {
+    printf( "mkdir /chroot: %s:\n", strerror(errno) );
+  }
+
   printf(
     "Creating /etc/passwd and group with three useable accounts\n"
-    "root/pwd , test/pwd, rtems/NO PASSWORD"
+    "root/pwd , test/pwd, rtems/NO PASSWORD, chroot/NO PASSWORD"
   );
 
   writeFile(
     "/etc/passwd",
     0644,
-    "root:7QR4o148UPtb.:0:0:root::/:/bin/sh\n"
-    "rtems:*:1:1:RTEMS Application::/:/bin/sh\n"
-    "test:8Yy.AaxynxbLI:2:2:test account::/:/bin/sh\n"
-    "tty:!:3:3:tty owner::/:/bin/false\n"
+    "root:$6$$FuPOhnllx6lhW2qqlnmWvZQLJ8Thr/09I7ESTdb9VbnTOn5.65"
+      "/Vh2Mqa6FoKXwT0nHS/O7F0KfrDc6Svb/sH.:0:0:root::/:/bin/sh\n"
+    "rtems::1:1:RTEMS Application::/:/bin/sh\n"
+    "test:$1$$oPu1Xt2Pw0ngIc7LyDHqu1:2:2:test account::/:/bin/sh\n"
+    "tty:*:3:3:tty owner::/:/bin/false\n"
+    "chroot::4:2:chroot account::/chroot:/bin/sh\n"
   );
   writeFile(
     "/etc/group",
@@ -706,10 +715,11 @@ static void fileio_start_shell(void)
     "SHLL",                          /* task_name */
     RTEMS_MINIMUM_STACK_SIZE * 4,    /* task_stacksize */
     100,                             /* task_priority */
-    "/dev/console",                  /* devname */
+    "/dev/foobar",                   /* devname */
+    /* device is currently ignored by the shell if it is not a pty */
     false,                           /* forever */
     true,                            /* wait */
-    NULL                             /* login */
+    rtems_shell_login_check          /* login */
   );
 }
 #endif /* USE_SHELL */
@@ -1220,7 +1230,10 @@ Init (rtems_task_argument ignored)
   rtems_id   Task_id;
   rtems_status_code status;
 
-  puts( "\n\n*** TEST FILE I/O SAMPLE ***" );
+  TEST_BEGIN();
+
+  crypt_add_format(&crypt_md5_format);
+  crypt_add_format(&crypt_sha512_format);
 
   status = rtems_shell_wait_for_input(
     STDIN_FILENO,
@@ -1244,7 +1257,7 @@ Init (rtems_task_argument ignored)
     status = rtems_task_delete( RTEMS_SELF );
     directive_failed( status, "delete" ); 
   } else {
-    puts( "*** END OF TEST FILE I/O SAMPLE ***" );
+    TEST_END();
 
     rtems_test_exit( 0 );
   }

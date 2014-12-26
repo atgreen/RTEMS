@@ -1,13 +1,15 @@
-/*  timer.c
- *
- *  This file manages the benchmark timer used by the RTEMS Timing Test
- *  Suite.  Each measured time period is demarcated by calls to
- *  benchmark_timer_initialize() and benchmark_timer_read().  benchmark_timer_read() usually returns
- *  the number of microseconds since benchmark_timer_initialize() exitted.
+/*
+ * This file manages the benchmark timer used by the RTEMS Timing Test
+ * Suite.  Each measured time period is demarcated by calls to
+ * benchmark_timer_initialize() and benchmark_timer_read(). 
+ * benchmark_timer_read() usually returns the number of microseconds
+ * since benchmark_timer_initialize() exitted.
  *
  *  NOTE: It is important that the timer start/stop overhead be
  *        determined when porting or modifying this code.
- *
+ */
+
+/*
  *  COPYRIGHT (c) 2005-2006 Kolja Waschk rtemsdev/ixo.de
  *  Derived from no_cpu/no_bsp/timer/timer.c 1.9,
  *  COPYRIGHT (c) 1989-1999.
@@ -15,7 +17,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #define TIMER_WRAPS_AFTER_1MS 0
@@ -30,7 +32,7 @@ bool benchmark_timer_find_average_overhead;
 
 #define TIMER_REGS ((altera_avalon_timer_regs*)NIOS2_IO_BASE(TIMER_BASE))
 
-void timerisr( void )
+static rtems_isr timerisr(rtems_vector_number vector)
 {
   TIMER_REGS->status = 0;
   Timer_interrupts++;
@@ -42,7 +44,7 @@ void benchmark_timer_initialize( void )
 
   TIMER_REGS->control = ALTERA_AVALON_TIMER_CONTROL_STOP_MSK;
 
-  set_vector((nios2_isr_entry *)timerisr, TIMER_VECTOR, 1);
+  set_vector(timerisr, TIMER_VECTOR, 1);
 
   /* Enable interrupt processing */
 
@@ -94,7 +96,7 @@ void benchmark_timer_initialize( void )
 
 #define LEAST_VALID AVG_OVERHEAD /* Don't trust a value lower than this */
 
-uint32_t benchmark_timer_read( void )
+benchmark_timer_t benchmark_timer_read( void )
 {
   uint32_t timer_wraps;
   uint32_t timer_snap;

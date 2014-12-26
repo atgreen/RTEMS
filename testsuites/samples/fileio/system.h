@@ -8,10 +8,11 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
+#include <rtems/test.h>
 #include "tmacros.h"
 
 /* functions */
@@ -28,11 +29,8 @@ rtems_task Init(
 #include <bsp.h> /* for device driver prototypes */
 
 #define FILEIO_BUILD 1
-#if BSP_SMALL_MEMORY
-#undef FILEIO_BUILD
-#endif
 
-#if defined(RTEMS_BSP_HAS_IDE_DRIVER) && !BSP_SMALL_MEMORY
+#if defined(RTEMS_BSP_HAS_IDE_DRIVER)
 #include <libchip/ata.h> /* for ata driver prototype */
 #include <libchip/ide_ctrl.h> /* for general ide driver prototype */
 #endif
@@ -55,23 +53,20 @@ rtems_task Init(
   #define CONFIGURE_FILESYSTEM_DOSFS
 #endif
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 /*
  * XXX: these values are higher than needed...
  */
-#define CONFIGURE_MAXIMUM_TASKS             20
-#define CONFIGURE_MAXIMUM_SEMAPHORES        20
-#define CONFIGURE_MAXIMUM_MESSAGE_QUEUES    20
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 20
 #define CONFIGURE_STACK_CHECKER_ENABLED
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
-#define CONFIGURE_EXTRA_TASK_STACKS         (6 * RTEMS_MINIMUM_STACK_SIZE)
-
 #define CONFIGURE_MALLOC_STATISTICS
 
 #define CONFIGURE_UNIFIED_WORK_AREAS
+#define CONFIGURE_UNLIMITED_OBJECTS
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #include <rtems/confdefs.h>
 
 /* end of include file */

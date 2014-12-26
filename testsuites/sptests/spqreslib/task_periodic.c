@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include "system.h"
@@ -131,6 +131,6 @@ rtems_task Task_Periodic(
     printf( "ERROR: QRES CLEANUP\n" );
 
   fflush(stdout);
-  puts( "*** END OF TEST QRES LIBRARY ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

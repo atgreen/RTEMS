@@ -5,7 +5,9 @@
  *  The name of this entry point is compiler dependent.
  *  It jumps to the BSP which is responsible for performing
  *  all initialization.
- *
+ */
+
+/*
  *  Copyright (C) 2004 Cogent Computer Systems
  *  Author: Jay Monkman <jtm@lopingdog.com>
  *
@@ -22,7 +24,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems/asm.h>

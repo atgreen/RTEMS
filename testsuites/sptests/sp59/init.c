@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -12,6 +12,8 @@
 #endif
 
 #include <tmacros.h>
+
+const char rtems_test_name[] = "SP 59";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -53,7 +55,7 @@ rtems_task Init(
   void                 *address_1;
   rtems_task_priority   priority;
 
-  puts( "\n\n*** TEST 59 ***" );
+  TEST_BEGIN();
 
   priority = RTEMS_MAXIMUM_PRIORITY / 4;
   priority = (priority * 3) + (priority / 2);
@@ -92,7 +94,7 @@ rtems_task Init(
   rtems_region_get_segment(
     Region,
     ALLOC_SIZE,
-    RTEMS_PRIORITY,
+    RTEMS_DEFAULT_OPTIONS,
     RTEMS_NO_TIMEOUT,
     &address_1
   );
@@ -102,7 +104,7 @@ rtems_task Init(
   status = rtems_task_wake_after( RTEMS_MILLISECONDS_TO_TICKS(1000) );
   directive_failed( status, "rtems_task_wake_after" );
 
-  puts( "Init - rtems_region_get_segment - return segment" );
+  puts( "Init - rtems_region_return_segment - return segment" );
   status = rtems_region_return_segment( Region, address_1 );
   directive_failed( status, "rtems_region_return_segment" );
 
@@ -110,7 +112,7 @@ rtems_task Init(
   status = rtems_task_wake_after( RTEMS_MILLISECONDS_TO_TICKS(1000) );
   directive_failed( status, "rtems_task_wake_after" );
 
-  puts( "*** END OF TEST 59 ***" );
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -121,6 +123,8 @@ rtems_task Init(
 
 #define CONFIGURE_MAXIMUM_TASKS         2
 #define CONFIGURE_MAXIMUM_REGIONS       1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

@@ -21,7 +21,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -603,7 +603,8 @@ SCORE_EXTERN void _CPU_Context_Initialize(
   uint32_t              _size,
   uint32_t              _isr,
   void    (*_entry_point)(void),
-  int                   _is_fp );
+  int                   _is_fp,
+  void                  *_tls_area );
 
 /*
  *  This routine is responsible for somehow restarting the currently
@@ -674,9 +675,9 @@ SCORE_EXTERN void _CPU_Context_Initialize(
 #ifdef BSP_FATAL_HALT
   /* we manage the fatal error in the board support package */
   void bsp_fatal_halt( uint32_t   _error);
-#define _CPU_Fatal_halt( _error ) bsp_fatal_halt( _error)
+#define _CPU_Fatal_halt( _source, _error ) bsp_fatal_halt( _error)
 #else
-#define _CPU_Fatal_halt( _error)\
+#define _CPU_Fatal_halt( _source, _error)\
 { \
   __asm__ volatile("mov.l %0,r0"::"m" (_error)); \
   __asm__ volatile("mov #1, r4"); \
@@ -690,7 +691,7 @@ SCORE_EXTERN void _CPU_Context_Initialize(
 
 /*
  *  This routine sets _output to the bit number of the first bit
- *  set in _value.  _value is of CPU dependent type Priority_bit_map_Control.
+ *  set in _value.  _value is of CPU dependent type Priority_bit_map_Word.
  *  This type may be either 16 or 32 bits wide although only the 16
  *  least significant bits will be used.
  *
@@ -908,6 +909,18 @@ static inline void _CPU_Context_validate( uintptr_t pattern )
 typedef CPU_Interrupt_frame CPU_Exception_frame;
 
 void _CPU_Exception_frame_print( const CPU_Exception_frame *frame );
+
+typedef uint32_t CPU_Counter_ticks;
+
+CPU_Counter_ticks _CPU_Counter_read( void );
+
+static inline CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  return second - first;
+}
 
 #ifdef __cplusplus
 }

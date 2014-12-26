@@ -1,0 +1,10 @@
+#
+# rtl22xx RTEMS Test Database.
+#
+# Format is one line per test that is _NOT_ built.
+#
+
+fsdosfsname01
+iostream
+rtems++
+utf8proc01

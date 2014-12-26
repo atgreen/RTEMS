@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -77,22 +77,10 @@ rtems_task Task_1(
   status = rtems_timer_reset( tmid );
   directive_failed( status, "rtems_timer_reset" );
 
-  puts( "TA1 - _Watchdog_Report_chain - with name"  );
-  _Watchdog_Report_chain( "_Watchdog_Ticks_chain", & _Watchdog_Ticks_chain );
-
-  puts( "TA1 - _Watchdog_Report_chain - no name"  );
-  _Watchdog_Report_chain( NULL, & _Watchdog_Ticks_chain);
-
-  puts( "TA1 - _Watchdog_Report - with name"  );
-  _Watchdog_Report("first", (Watchdog_Control *)_Chain_First(&_Watchdog_Ticks_chain));
-
-  puts( "TA1 - _Watchdog_Report - no name"  );
-  _Watchdog_Report( NULL, (Watchdog_Control *)_Chain_First(&_Watchdog_Ticks_chain) );
-
   puts( "TA1 - timer_deleting - timer 1" );
   status = rtems_timer_delete( tmid );
   directive_failed( status, "rtems_timer_delete" );
 
-  puts( "*** END OF RTEMS WATCHDOG PROGRAM ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

@@ -1,15 +1,15 @@
 /*
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
 #include <bsp/bootcard.h>
 #include <stdint.h>
 
-extern  void _end;
-extern  void __heap_limit;
+extern int _end;
+extern int __heap_limit;
 
 void bsp_work_area_initialize(void)
 {

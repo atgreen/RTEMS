@@ -16,12 +16,11 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
 #include <rtems/btimer.h>
-#include <rtems/timerdrv.h>
 
 #include <bsp.h>
 
@@ -32,7 +31,7 @@ void benchmark_timer_initialize(void)
   benchmark_timer_base = lpc32xx_timer();
 }
 
-uint32_t benchmark_timer_read(void)
+benchmark_timer_t benchmark_timer_read(void)
 {
   return lpc32xx_timer() - benchmark_timer_base;
 }

@@ -7,23 +7,25 @@
  */
 
 /*
- * Copyright (c) 2011-2012 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2014. On-Line Applications Research Corporation (OAR).
+ * Copyright (c) 2011-2014 embedded brains GmbH.  All rights reserved.
  *
  *  embedded brains GmbH
- *  Obere Lagerstr. 30
+ *  Dornierstr. 4
  *  82178 Puchheim
  *  Germany
  *  <rtems@embedded-brains.de>
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
   #include "config.h"
 #endif
 
+#include <rtems/test.h>
 #include <tmacros.h>
 
 #include <sys/stat.h>
@@ -39,7 +41,14 @@
 
 #include <rtems/libcsupport.h>
 
+const char rtems_test_name[] = "PSXCONFIG 1";
+
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 5
+
+#define CONFIGURE_MAXIMUM_POSIX_KEYS 23
+#ifdef CONFIGURE_MAXIMUM_POSIX_KEYS
+  #define CONFIGURE_MAXIMUM_POSIX_KEY_VALUE_PAIRS CONFIGURE_MAXIMUM_POSIX_KEYS
+#endif
 
 #define CONFIGURE_MAXIMUM_BARRIERS 2
 #define CONFIGURE_MAXIMUM_MESSAGE_QUEUES 7
@@ -48,19 +57,22 @@
 #define CONFIGURE_MAXIMUM_REGIONS 43
 #define CONFIGURE_MAXIMUM_SEMAPHORES 47
 #define CONFIGURE_MAXIMUM_TASKS 11
-#define CONFIGURE_MAXIMUM_TASK_VARIABLES 13
+#if !defined(RTEMS_SMP)
+  #define CONFIGURE_MAXIMUM_TASK_VARIABLES 13
+#endif
 #define CONFIGURE_MAXIMUM_TIMERS 59
 #define CONFIGURE_MAXIMUM_USER_EXTENSIONS 17
 
 #define CONFIGURE_MAXIMUM_POSIX_BARRIERS 31
 #define CONFIGURE_MAXIMUM_POSIX_CONDITION_VARIABLES 29
-#define CONFIGURE_MAXIMUM_POSIX_KEYS 23
 #define POSIX_MQ_COUNT 5
 #define CONFIGURE_MAXIMUM_POSIX_MUTEXES 19
 #define CONFIGURE_MAXIMUM_POSIX_QUEUED_SIGNALS 7
 #define CONFIGURE_MAXIMUM_POSIX_RWLOCKS 31
 #define CONFIGURE_MAXIMUM_POSIX_SEMAPHORES 41
 #define CONFIGURE_MAXIMUM_POSIX_SPINLOCKS 17
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_MAXIMUM_POSIX_THREADS 3
 #define CONFIGURE_MAXIMUM_POSIX_TIMERS 47
 
@@ -167,6 +179,8 @@
 
 #define CONFIGURE_MAXIMUM_DRIVERS 2
 
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT
@@ -189,7 +203,9 @@ typedef struct {
 
 static char posix_name [NAME_MAX];
 
-static void *task_var;
+#if !defined(RTEMS_SMP)
+  static void *task_var;
+#endif
 
 static char *get_posix_name(char a, char b, char c, int i)
 {
@@ -201,10 +217,12 @@ static char *get_posix_name(char a, char b, char c, int i)
   return posix_name;
 }
 
+#if !defined(RTEMS_SMP)
 static void task_var_dtor(void *var __attribute__((unused)))
 {
   /* Do nothing */
 }
+#endif
 
 static void *posix_thread(void *arg __attribute__((unused)))
 {
@@ -248,8 +266,9 @@ static rtems_task Init(rtems_task_argument argument)
   rtems_extensions_table table;
   rtems_resource_snapshot snapshot;
   int i = 0;
+  pthread_key_t key;
 
-  puts("\n\n*** POSIX TEST CONFIG 01 ***");
+  TEST_BEGIN();
 
   memset(posix_name, 'P', sizeof(posix_name) - 1);
 
@@ -283,6 +302,27 @@ static rtems_task Init(rtems_task_argument argument)
   rtems_test_assert(
     snapshot.rtems_api.active_extensions == CONFIGURE_MAXIMUM_USER_EXTENSIONS
   );
+#endif
+
+#ifdef CONFIGURE_MAXIMUM_POSIX_KEYS
+  for (i = 0; i < CONFIGURE_MAXIMUM_POSIX_KEYS; ++i) {
+    eno = pthread_key_create(&key, posix_key_dtor);
+    rtems_test_assert(eno == 0);
+
+    eno = pthread_setspecific(key, (void *) (i + 1));
+    rtems_test_assert(eno == 0);
+  }
+  eno = pthread_key_create(&key, posix_key_dtor);
+  rtems_test_assert(eno == EAGAIN);
+  rtems_resource_snapshot_take(&snapshot);
+  rtems_test_assert(
+    snapshot.active_posix_keys == CONFIGURE_POSIX_KEYS
+  );
+  rtems_test_assert(
+    snapshot.active_posix_key_value_pairs == CONFIGURE_MAXIMUM_POSIX_KEYS
+  );
+#else
+  (void) key;
 #endif
 
 #ifdef CONFIGURE_MAXIMUM_BARRIERS
@@ -396,11 +436,13 @@ static rtems_task Init(rtems_task_argument argument)
   );
 #endif
 
+#if !defined(RTEMS_SMP)
 #ifdef CONFIGURE_MAXIMUM_TASK_VARIABLES
   for (i = 0; i < CONFIGURE_MAXIMUM_TASK_VARIABLES; ++i) {
     sc = rtems_task_variable_add(RTEMS_SELF, &task_var, task_var_dtor);
     directive_failed(sc, "rtems_task_variable_add");
   }
+#endif
 #endif
 
 #ifdef CONFIGURE_MAXIMUM_TIMERS
@@ -439,18 +481,6 @@ static rtems_task Init(rtems_task_argument argument)
   );
 #endif
 
-#ifdef CONFIGURE_MAXIMUM_POSIX_KEYS
-  for (i = 0; i < CONFIGURE_MAXIMUM_POSIX_KEYS; ++i) {
-    pthread_key_t key;
-    eno = pthread_key_create(&key, posix_key_dtor);
-    rtems_test_assert(eno == 0);
-  }
-  rtems_resource_snapshot_take(&snapshot);
-  rtems_test_assert(
-    snapshot.posix_api.active_keys == CONFIGURE_MAXIMUM_POSIX_KEYS
-  );
-#endif
-
 #ifdef POSIX_MQ_COUNT
   for (i = 0; i < POSIX_MQ_COUNT; ++i) {
     int oflag = O_RDWR | O_CREAT | O_EXCL;
@@ -482,8 +512,7 @@ static rtems_task Init(rtems_task_argument argument)
   }
   rtems_resource_snapshot_take(&snapshot);
   rtems_test_assert(
-    snapshot.posix_api.active_mutexes ==
-    (CONFIGURE_MAXIMUM_POSIX_MUTEXES + CONFIGURE_MAXIMUM_POSIX_INTERNAL_MUTEXES)
+    snapshot.posix_api.active_mutexes == CONFIGURE_MAXIMUM_POSIX_MUTEXES
   );
 #endif
 
@@ -553,7 +582,7 @@ static rtems_task Init(rtems_task_argument argument)
   printf("object creation done\n");
   print_info();
 
-  puts("*** END OF POSIX TEST CONFIG 01 ***");
+  TEST_END();
 
   rtems_test_exit(0);
 }

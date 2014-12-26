@@ -38,7 +38,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -660,15 +660,6 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
 #define CPU_MPCI_RECEIVE_SERVER_EXTRA_STACK 0
 
 /*
- *  This defines the number of entries in the ISR_Vector_table managed
- *  by RTEMS.
- */
-
-extern unsigned int mips_interrupt_number_of_vectors;
-#define CPU_INTERRUPT_NUMBER_OF_VECTORS      (mips_interrupt_number_of_vectors)
-#define CPU_INTERRUPT_MAXIMUM_VECTOR_NUMBER  (CPU_INTERRUPT_NUMBER_OF_VECTORS - 1)
-
-/*
  *  Should be large enough to run all RTEMS tests.  This ensures
  *  that a "reasonable" small application should not have any problems.
  */
@@ -858,7 +849,8 @@ void _CPU_Context_Initialize(
   uint32_t          size,
   uint32_t          new_level,
   void             *entry_point,
-  bool              is_fp
+  bool              is_fp,
+  void             *tls_area
 );
 
 
@@ -921,7 +913,7 @@ void _CPU_Context_Initialize(
  *  halts/stops the CPU.
  */
 
-#define _CPU_Fatal_halt( _error ) \
+#define _CPU_Fatal_halt( _source, _error ) \
   do { \
     unsigned int _level; \
     _CPU_ISR_Disable(_level); \
@@ -936,7 +928,7 @@ extern void mips_break( int error );
 
 /*
  *  This routine sets _output to the bit number of the first bit
- *  set in _value.  _value is of CPU dependent type Priority_bit_map_Control.
+ *  set in _value.  _value is of CPU dependent type Priority_bit_map_Word.
  *  This type may be either 16 or 32 bits wide although only the 16
  *  least significant bits will be used.
  *
@@ -1145,14 +1137,7 @@ static inline void _CPU_Context_validate( uintptr_t pattern )
   }
 }
 
-void _BSP_Exception_frame_print( const CPU_Exception_frame *frame );
-
-static inline void _CPU_Exception_frame_print(
-  const CPU_Exception_frame *frame
-)
-{
-  _BSP_Exception_frame_print( frame );
-}
+void _CPU_Exception_frame_print( const CPU_Exception_frame *frame );
 
 /*  The following routine swaps the endian format of an unsigned int.
  *  It must be static because it is referenced indirectly.
@@ -1192,6 +1177,17 @@ static inline uint32_t CPU_swap_u32(
 #define CPU_swap_u16( value ) \
   (((value&0xff) << 8) | ((value >> 8)&0xff))
 
+typedef uint32_t CPU_Counter_ticks;
+
+CPU_Counter_ticks _CPU_Counter_read( void );
+
+static inline CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  return second - first;
+}
 
 #endif
 

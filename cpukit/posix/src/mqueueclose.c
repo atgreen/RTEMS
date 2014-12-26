@@ -23,7 +23,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -57,6 +57,7 @@ int mq_close(
   POSIX_Message_queue_Control_fd *the_mq_fd;
   Objects_Locations               location;
 
+  _Objects_Allocator_lock();
   the_mq_fd = _POSIX_Message_queue_Get_fd( mqdes, &location );
   if ( location == OBJECTS_LOCAL ) {
       /* OBJECTS_LOCAL:
@@ -79,8 +80,11 @@ int mq_close(
       _POSIX_Message_queue_Free_fd( the_mq_fd );
 
       _Objects_Put( &the_mq_fd->Object );
+      _Objects_Allocator_unlock();
       return 0;
    }
+
+   _Objects_Allocator_unlock();
 
    /*
     *  OBJECTS_REMOTE:

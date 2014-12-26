@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -20,6 +20,8 @@
 
 #define CONFIGURE_INIT
 #include "system.h"
+
+const char rtems_test_name[] = "SP 37";
 
 /* prototypes */
 void test_interrupt_inline(void);
@@ -157,27 +159,38 @@ static void test_isr_level( void )
   test_isr_level_for_new_threads( last_proper_level );
 }
 
+#if defined(RTEMS_SMP) && defined(RTEMS_PROFILING)
+static const size_t lock_size =
+  offsetof( ISR_lock_Control, lock.ticket_lock.Stats.name )
+    + sizeof( ((ISR_lock_Control *) 0)->lock.ticket_lock.Stats.name );
+#else
+static const size_t lock_size = sizeof( ISR_lock_Control );
+#endif
+
 static void test_isr_locks( void )
 {
   ISR_Level normal_interrupt_level = _ISR_Get_level();
-  ISR_lock_Control initialized = ISR_LOCK_INITIALIZER;
+  ISR_lock_Control initialized = ISR_LOCK_INITIALIZER("test");
   ISR_lock_Control lock;
-  ISR_Level level;
+  ISR_lock_Context lock_context;
 
-  _ISR_lock_Initialize( &lock );
-  rtems_test_assert( memcmp( &lock, &initialized, sizeof( lock ) ) == 0 );
+  _ISR_lock_Initialize( &lock, "test" );
+  rtems_test_assert( memcmp( &lock, &initialized, lock_size ) == 0 );
 
-  _ISR_lock_ISR_disable_and_acquire( &lock, level );
+  _ISR_lock_ISR_disable_and_acquire( &lock, &lock_context );
   rtems_test_assert( normal_interrupt_level != _ISR_Get_level() );
-  _ISR_lock_Release_and_ISR_enable( &lock, level );
+  _ISR_lock_Release_and_ISR_enable( &lock, &lock_context );
 
   rtems_test_assert( normal_interrupt_level == _ISR_Get_level() );
 
-  _ISR_lock_Acquire( &lock );
+  _ISR_lock_Acquire( &lock, &lock_context );
   rtems_test_assert( normal_interrupt_level == _ISR_Get_level() );
-  _ISR_lock_Release( &lock );
+  _ISR_lock_Release( &lock, &lock_context );
 
   rtems_test_assert( normal_interrupt_level == _ISR_Get_level() );
+
+  _ISR_lock_Destroy( &lock );
+  _ISR_lock_Destroy( &initialized );
 }
 
 static rtems_mode get_interrupt_level( void )
@@ -194,24 +207,80 @@ static rtems_mode get_interrupt_level( void )
 static void test_interrupt_locks( void )
 {
   rtems_mode normal_interrupt_level = get_interrupt_level();
-  rtems_interrupt_lock initialized = RTEMS_INTERRUPT_LOCK_INITIALIZER;
+  rtems_interrupt_lock initialized = RTEMS_INTERRUPT_LOCK_INITIALIZER("test");
   rtems_interrupt_lock lock;
-  rtems_interrupt_level level;
+  rtems_interrupt_lock_context lock_context;
 
-  rtems_interrupt_lock_initialize( &lock );
-  rtems_test_assert( memcmp( &lock, &initialized, sizeof( lock ) ) == 0 );
+  rtems_interrupt_lock_initialize( &lock, "test" );
+  rtems_test_assert( memcmp( &lock, &initialized, lock_size ) == 0 );
 
-  rtems_interrupt_lock_acquire( &lock, level );
+  rtems_interrupt_lock_acquire( &lock, &lock_context );
   rtems_test_assert( normal_interrupt_level != get_interrupt_level() );
-  rtems_interrupt_lock_release( &lock, level );
+  rtems_interrupt_lock_release( &lock, &lock_context );
 
   rtems_test_assert( normal_interrupt_level == get_interrupt_level() );
 
-  rtems_interrupt_lock_acquire_isr( &lock );
+  rtems_interrupt_lock_acquire_isr( &lock, &lock_context );
   rtems_test_assert( normal_interrupt_level == get_interrupt_level() );
-  rtems_interrupt_lock_release_isr( &lock );
+  rtems_interrupt_lock_release_isr( &lock, &lock_context );
 
   rtems_test_assert( normal_interrupt_level == get_interrupt_level() );
+
+  rtems_interrupt_lock_destroy( &lock );
+  rtems_interrupt_lock_destroy( &initialized );
+}
+
+static void test_clock_tick_functions( void )
+{
+  rtems_interrupt_level level;
+  Watchdog_Interval saved_ticks;
+
+  _Thread_Disable_dispatch();
+  rtems_interrupt_disable( level );
+
+  saved_ticks = _Watchdog_Ticks_since_boot;
+
+  _Watchdog_Ticks_since_boot = 0xdeadbeef;
+  rtems_test_assert( rtems_clock_get_ticks_since_boot() == 0xdeadbeef );
+
+  rtems_test_assert( rtems_clock_tick_later( 0 ) == 0xdeadbeef );
+  rtems_test_assert( rtems_clock_tick_later( 0x8160311e ) == 0x600df00d );
+
+  _Watchdog_Ticks_since_boot = 0;
+  rtems_test_assert( rtems_clock_tick_later_usec( 0 ) == 1 );
+  rtems_test_assert( rtems_clock_tick_later_usec( 1 ) == 2 );
+  rtems_test_assert( rtems_clock_tick_later_usec( US_PER_TICK ) == 2 );
+  rtems_test_assert( rtems_clock_tick_later_usec( US_PER_TICK + 1 ) == 3 );
+
+  _Watchdog_Ticks_since_boot = 0;
+  rtems_test_assert( !rtems_clock_tick_before( 0xffffffff ) );
+  rtems_test_assert( !rtems_clock_tick_before( 0 ) );
+  rtems_test_assert( rtems_clock_tick_before( 1 ) );
+
+  _Watchdog_Ticks_since_boot = 1;
+  rtems_test_assert( !rtems_clock_tick_before( 0 ) );
+  rtems_test_assert( !rtems_clock_tick_before( 1 ) );
+  rtems_test_assert( rtems_clock_tick_before( 2 ) );
+
+  _Watchdog_Ticks_since_boot = 0x7fffffff;
+  rtems_test_assert( !rtems_clock_tick_before( 0x7ffffffe ) );
+  rtems_test_assert( !rtems_clock_tick_before( 0x7fffffff ) );
+  rtems_test_assert( rtems_clock_tick_before( 0x80000000 ) );
+
+  _Watchdog_Ticks_since_boot = 0x80000000;
+  rtems_test_assert( !rtems_clock_tick_before( 0x7fffffff ) );
+  rtems_test_assert( !rtems_clock_tick_before( 0x80000000 ) );
+  rtems_test_assert( rtems_clock_tick_before( 0x80000001 ) );
+
+  _Watchdog_Ticks_since_boot = 0xffffffff;
+  rtems_test_assert( !rtems_clock_tick_before( 0xfffffffe ) );
+  rtems_test_assert( !rtems_clock_tick_before( 0xffffffff ) );
+  rtems_test_assert( rtems_clock_tick_before( 0 ) );
+
+  _Watchdog_Ticks_since_boot = saved_ticks;
+
+  rtems_interrupt_enable( level );
+  _Thread_Enable_dispatch();
 }
 
 void test_interrupt_inline(void)
@@ -374,7 +443,7 @@ rtems_task Init(
   rtems_id              timer;
   int                   i;
 
-  puts( "\n\n*** TEST 37 ***" );
+  TEST_BEGIN();
 
   test_isr_level();
   test_isr_locks();
@@ -396,6 +465,8 @@ rtems_task Init(
   status = rtems_clock_tick();
   directive_failed( status, "rtems_clock_tick" );
   puts( "clock_tick from task level" );
+
+  test_clock_tick_functions();
 
   /*
    *  Now do a dispatch directly out of a clock tick that is
@@ -511,6 +582,6 @@ rtems_task Init(
 
   check_isr_worked( "body", isr_in_progress_body );
 
-  puts( "*** END OF TEST 37 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

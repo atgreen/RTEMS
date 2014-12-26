@@ -1,5 +1,7 @@
 /*
- * cpu.h  - This file contains definitions for data structure related
+ * @file cpu.h
+ *
+ *          This file contains definitions for data structure related
  *          to Intel system programming. More information can be found
  *	    on Intel site and more precisely in the following book :
  *
@@ -13,7 +15,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _LIBCPU_i386_CPU_H
@@ -27,6 +29,8 @@
  *  Interrupt Level Macros
  */
 #include <rtems/score/interrupts.h>
+
+#include <rtems/score/basedefs.h>
 
 /*
  *  Segment Access Routines
@@ -239,7 +243,9 @@ extern int i386_get_idt_config (rtems_raw_irq_global_settings** config);
  * See page 11.12 Figure 11-8.
  *
  */
-
+/**
+ * @brief describes one entry of Global/Local Descriptor Table
+ */
 typedef struct {
   unsigned int limit_15_0 		: 16;
   unsigned int base_address_15_0	: 16;
@@ -254,26 +260,114 @@ typedef struct {
   unsigned int operation_size		: 1;
   unsigned int granularity		: 1;
   unsigned int base_address_31_24	: 8;
-}segment_descriptors;
+} RTEMS_COMPILER_PACKED_ATTRIBUTE segment_descriptors;
 
 /*
  * C callable function enabling to get easilly usable info from
  * the actual value of GDT register.
  */
 extern void i386_get_info_from_GDTR (segment_descriptors** table,
-				     unsigned* limit);
+                                     uint16_t* limit);
 /*
  * C callable function enabling to change the value of GDT register. Must be called
  * with interrupts masked at processor level!!!.
  */
 extern void i386_set_GDTR (segment_descriptors*,
-			   unsigned limit);
+                           uint16_t limit);
+
+/**
+ * @brief Allows to set a GDT entry.
+ *
+ * Puts global descriptor \p sd to the global descriptor table on index
+ * \p segment_selector_index
+ *
+ * @param[in] segment_selector_index index to GDT entry
+ * @param[in] sd structure to be coppied to given \p segment_selector in GDT
+ * @retval  0 FAILED out of GDT range or index is 0, which is not valid
+ *                   index in GDT
+ * @retval  1 SUCCESS
+ */
+extern uint32_t i386_raw_gdt_entry (uint16_t segment_selector_index,
+                               segment_descriptors* sd);
+
+/**
+ * @brief fills \p sd with provided \p base in appropriate fields of \p sd
+ *
+ * @param[in] base 32-bit address to be set as descriptor's base
+ * @param[out] sd descriptor being filled with \p base
+ */
+extern void i386_fill_segment_desc_base (uint32_t base,
+                                         segment_descriptors* sd);
+
+/**
+ * @brief fills \p sd with provided \p limit in appropriate fields of \p sd
+ *
+ * sets granularity bit if necessary
+ *
+ * @param[in] limit 32-bit value representing number of limit bytes
+ * @param[out] sd descriptor being filled with \p limit
+ */
+extern void i386_fill_segment_desc_limit (uint32_t limit,
+                                          segment_descriptors* sd);
 
 /*
  * C callable function enabling to set up one raw interrupt handler
  */
-extern int i386_set_gdt_entry (unsigned short segment_selector, unsigned base,
-					     unsigned limit);
+extern uint32_t i386_set_gdt_entry (uint16_t segment_selector,
+                                    uint32_t base,
+                                    uint32_t limit);
+
+/**
+ * @brief Returns next empty descriptor in GDT.
+ *
+ * Number of descriptors that can be returned depends on \a GDT_SIZE
+ *
+ * @retval  0 FAILED GDT is full
+ * @retval  <1;65535> segment_selector number as index to GDT
+ */
+extern uint16_t i386_next_empty_gdt_entry (void);
+
+/**
+ * @brief Copies GDT entry at index \p segment_selector to structure
+ * pointed to by \p struct_to_fill
+ *
+ * @param[in] segment_selector index to GDT table specifying descriptor to copy
+ * @param[out] struct_to_fill pointer to memory where will be descriptor coppied
+ * @retval  0 FAILED segment_selector out of GDT range
+ * @retval  <1;65535> retrieved segment_selector
+ */
+extern uint16_t i386_cpy_gdt_entry (uint16_t segment_selector,
+                                    segment_descriptors* struct_to_fill);
+
+/**
+ * @brief Returns pointer to GDT table at index given by \p segment_selector
+ *
+ * @param[in] sgmnt_selector index to GDT table for specifying descriptor to get
+ * @retval  NULL FAILED segment_selector out of GDT range
+ * @retval  pointer to GDT table at \p segment_selector
+ */
+extern segment_descriptors* i386_get_gdt_entry (uint16_t sgmnt_selector);
+
+/**
+ * @brief Extracts base address from GDT entry pointed to by \p gdt_entry
+ *
+ * @param[in]  gdt_entry pointer to entry from which base should be retrieved
+ * @retval base address from GDT entry
+*/
+RTEMS_INLINE_ROUTINE void* i386_base_gdt_entry (segment_descriptors* gdt_entry)
+{
+    return (void*)(gdt_entry->base_address_15_0 |
+            (gdt_entry->base_address_23_16<<16) |
+            (gdt_entry->base_address_31_24<<24));
+}
+
+/**
+ * @brief Extracts limit in bytes from GDT entry pointed to by \p gdt_entry
+ *
+ * @param[in]  gdt_entry pointer to entry from which limit should be retrieved
+ * @retval limit value in bytes from GDT entry
+ */
+extern uint32_t i386_limit_gdt_entry (segment_descriptors* gdt_entry);
 
 /*
  * See page 11.18 Figure 11-12.

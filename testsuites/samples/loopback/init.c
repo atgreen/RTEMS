@@ -1,14 +1,18 @@
 /*
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#include <rtems/test.h>
+
 #include <bsp.h>
+
+const char rtems_test_name[] = "LOOPBACK";
 
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
@@ -21,7 +25,6 @@
 
 #define CONFIGURE_MICROSECONDS_PER_TICK    10000
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 50
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 
 #define CONFIGURE_INIT_TASK_STACK_SIZE    (10*1024)
 #define CONFIGURE_INIT_TASK_PRIORITY    50
@@ -33,9 +36,9 @@
 #define CONFIGURE_INIT
 rtems_task Init(rtems_task_argument argument);
 
-#include <rtems/confdefs.h>
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
-#if !BSP_SMALL_MEMORY
+#include <rtems/confdefs.h>
 
 #include <rtems/rtems_bsdnet.h>
 #include <rtems/error.h>
@@ -241,6 +244,8 @@ Init (rtems_task_argument ignored)
 {
     rtems_status_code sc;
 
+    rtems_test_begin();
+
     sc = rtems_semaphore_create(rtems_build_name('P','m','t','x'),
                 1,
                 RTEMS_PRIORITY|RTEMS_BINARY_SEMAPHORE|RTEMS_INHERIT_PRIORITY|
@@ -275,17 +280,6 @@ Init (rtems_task_argument ignored)
     spawnTask(clientTask, 120, 6);
 
     rtems_task_wake_after(500);
-    puts( "*** END OF LOOPBACK TEST ***" );
+    rtems_test_end();
     exit( 0 );
 }
-#else
-#include <stdio.h>
-/*
- * RTEMS Startup Task
- */
-rtems_task
-Init (rtems_task_argument ignored)
-{
-  printf("NO NETWORKING. MEMORY TOO SMALL");
-}
-#endif

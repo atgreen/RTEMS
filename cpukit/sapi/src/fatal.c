@@ -15,7 +15,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -30,7 +30,7 @@ void rtems_fatal_error_occurred(
   uint32_t   the_error
 )
 {
-  _Internal_error_Occurred( INTERNAL_ERROR_RTEMS_API, FALSE, the_error );
+  _Terminate( INTERNAL_ERROR_RTEMS_API, FALSE, the_error );
 
 /* will not return from this routine */
 }

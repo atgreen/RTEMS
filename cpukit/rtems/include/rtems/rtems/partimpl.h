@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_PARTIMPL_H
@@ -187,19 +187,6 @@ RTEMS_INLINE_ROUTINE Partition_Control *_Partition_Get (
 {
   return (Partition_Control *)
     _Objects_Get( &_Partition_Information, id, location );
-}
-
-/**
- *  @brief Checks if the_partition is NULL.
- *
- *  This function returns TRUE if the_partition is NULL
- *  and FALSE otherwise.
- */
-RTEMS_INLINE_ROUTINE bool _Partition_Is_null (
-   Partition_Control *the_partition
-)
-{
-   return ( the_partition == NULL  );
 }
 
 /**@}*/

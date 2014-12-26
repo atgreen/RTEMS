@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -22,6 +22,8 @@
 #include <time.h>     /* time facilities */
 #include <stdio.h>    /* console facilities */
 #include "tmacros.h"
+
+const char rtems_test_name[] = "PSXCLEANUP";
 
 #define NUMBER_THREADS 2
 pthread_t ThreadIds[NUMBER_THREADS];
@@ -230,7 +232,7 @@ void *POSIX_Init(
   int            status;
   lock_t         l;
 
-  puts( "\n\n*** POSIX CLEANUP TEST ***" );
+  TEST_BEGIN();
 
   /*************** INITIALIZE  ***************/
   initialize_lock_t(&l);
@@ -251,7 +253,7 @@ void *POSIX_Init(
   sleep(1);
 
   /*************** END OF TEST *****************/
-  puts( "*** END OF POSIX CLEANUP TEST ***\n" );
+  TEST_END();
   rtems_test_exit(0);
 }
 

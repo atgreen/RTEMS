@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,6 +38,8 @@ void doTest(void);
 	    RTEMS_BINARY_SEMAPHORE|RTEMS_NO_INHERIT_PRIORITY| \
 	    RTEMS_NO_PRIORITY_CEILING|RTEMS_FIFO)
 #endif
+
+const char rtems_test_name[] = "SP " TEST_NAME;
 
 rtems_id semaphore;
 volatile int flags[NTASK];
@@ -115,15 +117,17 @@ rtems_task Init(
   rtems_task_argument ignored
 )
 {
-  puts( "\n\n*** TEST " TEST_NAME " ***" );
+  TEST_BEGIN();
   puts( "Testing " TEST_SEMAPHORE_TYPE " semaphore flush" );
   doTest();
-  puts( "*** END OF TEST " TEST_NAME " ***" );
+  TEST_END();
 
   rtems_test_exit(0);
 }
 
 /**************** START OF CONFIGURATION INFORMATION ****************/
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

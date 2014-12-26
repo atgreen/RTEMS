@@ -8,7 +8,7 @@
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
  *
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _BSP_H
@@ -117,10 +117,6 @@
 
 #ifndef ASM
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <bspopts.h>
 #include <rtems.h>
 #include <rtems/console.h>
@@ -130,6 +126,10 @@ extern "C" {
 #include <bsp/default-initial-extension.h>
 
 #include "i2c.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* System frequency */
 #define BSP_SYSTEM_FREQUENCY ((unsigned int)&_SYS_CLOCK_FREQUENCY)
@@ -172,6 +172,11 @@ rtems_isr_entry set_vector(
   rtems_vector_number vector,
   int                 type
 );
+
+/*
+ * Prototypes for BSP methods that cross file boundaries
+ */
+void Init5206e(void);
 
 #ifdef __cplusplus
 }

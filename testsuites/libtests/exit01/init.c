@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -22,6 +22,9 @@
 #include <assert.h>
 
 #include <rtems.h>
+#include <rtems/test.h>
+
+const char rtems_test_name[] = "EXIT 1";
 
 #define EXIT_STATUS 123
 
@@ -57,7 +60,7 @@ static void fatal_extension(
       && error == EXIT_STATUS
       && counter == 3
   ) {
-    printk("*** END OF TEST EXIT 1 ***\n");
+    rtems_test_endk();
   }
 }
 
@@ -82,7 +85,7 @@ static void Init(rtems_task_argument arg)
   rtems_status_code sc;
   rtems_id id;
 
-  printk("\n\n*** TEST EXIT 1 ***\n");
+  rtems_test_begink();
 
   sc = rtems_task_create(
     rtems_build_name('E', 'X', 'I', 'T'),
@@ -104,9 +107,9 @@ static void Init(rtems_task_argument arg)
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
-#define CONFIGURE_INITIAL_EXTENSIONS { .fatal = fatal_extension }
+#define CONFIGURE_INITIAL_EXTENSIONS \
+  { .fatal = fatal_extension }, \
+  RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_MAXIMUM_TASKS 2
 

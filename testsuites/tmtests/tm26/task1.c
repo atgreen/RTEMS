@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -19,11 +19,14 @@
 #include <tmacros.h>
 #include <timesys.h>
 
+#include <rtems/score/schedulerpriorityimpl.h>
 #include <rtems/rtems/semimpl.h>
 
 #if defined( RTEMS_SMP ) && defined( RTEMS_DEBUG )
   #define PREVENT_SMP_ASSERT_FAILURES
 #endif
+
+const char rtems_test_name[] = "TIME TEST 26";
 
 /* TEST DATA */
 rtems_id Semaphore_id;
@@ -133,7 +136,8 @@ static void set_thread_executing( Thread_Control *thread )
 
 static void thread_disable_dispatch( void )
 {
-#if defined( PREVENT_SMP_ASSERT_FAILURES )
+/* Yes, RTEMS_SMP and not PREVENT_SMP_ASSERT_FAILURES */
+#if defined( RTEMS_SMP )
   Per_CPU_Control *self_cpu;
   ISR_Level level;
 
@@ -142,8 +146,6 @@ static void thread_disable_dispatch( void )
 
   self_cpu = _Per_CPU_Get();
   self_cpu->thread_dispatch_disable_level = 1;
-
-  _Per_CPU_Acquire( self_cpu );
 #else
   _Thread_Disable_dispatch();
 #endif
@@ -217,12 +219,15 @@ rtems_task Init(
 
   Print_Warning();
 
-  puts( "\n\n*** TIME TEST 26 ***" );
+  TEST_BEGIN();
 
-  if (_Scheduler.Operations.initialize != _Scheduler_priority_Initialize) {
+  if (
+    _Scheduler_Table[ 0 ].Operations.initialize
+      != _Scheduler_priority_Initialize
+  ) {
     puts("  Error ==> " );
     puts("Test only supported for deterministic priority scheduler\n" );
-    puts( "*** END OF TEST 26 ***" );
+    TEST_END();
     rtems_test_exit( 0 );
   }
 
@@ -367,7 +372,8 @@ rtems_task Middle_task(
   rtems_task_argument argument
 )
 {
-  Chain_Control   *ready_queues;
+  Scheduler_priority_Context *scheduler_context =
+    _Scheduler_priority_Get_context( _Scheduler_Get( _Thread_Get_executing() ) );
 
   thread_dispatch_no_fp_time = benchmark_timer_read();
 
@@ -375,9 +381,8 @@ rtems_task Middle_task(
 
   Middle_tcb   = _Thread_Get_executing();
 
-  ready_queues      = (Chain_Control *) _Scheduler.information;
   set_thread_executing(
-    (Thread_Control *) _Chain_First(&ready_queues[LOW_PRIORITY])
+    (Thread_Control *) _Chain_First(&scheduler_context->Ready[LOW_PRIORITY])
   );
 
   /* do not force context switch */
@@ -400,10 +405,9 @@ rtems_task Low_task(
   rtems_task_argument argument
 )
 {
-  Thread_Control *executing;
-  Chain_Control  *ready_queues;
-
-  ready_queues      = (Chain_Control *) _Scheduler.information;
+  Scheduler_priority_Context *scheduler_context =
+    _Scheduler_priority_Get_context( _Scheduler_Get( _Thread_Get_executing() ) );
+  Thread_Control             *executing;
 
   context_switch_no_fp_time = benchmark_timer_read();
 
@@ -421,7 +425,7 @@ rtems_task Low_task(
   context_switch_another_task_time = benchmark_timer_read();
 
   set_thread_executing(
-    (Thread_Control *) _Chain_First(&ready_queues[FP1_PRIORITY])
+    (Thread_Control *) _Chain_First(&scheduler_context->Ready[FP1_PRIORITY])
   );
 
   /* do not force context switch */
@@ -444,17 +448,17 @@ rtems_task Floating_point_task_1(
   rtems_task_argument argument
 )
 {
-  Chain_Control   *ready_queues;
-  Thread_Control  *executing;
+  Scheduler_priority_Context *scheduler_context =
+    _Scheduler_priority_Get_context( _Scheduler_Get( _Thread_Get_executing() ) );
+  Thread_Control             *executing;
   FP_DECLARE;
 
   context_switch_restore_1st_fp_time = benchmark_timer_read();
 
   executing = _Thread_Get_executing();
 
-  ready_queues      = (Chain_Control *) _Scheduler.information;
   set_thread_executing(
-    (Thread_Control *) _Chain_First(&ready_queues[FP2_PRIORITY])
+    (Thread_Control *) _Chain_First(&scheduler_context->Ready[FP2_PRIORITY])
   );
 
   /* do not force context switch */
@@ -480,9 +484,8 @@ rtems_task Floating_point_task_1(
 
   executing = _Thread_Get_executing();
 
-  ready_queues      = (Chain_Control *) _Scheduler.information;
   set_thread_executing(
-    (Thread_Control *) _Chain_First(&ready_queues[FP2_PRIORITY])
+    (Thread_Control *) _Chain_First(&scheduler_context->Ready[FP2_PRIORITY])
   );
 
   benchmark_timer_initialize();
@@ -501,17 +504,17 @@ rtems_task Floating_point_task_2(
   rtems_task_argument argument
 )
 {
-  Chain_Control  *ready_queues;
-  Thread_Control *executing;
+  Scheduler_priority_Context *scheduler_context =
+    _Scheduler_priority_Get_context( _Scheduler_Get( _Thread_Get_executing() ) );
+  Thread_Control             *executing;
   FP_DECLARE;
 
   context_switch_save_restore_idle_time = benchmark_timer_read();
 
   executing = _Thread_Get_executing();
 
-  ready_queues      = (Chain_Control *) _Scheduler.information;
   set_thread_executing(
-    (Thread_Control *) _Chain_First(&ready_queues[FP1_PRIORITY])
+    (Thread_Control *) _Chain_First(&scheduler_context->Ready[FP1_PRIORITY])
   );
 
   FP_LOAD( 1.0 );
@@ -583,7 +586,9 @@ void complete_test( void )
   set_thread_heir( _Thread_Get_executing() );
   set_thread_dispatch_necessary( false );
 
-  _Thread_Dispatch_set_disable_level( 0 );
+  for (index = 0; index < 2 * OPERATION_COUNT; ++index) {
+    _Thread_Unnest_dispatch();
+  }
 
   /*
    *  Now dump all the times
@@ -759,6 +764,6 @@ void complete_test( void )
     0
   );
 
-  puts( "*** END OF TEST 26 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

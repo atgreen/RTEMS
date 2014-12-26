@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -34,7 +34,7 @@ rtems_status_code rtems_region_delete(
   rtems_status_code   return_status;
   Region_Control     *the_region;
 
-  _RTEMS_Lock_allocator();
+  _Objects_Allocator_lock();
 
     the_region = _Region_Get( id, &location );
     switch ( location ) {
@@ -61,6 +61,7 @@ rtems_status_code rtems_region_delete(
         break;
     }
 
-  _RTEMS_Unlock_allocator();
+  _Objects_Allocator_unlock();
+
   return return_status;
 }

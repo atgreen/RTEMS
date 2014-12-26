@@ -1,0 +1,10 @@
+#
+# simsh1 RTEMS Test Database.
+#
+# Format is one line per test that is _NOT_ built.
+#
+
+include: testdata/require-tick-isr.tcfg
+
+fsdosfsname01
+utf8proc01

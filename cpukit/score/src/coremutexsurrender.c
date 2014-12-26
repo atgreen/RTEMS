@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -167,13 +167,12 @@ CORE_mutex_Status _CORE_mutex_Surrender(
      *  inherited priority must be lowered if this is the last
      *  mutex (i.e. resource) this task has.
      */
-    if ( holder->resource_count == 0 &&
+    if ( !_Thread_Owns_resources( holder ) &&
          holder->real_priority != holder->current_priority ) {
       _Thread_Change_priority( holder, holder->real_priority, true );
     }
   }
-  the_mutex->holder    = NULL;
-  the_mutex->holder_id = 0;
+  the_mutex->holder = NULL;
 
   /*
    *  Now we check if another thread was waiting for this mutex.  If so,
@@ -185,7 +184,6 @@ CORE_mutex_Status _CORE_mutex_Surrender(
     if ( !_Objects_Is_local_id( the_thread->Object.id ) ) {
 
       the_mutex->holder     = NULL;
-      the_mutex->holder_id  = the_thread->Object.id;
       the_mutex->nest_count = 1;
 
       ( *api_mutex_mp_support)( the_thread, id );
@@ -195,7 +193,6 @@ CORE_mutex_Status _CORE_mutex_Surrender(
     {
 
       the_mutex->holder     = the_thread;
-      the_mutex->holder_id  = the_thread->Object.id;
       the_mutex->nest_count = 1;
 
       switch ( the_mutex->Attributes.discipline ) {
@@ -220,8 +217,7 @@ CORE_mutex_Status _CORE_mutex_Surrender(
           break;
       }
     }
-  } else
-    the_mutex->lock = CORE_MUTEX_UNLOCKED;
+  }
 
   return CORE_MUTEX_STATUS_SUCCESSFUL;
 }

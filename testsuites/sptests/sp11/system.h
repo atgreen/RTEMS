@@ -8,7 +8,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <tmacros.h>
@@ -70,6 +70,8 @@ rtems_timer_service_routine TA2_send_10_to_self(
 #define CONFIGURE_MAXIMUM_TASKS               3
 #define CONFIGURE_MAXIMUM_TIMERS              6
 #define CONFIGURE_TICKS_PER_TIMESLICE       100
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

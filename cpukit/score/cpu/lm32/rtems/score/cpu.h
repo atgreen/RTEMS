@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -823,9 +823,12 @@ uint32_t   _CPU_ISR_Get_level( void );
 extern char _gp[];
 
 #define _CPU_Context_Initialize( _the_context, _stack_base, _size, \
-                                 _isr, _entry_point, _is_fp ) \
+                                 _isr, _entry_point, _is_fp, _tls_area ) \
    do { \
      uint32_t _stack = (uint32_t)(_stack_base) + (_size) - 4; \
+     \
+     (void) _is_fp; /* avoid warning for being unused */ \
+     (void) _isr;  /* avoid warning for being unused */ \
      (_the_context)->gp = (uint32_t)_gp; \
      (_the_context)->fp = (uint32_t)_stack; \
      (_the_context)->sp = (uint32_t)_stack; \
@@ -915,7 +918,7 @@ extern char _gp[];
  *
  * XXX document implementation including references if appropriate
  */
-#define _CPU_Fatal_halt( _error ) \
+#define _CPU_Fatal_halt( _source, _error ) \
   { \
   }
 
@@ -950,7 +953,7 @@ extern char _gp[];
 /**
  * This routine sets @a _output to the bit number of the first bit
  * set in @a _value.  @a _value is of CPU dependent type
- * @a Priority_bit_map_Control.  This type may be either 16 or 32 bits
+ * @a Priority_bit_map_Word.  This type may be either 16 or 32 bits
  * wide although only the 16 least significant bits will be used.
  *
  * There are a number of variables in using a "find first bit" type
@@ -1280,6 +1283,18 @@ static inline uint32_t CPU_swap_u32(
 static inline uint16_t CPU_swap_u16(uint16_t v)
 {
     return v << 8 | v >> 8;
+}
+
+typedef uint32_t CPU_Counter_ticks;
+
+CPU_Counter_ticks _CPU_Counter_read( void );
+
+static inline CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  return second - first;
 }
 
 #ifdef __cplusplus

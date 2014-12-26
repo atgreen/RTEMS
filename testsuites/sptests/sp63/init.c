@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -15,14 +15,15 @@
 
 #include <rtems/score/heapimpl.h>
 
+const char rtems_test_name[] = "SP 63";
+
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
 void test_case_one(void);
 void test_case_two(void);
 void test_case_three(void);
 
-#define MAX 256
-uint32_t      Memory[MAX];
+uint32_t      Memory[256];
 Heap_Control  Heap;
 
 /*
@@ -125,7 +126,7 @@ rtems_task Init(
   rtems_task_argument ignored
 )
 {
-  puts( "\n\n*** TEST 63 ***" );
+  TEST_BEGIN();
 
   test_case_one();
 
@@ -133,7 +134,7 @@ rtems_task Init(
 
   test_case_three();
 
-  puts( "*** END OF TEST 63 ***" );
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -145,6 +146,8 @@ rtems_task Init(
 
 #define CONFIGURE_MAXIMUM_TASKS         1
 #define CONFIGURE_MAXIMUM_REGIONS       1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

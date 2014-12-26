@@ -1,0 +1,4 @@
+*** BEGIN OF TEST SPINTRCRITICAL 21 ***
+Event sent from ISR hitting synchronization point has occurred
+Event sent from ISR (with timeout) hitting synchronization point has occurred
+*** END OF TEST SPINTRCRITICAL 21 ***

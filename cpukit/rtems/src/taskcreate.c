@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2008.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -23,6 +23,7 @@
 #include <rtems/rtems/modesimpl.h>
 #include <rtems/rtems/support.h>
 #include <rtems/score/apimutex.h>
+#include <rtems/score/schedulerimpl.h>
 #include <rtems/score/sysstate.h>
 #include <rtems/score/threadimpl.h>
 
@@ -35,7 +36,7 @@ rtems_status_code rtems_task_create(
   rtems_id            *id
 )
 {
-  register Thread_Control *the_thread;
+  Thread_Control          *the_thread;
   bool                     is_fp;
 #if defined(RTEMS_MULTIPROCESSING)
   Objects_MP_Control      *the_global_object = NULL;
@@ -105,11 +106,6 @@ rtems_status_code rtems_task_create(
    */
 
   /*
-   *  Lock the allocator mutex for protection
-   */
-  _RTEMS_Lock_allocator();
-
-  /*
    *  Allocate the thread control block and -- if the task is global --
    *  allocate a global object control block.
    *
@@ -122,7 +118,7 @@ rtems_status_code rtems_task_create(
   the_thread = _RTEMS_tasks_Allocate();
 
   if ( !the_thread ) {
-    _RTEMS_Unlock_allocator();
+    _Objects_Allocator_unlock();
     return RTEMS_TOO_MANY;
   }
 
@@ -132,7 +128,7 @@ rtems_status_code rtems_task_create(
 
     if ( _Objects_MP_Is_null_global_object( the_global_object ) ) {
       _RTEMS_tasks_Free( the_thread );
-      _RTEMS_Unlock_allocator();
+      _Objects_Allocator_unlock();
       return RTEMS_TOO_MANY;
     }
   }
@@ -145,6 +141,7 @@ rtems_status_code rtems_task_create(
   status = _Thread_Initialize(
     &_RTEMS_tasks_Information,
     the_thread,
+    _Scheduler_Get_by_CPU_index( _SMP_Get_current_processor() ),
     NULL,
     stack_size,
     is_fp,
@@ -164,7 +161,7 @@ rtems_status_code rtems_task_create(
       _Objects_MP_Free_global_object( the_global_object );
 #endif
     _RTEMS_tasks_Free( the_thread );
-    _RTEMS_Unlock_allocator();
+    _Objects_Allocator_unlock();
     return RTEMS_UNSATISFIED;
   }
 
@@ -195,6 +192,6 @@ rtems_status_code rtems_task_create(
    }
 #endif
 
-  _RTEMS_Unlock_allocator();
+  _Objects_Allocator_unlock();
   return RTEMS_SUCCESSFUL;
 }

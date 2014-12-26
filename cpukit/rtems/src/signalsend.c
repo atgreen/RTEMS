@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2007.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -29,7 +29,7 @@ rtems_status_code rtems_signal_send(
   rtems_signal_set  signal_set
 )
 {
-  register Thread_Control *the_thread;
+  Thread_Control          *the_thread;
   Objects_Locations        location;
   RTEMS_API_Control       *api;
   ASR_Information         *asr;
@@ -47,6 +47,10 @@ rtems_status_code rtems_signal_send(
       if ( ! _ASR_Is_null_handler( asr->handler ) ) {
         if ( asr->is_enabled ) {
           _ASR_Post_signals( asr, signal_set, &asr->signals_posted );
+          _Thread_Add_post_switch_action(
+            the_thread,
+            &api->Signal_action
+          );
           _Thread_Signal_notification( the_thread );
         } else {
           _ASR_Post_signals( asr, signal_set, &asr->signals_pending );

@@ -11,7 +11,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -38,6 +38,7 @@ int pthread_key_delete(
   POSIX_Keys_Control *the_key;
   Objects_Locations   location;
 
+  _Objects_Allocator_lock();
   the_key = _POSIX_Keys_Get( key, &location );
   switch ( location ) {
 
@@ -50,6 +51,7 @@ int pthread_key_delete(
        */
       _POSIX_Keys_Free( the_key );
       _Objects_Put(&the_key->Object);
+      _Objects_Allocator_unlock();
       return 0;
 
 #if defined(RTEMS_MULTIPROCESSING)
@@ -58,6 +60,8 @@ int pthread_key_delete(
     case OBJECTS_ERROR:
       break;
   }
+
+  _Objects_Allocator_unlock();
 
   return EINVAL;
 }

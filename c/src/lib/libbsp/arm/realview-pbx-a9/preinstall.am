@@ -8,15 +8,15 @@ endif
 PREINSTALL_DIRS =
 DISTCLEANFILES += $(PREINSTALL_DIRS)
 
-all-local: $(TMPINSTALL_FILES)
-
-TMPINSTALL_FILES =
-CLEANFILES = $(TMPINSTALL_FILES)
-
 all-am: $(PREINSTALL_FILES)
 
 PREINSTALL_FILES =
-CLEANFILES += $(PREINSTALL_FILES)
+CLEANFILES = $(PREINSTALL_FILES)
+
+all-local: $(TMPINSTALL_FILES)
+
+TMPINSTALL_FILES =
+CLEANFILES += $(TMPINSTALL_FILES)
 
 $(PROJECT_LIB)/$(dirstamp):
 	@$(MKDIR_P) $(PROJECT_LIB)
@@ -78,13 +78,13 @@ $(PROJECT_INCLUDE)/bsp/stackalloc.h: ../../shared/include/stackalloc.h $(PROJECT
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/stackalloc.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/stackalloc.h
 
-$(PROJECT_INCLUDE)/bsp/tod.h: ../../shared/tod.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/tod.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/tod.h
-
 $(PROJECT_INCLUDE)/bsp/start.h: ../shared/include/start.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/start.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/start.h
+
+$(PROJECT_INCLUDE)/bsp/arm-a9mpcore-clock.h: ../shared/include/arm-a9mpcore-clock.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/arm-a9mpcore-clock.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/arm-a9mpcore-clock.h
 
 $(PROJECT_INCLUDE)/bsp/arm-a9mpcore-irq.h: ../shared/include/arm-a9mpcore-irq.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/arm-a9mpcore-irq.h
@@ -101,6 +101,10 @@ PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/arm-a9mpcore-start.h
 $(PROJECT_INCLUDE)/bsp/arm-cp15-start.h: ../shared/include/arm-cp15-start.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/arm-cp15-start.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/arm-cp15-start.h
+
+$(PROJECT_INCLUDE)/bsp/arm-errata.h: ../shared/include/arm-errata.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/arm-errata.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/arm-errata.h
 
 $(PROJECT_INCLUDE)/bsp/arm-gic.h: ../shared/include/arm-gic.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/arm-gic.h
@@ -141,6 +145,10 @@ PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/arm-pl111-fb.h
 $(PROJECT_INCLUDE)/bsp/arm-pl111-regs.h: ../shared/include/arm-pl111-regs.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/arm-pl111-regs.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/arm-pl111-regs.h
+
+$(PROJECT_INCLUDE)/bsp/arm-release-id.h: ../shared/include/arm-release-id.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/arm-release-id.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/arm-release-id.h
 
 $(PROJECT_INCLUDE)/bsp/irq.h: include/irq.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/irq.h

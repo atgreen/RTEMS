@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2007.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -34,9 +34,10 @@ rtems_status_code rtems_message_queue_delete(
   rtems_id id
 )
 {
-  register Message_queue_Control *the_message_queue;
+  Message_queue_Control          *the_message_queue;
   Objects_Locations               location;
 
+  _Objects_Allocator_lock();
   the_message_queue = _Message_queue_Get( id, &location );
   switch ( location ) {
 
@@ -54,8 +55,6 @@ rtems_status_code rtems_message_queue_delete(
         CORE_MESSAGE_QUEUE_STATUS_WAS_DELETED
       );
 
-      _Message_queue_Free( the_message_queue );
-
 #if defined(RTEMS_MULTIPROCESSING)
       if ( _Attributes_Is_global( the_message_queue->attribute_set ) ) {
         _Objects_MP_Close(
@@ -72,17 +71,21 @@ rtems_status_code rtems_message_queue_delete(
       }
 #endif
       _Objects_Put( &the_message_queue->Object );
+      _Message_queue_Free( the_message_queue );
+      _Objects_Allocator_unlock();
       return RTEMS_SUCCESSFUL;
 
 #if defined(RTEMS_MULTIPROCESSING)
     case OBJECTS_REMOTE:
-      _Thread_Dispatch();
+      _Objects_Allocator_unlock();
       return RTEMS_ILLEGAL_ON_REMOTE_OBJECT;
 #endif
 
     case OBJECTS_ERROR:
       break;
   }
+
+  _Objects_Allocator_unlock();
 
   return RTEMS_INVALID_ID;
 }

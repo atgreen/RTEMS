@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_CLOCKDRV_H
@@ -27,8 +27,6 @@ extern "C" {
 /* variables */
 
 extern volatile uint32_t   Clock_driver_ticks;
-extern rtems_device_major_number rtems_clock_major;
-extern rtems_device_minor_number rtems_clock_minor;
 
 /* default clock driver entry */
 

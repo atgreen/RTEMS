@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,6 +13,8 @@
 
 #define CONFIGURE_INIT
 #include "system.h"
+
+const char rtems_test_name[] = "CLOCK TICK";
 
 /*
  *  Keep the names and IDs in global variables so another task can use them.
@@ -28,7 +30,7 @@ rtems_task Init(
   rtems_status_code status;
   rtems_time_of_day time;
 
-  puts( "\n\n*** CLOCK TICK TEST ***" );
+  TEST_BEGIN();
 
   time.year   = 1988;
   time.month  = 12;

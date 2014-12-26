@@ -4,9 +4,7 @@
  * @ingroup bsp_bootcard
  *
  * @brief Standard system startup.
- */
-
-/*
+ *
  *  This is the C entry point for ALL RTEMS BSPs.  It is invoked
  *  from the assembly language initialization file usually called
  *  start.S.  It provides the framework for the BSP initialization
@@ -37,13 +35,15 @@
  *  constructors are executed after RTEMS is initialized.
  *  Thanks to Chris Johns <cjohns@plessey.com.au> for the idea
  *  to move C++ global constructors into the first task.
- *
- *  COPYRIGHT (c) 1989-2011.
+ */
+
+/*
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp/bootcard.h>
@@ -67,14 +67,6 @@ void boot_card(
 )
 {
   rtems_interrupt_level  bsp_isr_level;
-
-  /*
-   * Special case for PowerPC: The interrupt disable mask is stored in SPRG0.
-   * It must be valid before we can use rtems_interrupt_disable().
-   */
-  #ifdef PPC_INTERRUPT_DISABLE_MASK_DEFAULT
-    ppc_interrupt_set_disable_mask( PPC_INTERRUPT_DISABLE_MASK_DEFAULT );
-  #endif /* PPC_INTERRUPT_DISABLE_MASK_DEFAULT */
 
   /*
    *  Make sure interrupts are disabled.

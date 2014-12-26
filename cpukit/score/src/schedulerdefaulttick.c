@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -22,9 +22,15 @@
 #include <rtems/score/schedulerimpl.h>
 #include <rtems/score/threadimpl.h>
 #include <rtems/score/smp.h>
+#include <rtems/config.h>
 
-static void _Scheduler_default_Tick_for_executing( Thread_Control *executing )
+void _Scheduler_default_Tick(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *executing
+)
 {
+  (void) scheduler;
+
   #ifdef __RTEMS_USE_TICKS_FOR_STATISTICS__
     /*
      *  Increment the number of ticks this thread has been executing
@@ -65,8 +71,9 @@ static void _Scheduler_default_Tick_for_executing( Thread_Control *executing )
          *  currently executing thread is placed at the rear of the
          *  FIFO for this priority and a new heir is selected.
          */
-        _Scheduler_Yield( executing );
-        executing->cpu_time_budget = _Thread_Ticks_per_timeslice;
+        _Thread_Yield( executing );
+        executing->cpu_time_budget =
+          rtems_configuration_get_ticks_per_timeslice();
       }
       break;
 
@@ -76,17 +83,5 @@ static void _Scheduler_default_Tick_for_executing( Thread_Control *executing )
 	  (*executing->budget_callout)( executing );
 	break;
     #endif
-  }
-}
-
-void _Scheduler_default_Tick( void )
-{
-  uint32_t processor_count = _SMP_Get_processor_count();
-  uint32_t processor;
-
-  for ( processor = 0 ; processor < processor_count ; ++processor ) {
-    const Per_CPU_Control *per_cpu = _Per_CPU_Get_by_index( processor );
-
-    _Scheduler_default_Tick_for_executing( per_cpu->executing );
   }
 }

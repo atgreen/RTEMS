@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -51,12 +51,10 @@ int pthread_cond_init(
   if ( !the_attr->is_initialized )
     return EINVAL;
 
-  _Thread_Disable_dispatch();
-
   the_cond = _POSIX_Condition_variables_Allocate();
 
   if ( !the_cond ) {
-    _Thread_Enable_dispatch();
+    _Objects_Allocator_unlock();
     return ENOMEM;
   }
 
@@ -79,7 +77,7 @@ int pthread_cond_init(
 
   *cond = the_cond->Object.id;
 
-  _Thread_Enable_dispatch();
+  _Objects_Allocator_unlock();
 
   return 0;
 }

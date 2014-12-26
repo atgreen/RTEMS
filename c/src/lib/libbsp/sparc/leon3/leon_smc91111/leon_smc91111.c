@@ -1,8 +1,16 @@
-/*  LEON3 BSP SMC91111 registration and low-level initialization
+/**
+ * @file
+ * @ingroup sparc_leon3
+ * @brief LEON3 BSP SMC91111 registration and low-level initialization
+ */
+
+/*
+ * Copyright (c) 2006.
+ * Aeroflex Gaisler AB.
  *
- *  The license and distribution terms for this file may be
- *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ * The license and distribution terms for this file may be
+ * found in the file LICENSE in this distribution or at
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
@@ -23,15 +31,12 @@ scmv91111_configuration_t leon_scmv91111_configuration = {
   1                                   /* autoneg */
 };
 
-int _rtems_smc91111_driver_attach (struct rtems_bsdnet_ifconfig *config,
-				   scmv91111_configuration_t * scm_config);
-
 /*
  * Attach an SMC91111 driver to the system
  */
 int
 rtems_smc91111_driver_attach_leon3 (struct rtems_bsdnet_ifconfig *config,
-				    int attach)
+    int attach)
 {
   unsigned long addr_mctrl = 0;
   struct grgpio_regs *io;
@@ -65,10 +70,8 @@ rtems_smc91111_driver_attach_leon3 (struct rtems_bsdnet_ifconfig *config,
   addr_mctrl = (unsigned long) apbmctrl.start;
   io = (struct grgpio_regs *) apbpio.start;
 
-  printk(
-        "Activating Leon3 io port for smsc_lan91cxx (pio:%x mctrl:%x)\n",
-        (unsigned int)io,
-        (unsigned int)addr_mctrl);
+  printk("Activating Leon3 io port for smsc_lan91cxx (pio:%x mctrl:%x)\n",
+      (unsigned int)io, (unsigned int)addr_mctrl);
 
   /* Setup PIO IRQ */
   io->imask |= (1 << leon_scmv91111_configuration.pio);
@@ -77,7 +80,8 @@ rtems_smc91111_driver_attach_leon3 (struct rtems_bsdnet_ifconfig *config,
   io->dir &= ~(1 << leon_scmv91111_configuration.pio);
 
   /* Setup memory controller I/O waitstates */
-  *((volatile unsigned int *) addr_mctrl) |= 0x10f80000;	/* enable I/O area access */
+  *((volatile unsigned int *) addr_mctrl) |=
+      0x10f80000; /* enable I/O area access */
 
   return _rtems_smc91111_driver_attach(config, &leon_scmv91111_configuration);
 };

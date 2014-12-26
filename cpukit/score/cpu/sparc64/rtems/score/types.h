@@ -8,12 +8,11 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-1999.
- *  On-Line Applications Research Corporation (OAR).
+ *  COPYRIGHT (c) 1989-1999. On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_TYPES_H
@@ -31,7 +30,7 @@ extern "C" {
  *  This section defines the basic types for this processor.
  */
 
-typedef uint16_t         Priority_bit_map_Control;
+typedef uint16_t         Priority_bit_map_Word;
 typedef void sparc_isr;
 typedef void ( *sparc_isr_entry )( void );
 

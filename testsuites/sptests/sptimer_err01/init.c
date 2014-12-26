@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,6 +13,8 @@
 
 #include <tmacros.h>
 #include "test_support.h"
+
+const char rtems_test_name[] = "SPTIMER_ERR 1";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -25,7 +27,7 @@ rtems_task Init(
   rtems_task_argument argument
 )
 {
-  puts( "\n\n*** TEST SPTIMER_ERR01 ***" );
+  TEST_BEGIN();
 
   rtems_status_code        status;
   rtems_time_of_day        time;
@@ -35,6 +37,21 @@ rtems_task Init(
   rtems_id                 junk_id;
 
   timer_name =  rtems_build_name( 'T', 'M', '1', ' ' );
+
+  /* before time set */
+  status = rtems_timer_fire_when( 0, &time, Delayed_routine, NULL );
+  if ( status == RTEMS_SUCCESSFUL ) {
+    puts(
+    "TA1 - timer_wake_when - RTEMS_NOT_DEFINED -- DID BSP SET THE TIME OF DAY?"
+    );
+  } else {
+    fatal_directive_status(
+      status,
+      RTEMS_NOT_DEFINED,
+      "task_fire_when before clock is set"
+    );
+    puts( "TA1 - rtems_timer_fire_when - RTEMS_NOT_DEFINED" );
+  }
 
   /* Set System time */
   build_time( &time, 12, 31, 1992, 9, 0, 0, 0 );
@@ -226,7 +243,7 @@ rtems_task Init(
   puts( "TA1 - rtems_timer_get_information - RTEMS_INVALID_ID" );
 
 
-  puts( "*** END OF TEST SPTIMER_ERR01 ***" );
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -245,6 +262,8 @@ rtems_timer_service_routine Delayed_routine(
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 
 #define CONFIGURE_MAXIMUM_TASKS             1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 #define CONFIGURE_MAXIMUM_TIMERS              1
 

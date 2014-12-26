@@ -11,7 +11,7 @@
 | The license and distribution terms for this file may be         |
 | found in the file LICENSE in this distribution or at            |
 |                                                                 |
-| http://www.rtems.com/license/LICENSE.                           |
+| http://www.rtems.org/license/LICENSE.                           |
 |                                                                 |
 +-----------------------------------------------------------------+
 | this file integrates the IPIC irq controller                    |
@@ -23,9 +23,13 @@
 
 #include <bsp.h>
 #include <bsp/irq.h>
+#include <bsp/irq-generic.h>
 #include <bsp/vectors.h>
 
-int qemuppc_exception_handler( BSP_Exception_frame *frame, unsigned exception_number)
+static int qemuppc_exception_handler(
+  BSP_Exception_frame *frame,
+  unsigned exception_number
+)
 {
   BSP_panic("Unexpected interrupt occured");
   return 0;
@@ -37,21 +41,21 @@ int qemuppc_exception_handler( BSP_Exception_frame *frame, unsigned exception_nu
 rtems_status_code bsp_interrupt_vector_enable( rtems_vector_number irqnum)
 {
   /* FIXME: do something */
-	return RTEMS_SUCCESSFUL;
+  return RTEMS_SUCCESSFUL;
 }
 
 rtems_status_code bsp_interrupt_vector_disable( rtems_vector_number irqnum)
 {
   /* FIXME: do something */
-	return RTEMS_SUCCESSFUL;
+  return RTEMS_SUCCESSFUL;
 }
 
 rtems_status_code bsp_interrupt_facility_initialize(void)
 {
-	/* Install exception handler */
-	if (ppc_exc_set_handler( ASM_EXT_VECTOR, qemuppc_exception_handler)) {
-		return RTEMS_IO_ERROR;
-	}
+  /* Install exception handler */
+  if (ppc_exc_set_handler( ASM_EXT_VECTOR, qemuppc_exception_handler)) {
+    return RTEMS_IO_ERROR;
+  }
 
-	return RTEMS_SUCCESSFUL;
+  return RTEMS_SUCCESSFUL;
 }

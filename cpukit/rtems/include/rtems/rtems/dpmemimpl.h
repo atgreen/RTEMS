@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_DPMEM_INL
@@ -96,18 +96,6 @@ RTEMS_INLINE_ROUTINE Dual_ported_memory_Control *_Dual_ported_memory_Get (
 {
   return (Dual_ported_memory_Control *)
      _Objects_Get( &_Dual_ported_memory_Information, id, location );
-}
-
-/**
- *  @brief Checks if the_port is NULL.
- *
- *  This function returns true if the_port is NULL and false otherwise.
- */
-RTEMS_INLINE_ROUTINE bool _Dual_ported_memory_Is_null(
-  Dual_ported_memory_Control *the_port
-)
-{
-  return ( the_port == NULL );
 }
 
 /**@}*/

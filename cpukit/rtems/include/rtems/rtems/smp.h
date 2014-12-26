@@ -12,17 +12,17 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_SMP_H
 #define _RTEMS_RTEMS_SMP_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <rtems/score/smp.h>
 
 /**
  * @defgroup ClassicSMP SMP Services
@@ -31,34 +31,28 @@ extern "C" {
  *
  * This encapsulates functionality which is useful for SMP applications.
  *
- * This API is also available on uni-processor configurations.  Here compile
- * time constants are used whenever possible.
- *
  * @{
  */
 
 /**
  * @brief Returns the count of processors in the system.
  *
- * On uni-processor configurations this is a compile time constant and defined
- * to be one.
+ * On uni-processor configurations a value of one will be returned.
  *
  * On SMP configurations this returns the value of a global variable set during
- * system initialization to indicate the count of processors.  The processor
- * count depends on the hardware and application configuration.  The value will
- * always be less than or equal to the maximum count of application configured
- * processors.
+ * system initialization to indicate the count of utilized processors.  The
+ * processor count depends on the physically or virtually available processors
+ * and application configuration.  The value will always be less than or equal
+ * to the maximum count of application configured processors.
  *
- * @return The count of processors in the system.
+ * @return The count of processors being utilized.
  */
-#define rtems_smp_get_processor_count() \
-  _SMP_Get_processor_count()
+uint32_t rtems_get_processor_count(void);
 
 /**
  * @brief Returns the index of the current processor.
  *
- * On uni-processor configurations this is a compile time constant and defined
- * to be zero.
+ * On uni-processor configurations a value of zero will be returned.
  *
  * On SMP configurations an architecture specific method is used to obtain the
  * index of the current processor in the system.  The set of processor indices
@@ -72,8 +66,7 @@ extern "C" {
  *
  * @return The index of the current processor.
  */
-#define rtems_smp_get_current_processor() \
-  _SMP_Get_current_processor()
+uint32_t rtems_get_current_processor(void);
 
 /** @} */
 

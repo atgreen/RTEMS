@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,7 +34,7 @@ rtems_task Task_1(
   pass = argument + 1;
 
   if ( pass == 5 ) {
-    puts( "*** END OF TEST 6 ***" );
+    TEST_END();
     rtems_test_exit( 0 );
   }
 

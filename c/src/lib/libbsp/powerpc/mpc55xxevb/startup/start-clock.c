@@ -17,10 +17,11 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
+#include <bsp/fatal.h>
 #include <bsp/start.h>
 #include <bsp/bootcard.h>
 #include <bsp/mpc55xx-config.h>
@@ -38,7 +39,7 @@
       }
 
       if (!lock) {
-        mpc55xx_fatal(MPC55XX_FATAL_FMPLL_LOCK);
+        bsp_fatal(MPC55XX_FATAL_FMPLL_LOCK);
       }
     }
   #endif

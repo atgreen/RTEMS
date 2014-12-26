@@ -14,7 +14,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp/vectors.h>
@@ -87,7 +87,7 @@ void BSP_printStackTrace(const BSP_Exception_frame *excPtr)
   }
 }
 
-void _BSP_Exception_frame_print(const CPU_Exception_frame *excPtr)
+void _CPU_Exception_frame_print(const CPU_Exception_frame *excPtr)
 {
   const Thread_Control *executing = _Thread_Executing;
   bool synch = (int) excPtr->_EXC_number >= 0;

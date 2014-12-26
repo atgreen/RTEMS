@@ -102,6 +102,36 @@ the FP software emulation will be context switched.
 @c
 @c
 @c
+@section Multilibs
+
+Newlib and GCC provide several target libraries like the @file{libc.a},
+@file{libm.a} and @file{libgcc.a}.  These libraries are artifacts of the GCC
+build process.  Newlib is built together with GCC.  To provide optimal support
+for various chip derivatives and instruction set revisions multiple variants of
+these libraries are available for each architecture.  For example one set may
+use software floating point support and another set may use hardware floating
+point instructions.  These sets of libraries are called @emph{multilibs}.  Each
+library set corresponds to an application binary interface (ABI) and
+instruction set.
+
+A multilib variant can be usually detected via built-in compiler defines at
+compile-time.  This mechanism is used by RTEMS to select for example the
+context switch support for a particular BSP.  The built-in compiler defines
+corresponding to multilibs are the only architecture specific defines allowed
+in the @code{cpukit} area of the RTEMS sources.
+
+Invoking the GCC with the @code{-print-multi-lib} option lists the available
+multilibs.  Each line of the output describes one multilib variant.  The
+default variant is denoted by @code{.} which is selected when no or
+contradicting GCC machine options are selected.  The multilib selection for a
+target is specified by target makefile fragments (see file @file{t-rtems} in
+the GCC sources and section
+@uref{https://gcc.gnu.org/onlinedocs/gccint/Target-Fragment.html#Target-Fragment,The Target Makefile Fragment}
+in the @uref{https://gcc.gnu.org/onlinedocs/gccint/,GCC Internals Manual}.
+
+@c
+@c
+@c
 @section Calling Conventions
 
 Each high-level language compiler generates subroutine entry and exit
@@ -313,6 +343,87 @@ interrupts and halts the processor.
 
 In each of the architecture specific chapters, this describes the precise
 operations of the default CPU specific fatal error handler.
+
+@section Thread-Local Storage
+
+In order to support thread-local storage (TLS) the CPU port must implement the
+facilities mandated by the application binary interface (ABI) of the CPU
+architecture.  The CPU port must initialize the TLS area in the
+@code{_CPU_Context_Initialize()} function.  There are support functions available
+via @code{#include <rtems/score/tls.h>} which implement Variants I and II
+according to Ulrich Drepper, @cite{ELF Handling For Thread-Local Storage}.
+
+@table @code
+
+@item _TLS_TCB_at_area_begin_initialize()
+Uses Variant I, TLS offsets emitted by linker takes the TCB into account.  For
+a reference implementation see @file{cpukit/score/cpu/arm/cpu.c}.
+
+@item _TLS_TCB_before_TLS_block_initialize()
+Uses Variant I, TLS offsets emitted by linker neglects the TCB.  For a
+reference implementation see
+@file{c/src/lib/libcpu/powerpc/new-exceptions/cpu.c}.
+
+@item _TLS_TCB_after_TLS_block_initialize()
+Uses Variant II.  For a reference implementation see
+@file{cpukit/score/cpu/sparc/cpu.c}.
+
+@end table
+
+The board support package (BSP) must provide the following sections and symbols
+in its linker command file:
+
+@example
+.tdata : @{
+  _TLS_Data_begin = .;
+  *(.tdata .tdata.* .gnu.linkonce.td.*)
+  _TLS_Data_end = .;
+@}
+.tbss : @{
+  _TLS_BSS_begin = .;
+  *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon)
+  _TLS_BSS_end = .;
+@}
+_TLS_Data_size = _TLS_Data_end - _TLS_Data_begin;
+_TLS_Data_begin = _TLS_Data_size != 0 ? _TLS_Data_begin : _TLS_BSS_begin;
+_TLS_Data_end = _TLS_Data_size != 0 ? _TLS_Data_end : _TLS_BSS_begin;
+_TLS_BSS_size = _TLS_BSS_end - _TLS_BSS_begin;
+_TLS_Size = _TLS_BSS_end - _TLS_Data_begin;
+_TLS_Alignment = MAX (ALIGNOF (.tdata), ALIGNOF (.tbss));
+@end example
+
+@section CPU counter
+
+The CPU support must implement the CPU counter interface.  A CPU counter is
+some free-running counter.  It ticks usually with a frequency close to the CPU
+or system bus clock.  On some architectures the actual implementation is board
+support package dependent.  The CPU counter is used for profiling of low-level
+functions.  It is also used to implement two busy wait functions
+@code{rtems_counter_delay_ticks()} and @code{rtems_counter_delay_nanoseconds()}
+which may be used in device drivers.  It may be also used as an entropy source
+for random number generators.
+
+The CPU counter interface uses a CPU port specific unsigned integer type
+@code{CPU_Counter_ticks} to represent CPU counter values.  The CPU port must
+provide the following two functions
+
+@itemize
+@item @code{_CPU_Counter_read()} to read the current CPU counter value, and
+@item @code{_CPU_Counter_difference()} to get the difference between two CPU
+counter values.
+@end itemize
+
+@section Interrupt Profiling
+
+The RTEMS profiling needs support by the CPU port for the interrupt entry and
+exit times.  In case profiling is enabled via the RTEMS build configuration
+option @code{--enable-profiling} (in this case the pre-processor symbol
+@code{RTEMS_PROFILING} is defined) the CPU port may provide data for the
+interrupt entry and exit times of the outer-most interrupt.  The CPU port can
+feed interrupt entry and exit times with the
+@code{_Profiling_Outer_most_interrupt_entry_and_exit()} function
+(@code{#include <rtems/score/profiling.h>}).  For an example please have a look
+at @code{cpukit/score/cpu/arm/arm_exc_interrupt.S}.
 
 @c
 @c

@@ -1,9 +1,8 @@
 /*
- *  This routine starts the application.  It includes application,
- *  board, and monitor specific initialization and configuration.
- *  The generic CPU dependent initialization has been performed
- *  before this routine is invoked.
- *
+ *  This routine does the bulk of the system initialization.
+ */
+
+/*
  *  COPYRIGHT (c) 1989-1998.
  *  On-Line Applications Research Corporation (OAR).
  *
@@ -31,10 +30,12 @@
 #include <rtems/libio.h>
 #include <rtems/libcsupport.h>
 #include <rtems/bspIo.h>
+#include <rtems/counter.h>
 #include <rtems/powerpc/powerpc.h>
 /*#include <bsp/consoleIo.h>*/
 #include <libcpu/spr.h>   /* registers.h is included here */
 #include <bsp.h>
+#include <bsp/bootcard.h>
 #include <bsp/uart.h>
 #include <bsp/pci.h>
 #include <bsp/gtreg.h>
@@ -142,8 +143,13 @@ char *BSP_commandline_string = cmdline_buf;
 /* this routine is called early and must be safe with a not properly
  * aligned stack
  */
-char *
-save_boot_params(void *r3, void *r4, void* r5, char *cmdline_start, char *cmdline_end)
+char *save_boot_params(
+  void *r3,
+  void *r4,
+  void *r5,
+  char *cmdline_start,
+  char *cmdline_end
+)
 {
 int             i=cmdline_end-cmdline_start;
 	if ( i >= CMDLINE_BUF_SIZE )
@@ -241,11 +247,7 @@ void bsp_start( void )
   /*
    * Initialize default raw exception handlers. See vectors/vectors_init.c
    */
-  ppc_exc_initialize(
-		  PPC_INTERRUPT_DISABLE_MASK_DEFAULT,
-		  intrStackStart,
-		  intrStackSize
-		  );
+  ppc_exc_initialize(intrStackStart, intrStackSize);
 
   printk("CPU: %s\n", get_ppc_cpu_type_name(current_ppc_cpu));
 
@@ -337,6 +339,9 @@ void bsp_start( void )
    */
 
   bsp_clicks_per_usec = BSP_bus_frequency/(BSP_time_base_divisor * 1000);
+  rtems_counter_initialize_converter(
+    BSP_bus_frequency / (BSP_time_base_divisor / 1000)
+  );
 
 #ifdef SHOW_MORE_INIT_SETTINGS
   printk(

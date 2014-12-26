@@ -13,10 +13,11 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems/posix/key.h>
+#include <rtems/score/chainimpl.h>
 #include <rtems/score/freechain.h>
 #include <rtems/score/objectimpl.h>
 #include <rtems/score/percpu.h>
@@ -42,12 +43,15 @@ POSIX_EXTERN Objects_Information  _POSIX_Keys_Information;
 /**
  * @brief The rbtree control block used to manage all key values
  */
-POSIX_EXTERN RBTree_Control _POSIX_Keys_Key_value_lookup_tree;
+extern RBTree_Control _POSIX_Keys_Key_value_lookup_tree;
 
 /**
  * @brief This freechain is used as a memory pool for POSIX_Keys_Key_value_pair.
  */
 POSIX_EXTERN Freechain_Control _POSIX_Keys_Keypool;
+
+#define POSIX_KEYS_RBTREE_NODE_TO_KEY_VALUE_PAIR( node ) \
+  RTEMS_CONTAINER_OF( node, POSIX_Keys_Key_value_pair, Key_value_lookup_node )
 
 /**
  * @brief POSIX key manager initialization.
@@ -61,7 +65,7 @@ void _POSIX_Key_Manager_initialization(void);
  *
  * This routine compares the rbtree node
  */
-int _POSIX_Keys_Key_value_lookup_tree_compare_function(
+RBTree_Compare_result _POSIX_Keys_Key_value_compare(
   const RBTree_Node *node1,
   const RBTree_Node *node2
 );
@@ -163,6 +167,36 @@ RTEMS_INLINE_ROUTINE void _POSIX_Keys_Key_value_pair_free(
 )
 {
   _Freechain_Put( &_POSIX_Keys_Keypool, key_value_pair );
+}
+
+RTEMS_INLINE_ROUTINE RBTree_Node *_POSIX_Keys_Find(
+  pthread_key_t   key,
+  Thread_Control *thread
+)
+{
+  POSIX_Keys_Key_value_pair search_node;
+
+  search_node.key = key;
+  search_node.thread = thread;
+
+  return _RBTree_Find(
+    &_POSIX_Keys_Key_value_lookup_tree,
+    &search_node.Key_value_lookup_node,
+    _POSIX_Keys_Key_value_compare,
+    true
+  );
+}
+
+RTEMS_INLINE_ROUTINE void _POSIX_Keys_Free_key_value_pair(
+  POSIX_Keys_Key_value_pair *key_value_pair
+)
+{
+  _RBTree_Extract(
+    &_POSIX_Keys_Key_value_lookup_tree,
+    &key_value_pair->Key_value_lookup_node
+  );
+  _Chain_Extract_unprotected( &key_value_pair->Key_values_per_thread_node );
+  _POSIX_Keys_Key_value_pair_free( key_value_pair );
 }
 
 /** @} */

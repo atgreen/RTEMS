@@ -9,7 +9,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -133,12 +133,10 @@ nested:
 	
 /* Vector to ISR */
 
-	mov.l	@SYM(_ISR_Vector_table),er1
 	mov		er0,er2	; copy vector
 	shll.l	er2
 	shll.l	er2		; vector = vector * 4 (sizeof(int))
-	add.l	er2,er1
-    mov.l	@er1,er1
+	mov.l	@(SYM(_ISR_Vector_table), er2),er1
 	jsr		@er1	; er0 = arg1 =vector
 	
 	orc		#0xc0,ccr
@@ -150,7 +148,7 @@ nested:
 	mov.l	er1,@THREAD_DISPATCH_DISABLE_LEVEL
 	bne	exit
 	
-	mov.b	@DISPATCH_NEEDED,er1
+	mov.l	@DISPATCH_NEEDED,er1
 	beq	exit		; If no then exit
 
 	/* Context switch here through ISR_Dispatch */

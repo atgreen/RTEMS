@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 /* This code is a crude memory manager for early boot for LinuxPPC.
@@ -129,7 +129,6 @@ void print_maps(map *, const char *);
 /* The handler used for all exceptions although for now it is only
  * designed to properly handle MMU interrupts to fill the hash table.
  */
-
 void _handler(int vec, ctxt *p) {
 	map *area;
 	struct _mm_private *mm = (struct _mm_private *) bd->mm_private;
@@ -424,7 +423,7 @@ MEM_MAP seg_fix[] = {
  * data. This routine changes some things in a way that the bootloader and
  * linux are happy.
  */
-void
+static void
 fix_residual( RESIDUAL *res )
 {
 #if 0

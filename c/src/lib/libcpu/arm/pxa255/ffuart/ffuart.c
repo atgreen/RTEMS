@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
@@ -204,7 +204,7 @@ static int ffuart_set_attributes(int minor, const struct termios *t)
  * Read from UART. This is used in the exit code, and can't
  * rely on interrupts.
  */
-int ffuart_poll_read(int minor)
+static int ffuart_poll_read(int minor)
 {
     return ffuart_read(minor);
 }

@@ -5,7 +5,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -14,6 +14,8 @@
 
 #define CONFIGURE_INIT
 #include "system.h"
+
+const char rtems_test_name[] = "TIME TEST 22";
 
 rtems_id Queue_id;
 
@@ -40,7 +42,7 @@ rtems_task Init(
 
   Print_Warning();
 
-  puts( "\n\n*** TIME TEST 22 ***" );
+  TEST_BEGIN();
 
   status = rtems_message_queue_create(
     rtems_build_name( 'M', 'Q', '1', ' '),
@@ -179,7 +181,7 @@ rtems_task Low_task(
     CALLING_OVERHEAD_MESSAGE_QUEUE_BROADCAST
   );
 
-  puts( "*** END OF TEST 22 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 /*
@@ -21,9 +21,12 @@
 #include "system.h"
 
 #include <bsp.h>
+#include <rtems/score/schedulerpriorityimpl.h>
 
 #define _RTEMS_TMTEST27
 #include <tm27.h>
+
+const char rtems_test_name[] = "TIME TEST 27";
 
 rtems_task Task_1(
   rtems_task_argument argument
@@ -51,11 +54,15 @@ rtems_task Init(
 
   Print_Warning();
 
-  puts( "\n\n*** TIME TEST 27 ***" );
-  if (_Scheduler.Operations.initialize != _Scheduler_priority_Initialize) {
+  TEST_BEGIN();
+
+  if (
+    _Scheduler_Table[ 0 ].Operations.initialize
+      != _Scheduler_priority_Initialize
+  ) {
     puts("  Error ==> " );
     puts("Test only supported for deterministic priority scheduler\n" );
-    puts( "*** END OF TEST 26 ***" );
+    TEST_END();
     rtems_test_exit( 0 );
   }
 
@@ -99,10 +106,11 @@ rtems_task Task_1(
   rtems_task_argument argument
 )
 {
+  Scheduler_priority_Context *scheduler_context =
+    _Scheduler_priority_Get_context( _Scheduler_Get( _Thread_Get_executing() ) );
 #if defined(RTEMS_SMP)
   rtems_interrupt_level level;
 #endif
-  Chain_Control   *ready_queues;
 
   Install_tm27_vector( Isr_handler );
 
@@ -111,8 +119,6 @@ rtems_task Task_1(
    */
 
   Interrupt_nest = 0;
-
-  _Thread_Dispatch_set_disable_level( 0 );
 
   Interrupt_occurred = 0;
 
@@ -145,7 +151,7 @@ rtems_task Task_1(
    *  No preempt .. nested
    */
 
-  _Thread_Dispatch_set_disable_level( 1 );
+  _Thread_Disable_dispatch();
 
   Interrupt_nest = 1;
 
@@ -159,7 +165,7 @@ rtems_task Task_1(
 #endif
   Interrupt_return_time = benchmark_timer_read();
 
-  _Thread_Dispatch_set_disable_level( 0 );
+  _Thread_Unnest_dispatch();
 
   put_time(
     "rtems interrupt: entry overhead returns to nested interrupt",
@@ -181,15 +187,12 @@ rtems_task Task_1(
    *  Does a preempt .. not nested
    */
 
-  _Thread_Dispatch_set_disable_level( 0 );
-
 #if defined(RTEMS_SMP)
   _ISR_Disable_without_giant(level);
 #endif
 
-  ready_queues      = (Chain_Control *) _Scheduler.information;
   _Thread_Executing =
-        (Thread_Control *) _Chain_First(&ready_queues[LOW_PRIORITY]);
+        (Thread_Control *) _Chain_First(&scheduler_context->Ready[LOW_PRIORITY]);
 
   _Thread_Dispatch_necessary = 1;
 
@@ -205,7 +208,7 @@ rtems_task Task_1(
    *  goes to Isr_handler and then returns
    */
 
-  puts( "*** END OF TEST 27 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -221,10 +224,11 @@ rtems_task Task_2(
   rtems_task_argument argument
 )
 {
+  Scheduler_priority_Context *scheduler_context =
+    _Scheduler_priority_Get_context( _Scheduler_Get( _Thread_Get_executing() ) );
 #if defined(RTEMS_SMP)
   rtems_interrupt_level level;
 #endif
-  Chain_Control   *ready_queues;
 
 #if (MUST_WAIT_FOR_INTERRUPT == 1)
   while ( Interrupt_occurred == 0 );
@@ -253,15 +257,12 @@ rtems_task Task_2(
    *  Switch back to the other task to exit the test.
    */
 
-  _Thread_Dispatch_set_disable_level( 0 );
-
 #if defined(RTEMS_SMP)
   rtems_interrupt_disable(level);
 #endif
 
-  ready_queues      = (Chain_Control *) _Scheduler.information;
   _Thread_Executing =
-        (Thread_Control *) _Chain_First(&ready_queues[LOW_PRIORITY]);
+        (Thread_Control *) _Chain_First(&scheduler_context->Ready[LOW_PRIORITY]);
 
   _Thread_Dispatch_necessary = 1;
 

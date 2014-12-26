@@ -16,7 +16,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_BARRIERIMPL_H
@@ -109,17 +109,6 @@ RTEMS_INLINE_ROUTINE Barrier_Control *_Barrier_Get (
     _Objects_Get( &_Barrier_Information, id, location );
 }
 
-/**
- *  @brief _Barrier_Is_null
- *
- *  This function returns TRUE if the_barrier is NULL and FALSE otherwise.
- */
-RTEMS_INLINE_ROUTINE bool _Barrier_Is_null (
-  Barrier_Control *the_barrier
-)
-{
-  return ( the_barrier == NULL );
-}
 /**
  * @brief Translate SuperCore Barrier Status Code to RTEMS Status Code
  *

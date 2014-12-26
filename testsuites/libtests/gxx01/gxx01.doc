@@ -3,7 +3,7 @@
 #
 #  The license and distribution terms for this file may be
 #  found in the file LICENSE in this distribution or at
-#  http://www.rtems.com/license/LICENSE.
+#  http://www.rtems.org/license/LICENSE.
 #
 
 This file describes the directives and concepts tested by this test set.
@@ -14,7 +14,6 @@ directives:
 
   rtems_gxx_once
   rtems_gxx_key_create 
-  rtems_gxx_key_dtor 
   rtems_gxx_key_delete 
   rtems_gxx_getspecific
   rtems_gxx_setspecific

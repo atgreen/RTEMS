@@ -3,7 +3,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
@@ -14,11 +14,15 @@
 /* configuration information */
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 #define CONFIGURE_MAXIMUM_TASKS 3
 #define CONFIGURE_MAXIMUM_SEMAPHORES 2
 #define CONFIGURE_INIT
 #include <rtems/confdefs.h>
+
+const char rtems_test_name[] = "SPSEM 1";
 
 rtems_task Task01(rtems_task_argument ignored);
 rtems_task Task02(rtems_task_argument ignored);
@@ -45,7 +49,7 @@ rtems_task Init(rtems_task_argument ignored)
   rtems_status_code status;
   rtems_attribute sem_attr;
 
-  printf("\n*** TEST SEM01 ***\n");
+  TEST_BEGIN();
 
   sem_attr = RTEMS_INHERIT_PRIORITY | RTEMS_BINARY_SEMAPHORE | RTEMS_PRIORITY;
 
@@ -129,9 +133,9 @@ rtems_task Task01(rtems_task_argument ignored)
   printf("TA01: priority %d\n", getprio());
 
   printf("TA01: exiting\n");
-  printf("*** END OF SEM01 ***\n");
-  status = rtems_task_delete( RTEMS_SELF);
-  directive_failed( status, "rtems_task_delete TA01");
+  TEST_END();
+
+  rtems_test_exit(0);
 }
 
 /* TA02 starts at Task02 with priority 34 */
@@ -146,8 +150,8 @@ rtems_task Task02(rtems_task_argument ignored)
   directive_failed( status, " rtems_semaphore_obtain S1");
   printf("TA02: priority %d, holding S1\n", getprio());
 
-  printf("TA02: exiting\n");
-  status = rtems_task_delete( RTEMS_SELF);
-  directive_failed( status, "rtems_task_delete TA02");
+  printf("TA02: suspending\n");
+  status = rtems_task_suspend( RTEMS_SELF);
+  directive_failed( status, "rtems_task_suspend TA02");
 }
 

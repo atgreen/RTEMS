@@ -8,12 +8,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2008.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_THREADQ_H
@@ -22,6 +22,7 @@
 #include <rtems/score/chain.h>
 #include <rtems/score/states.h>
 #include <rtems/score/threadsync.h>
+#include <rtems/score/rbtree.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,9 +33,9 @@ extern "C" {
  *
  *  @ingroup Score
  *
- *  This handler defines the data shared between the thread and thread
- *  queue handlers.  Having this handler define these data structure
- *  avoids potentially circular references.
+ *  This handler provides the capability to have threads block in
+ *  ordered sets. The sets may be ordered using the FIFO or priority
+ *  discipline.
  */
 /**@{*/
 
@@ -48,22 +49,6 @@ typedef enum {
 }   Thread_queue_Disciplines;
 
 /**
- *  This is one of the constants used to manage the priority queues.
- *
- *  There are four chains used to maintain a priority -- each chain
- *  manages a distinct set of task priorities.  The number of chains
- *  is determined by TASK_QUEUE_DATA_NUMBER_OF_PRIORITY_HEADERS.
- *  The following set must be consistent.
- *
- *  The set below configures 4 headers -- each contains 64 priorities.
- *  Header x manages priority range (x*64) through ((x*64)+63).  If
- *  the priority is more than half way through the priority range it
- *  is in, then the search is performed from the rear of the chain.
- *  This halves the search time to find the insertion point.
- */
-#define TASK_QUEUE_DATA_NUMBER_OF_PRIORITY_HEADERS 4
-
-/**
  *  This is the structure used to manage sets of tasks which are blocked
  *  waiting to acquire a resource.
  */
@@ -74,8 +59,8 @@ typedef struct {
   union {
     /** This is the FIFO discipline list. */
     Chain_Control Fifo;
-    /** This is the set of lists for priority discipline waiting. */
-    Chain_Control Priority[TASK_QUEUE_DATA_NUMBER_OF_PRIORITY_HEADERS];
+    /** This is the set of threads for priority discipline waiting. */
+    RBTree_Control Priority;
   } Queues;
   /** This field is used to manage the critical section. */
   Thread_blocking_operation_States sync_state;

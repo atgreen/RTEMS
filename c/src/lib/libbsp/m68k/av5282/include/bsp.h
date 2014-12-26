@@ -10,12 +10,18 @@
  *  av5282 BSP header file
  */
 
+/**
+ * @defgroup m68k_av5282 AV5282 Support
+ *
+ * @ingroup bsp_m68k
+ *
+ * @brief AV5282 support.
+ */
+
 #ifndef __SBav5282_BSP_H
 #define __SBav5282_BSP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef ASM
 
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
@@ -30,6 +36,10 @@ extern "C" {
 /***************************************************************************/
 /**  Hardware data structure headers                                      **/
 #include <mcf5282/mcf5282.h>   /* internal MCF5282 modules */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /***************************************************************************/
 /**  Network driver configuration                                         **/
@@ -78,16 +88,14 @@ rtems_isr_entry set_vector(
 #define UART2_IRQ_LEVEL     3
 #define UART2_IRQ_PRIORITY  5
 
+/*
+ * Prototypes for methods called from .S to alow dependency tracking
+ */
+void Init5282(void);
+
 #ifdef __cplusplus
 }
 #endif
 
+#endif /* !ASM */
 #endif
-
-/**
- * @defgroup m68k_av5282 AV5282 Support
- *
- * @ingroup bsp_m68k
- *
- * @brief AV5282 support.
- */

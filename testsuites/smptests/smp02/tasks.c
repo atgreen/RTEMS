@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,13 +13,7 @@
 
 #include "system.h"
 
-void Loop(void) {
-  volatile int i;
-
-  for (i=0; i<300000; i++);
-}
-
-void LogSemaphore(
+static void LogSemaphore(
   bool      obtained,
   uint32_t  cpu_num,
   uint32_t  task_index
@@ -40,7 +34,7 @@ rtems_task Test_task(
   uint32_t          cpu_num;
   rtems_status_code sc;
 
-  cpu_num = rtems_smp_get_current_processor();
+  cpu_num = rtems_get_current_processor();
 
   do {
 

@@ -3,7 +3,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 /**
@@ -31,6 +31,10 @@
 #include <rtems/bdbuf.h>
 
 #include <bsp.h>
+
+#include <tmacros.h>
+
+const char rtems_test_name[] = "BLOCK 6";
 
 /* forward declarations to avoid warnings */
 static rtems_task Init(rtems_task_argument argument);
@@ -1130,14 +1134,14 @@ bdbuf_tests_task_0_test_8 (bdbuf_task_control* tc)
 
   bd = (rtems_bdbuf_buffer*) node;
   pnode = node->previous;
-  rtems_chain_explicit_extract (&buffers, node);
+  rtems_chain_extract (node);
   node = pnode;
   bdbuf_test_printf ("%s: rtems_bdbuf_release_modified[4]: ", tc->name);
   passed = bdbuf_test_print_sc (rtems_bdbuf_release_modified (bd), true);
 
   bd = (rtems_bdbuf_buffer*) node;
   pnode = node->previous;
-  rtems_chain_explicit_extract (&buffers, node);
+  rtems_chain_extract (node);
   node = pnode;
   bdbuf_test_printf ("%s: rtems_bdbuf_release_modified[3]: ", tc->name);
   passed = bdbuf_test_print_sc (rtems_bdbuf_release_modified (bd), true);
@@ -1831,11 +1835,11 @@ bdbuf_tester (void)
 
 static rtems_task Init(rtems_task_argument argument)
 {
-  printf ("\n\n*** TEST BLOCK 6 ***\n");
+  TEST_BEGIN();
 
   bdbuf_tester ();
 
-  printf ("*** END OF TEST BLOCK 6 ***\n");
+  TEST_END();
 
   exit (0);
 }
@@ -1845,8 +1849,6 @@ static rtems_task Init(rtems_task_argument argument)
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_LIBBLOCK
-
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 
 #define CONFIGURE_BDBUF_TASK_STACK_SIZE BDBUF_TEST_STACK_SIZE
 
@@ -1858,6 +1860,8 @@ static rtems_task Init(rtems_task_argument argument)
   (BDBUF_TEST_TASKS * BDBUF_TEST_STACK_SIZE)
 
 #define CONFIGURE_INIT_TASK_STACK_SIZE BDBUF_TEST_STACK_SIZE
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #include <rtems/confdefs.h>

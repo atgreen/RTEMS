@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -37,9 +37,9 @@ void _POSIX_signals_Set_process_signals(
   sigset_t   mask
 )
 {
-  ISR_Level  level;
+  ISR_lock_Context lock_context;
 
-  _POSIX_signals_Acquire( level );
+  _POSIX_signals_Acquire( &lock_context );
     _POSIX_signals_Pending |= mask;
-  _POSIX_signals_Release( level );
+  _POSIX_signals_Release( &lock_context );
 }

@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,6 +33,8 @@
 
 #include "tmacros.h"
 #include "pritime.h"
+
+const char rtems_test_name[] = "NANOSECOND CLOCK";
 
 static char *my_ctime( time_t t )
 {
@@ -62,7 +64,7 @@ rtems_task Init(
   rtems_time_of_day time;
   int index;
 
-  puts( "\n\n*** NANOSECOND CLOCK TEST ***" );
+  TEST_BEGIN();
 
   time.year   = 2007;
   time.month  = 03;
@@ -120,14 +122,15 @@ rtems_task Init(
   for (index=1 ; index <=10 ; index++ ) {
     struct timespec start, stop;
     struct timespec diff;
-    int j, max = (index * 10000);
+    long j, max = (index * 10000L);
     rtems_clock_get_uptime( &start );
       for (j=0 ; j<max ; j++ )
         dummy_function_empty_body_to_force_call();
     rtems_clock_get_uptime( &stop );
 
     subtract_em( &start, &stop, &diff );
-    printf( "loop of %d %" PRIdtime_t ":%ld %" PRIdtime_t ":%ld --> %" PRIdtime_t ":%ld\n",
+    printf( "loop of %ld %" PRIdtime_t
+              ":%ld %" PRIdtime_t ":%ld --> %" PRIdtime_t ":%ld\n",
       max,
       start.tv_sec, start.tv_nsec,
       stop.tv_sec, stop.tv_nsec,
@@ -137,7 +140,7 @@ rtems_task Init(
 
   sleep(1);
 
-  puts( "*** END OF NANOSECOND CLOCK TEST ***" );
+  TEST_END();
   exit(0);
 }
 

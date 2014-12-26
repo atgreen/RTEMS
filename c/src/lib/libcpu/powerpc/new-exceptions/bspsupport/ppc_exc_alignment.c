@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
@@ -21,13 +21,13 @@ int ppc_exc_alignment_handler(BSP_Exception_frame *frame, unsigned excNum)
 
   /* Do we have a dcbz instruction? */
   if ((opcode & 0xffe007ff) == 0x7c0007ec) {
-    unsigned clsz = (unsigned) rtems_cache_get_data_line_size();
+    unsigned clsz = rtems_cache_get_data_line_size();
     unsigned a = (opcode >> 16) & 0x1f;
     unsigned b = (opcode >> 11) & 0x1f;
-    unsigned *regs = &frame->GPR0;
+    PPC_GPR_TYPE *regs = &frame->GPR0;
     unsigned *current = (unsigned *)
-      (((a == 0 ? 0 : regs [a]) + regs [b]) & (clsz - 1));
-    unsigned *end = current + clsz / 4;
+      (((a == 0 ? 0 : (unsigned) regs[a]) + (unsigned) regs[b]) & (clsz - 1));
+    unsigned *end = current + clsz / sizeof(*current);
 
     while (current != end) {
       *current = 0;

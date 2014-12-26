@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -46,12 +46,16 @@ static uintptr_t align_down(uintptr_t alignment, uintptr_t value)
   return value - excess;
 }
 
-static int chunk_compare(const rtems_rbtree_node *a, const rtems_rbtree_node *b)
+static rtems_rbtree_compare_result chunk_compare(
+  const rtems_rbtree_node *a,
+  const rtems_rbtree_node *b
+)
 {
   const rtems_rbheap_chunk *left = rtems_rbheap_chunk_of_node(a);
   const rtems_rbheap_chunk *right = rtems_rbheap_chunk_of_node(b);
 
-  return (int) (left->begin - right->begin);
+  return (rtems_rbtree_compare_result)
+    ((left->begin >> 1) - (right->begin >> 1));
 }
 
 static rtems_rbheap_chunk *get_chunk(rtems_rbheap_control *control)
@@ -80,7 +84,7 @@ static void insert_into_tree(
   rtems_rbheap_chunk *chunk
 )
 {
-  _RBTree_Insert(tree, &chunk->tree_node);
+  rtems_rbtree_insert(tree, &chunk->tree_node, chunk_compare, true);
 }
 
 rtems_status_code rtems_rbheap_initialize(
@@ -93,39 +97,43 @@ rtems_status_code rtems_rbheap_initialize(
 )
 {
   rtems_status_code sc = RTEMS_SUCCESSFUL;
+  uintptr_t begin = (uintptr_t) area_begin;
+  uintptr_t end = begin + area_size;
+  uintptr_t aligned_begin;
+  uintptr_t aligned_end;
 
-  if (alignment > 0) {
-    uintptr_t begin = (uintptr_t) area_begin;
-    uintptr_t end = begin + area_size;
-    uintptr_t aligned_begin = align_up(alignment, begin);
-    uintptr_t aligned_end = align_down(alignment, end);
+  /*
+   * Ensure that the alignment is at least two, so that we can keep
+   * chunk_compare() that simple.
+   */
+  alignment = alignment < 2 ? 2 : alignment;
 
-    if (begin < end && begin <= aligned_begin && aligned_begin < aligned_end) {
-      rtems_chain_control *free_chain = &control->free_chunk_chain;
-      rtems_rbtree_control *chunk_tree = &control->chunk_tree;
-      rtems_rbheap_chunk *first = NULL;
+  aligned_begin = align_up(alignment, begin);
+  aligned_end = align_down(alignment, end);
 
-      rtems_chain_initialize_empty(free_chain);
-      rtems_chain_initialize_empty(&control->spare_descriptor_chain);
-      rtems_rbtree_initialize_empty(chunk_tree, chunk_compare, true);
-      control->alignment = alignment;
-      control->handler_arg = handler_arg;
-      control->extend_descriptors = extend_descriptors;
+  if (begin < end && begin <= aligned_begin && aligned_begin < aligned_end) {
+    rtems_chain_control *free_chain = &control->free_chunk_chain;
+    rtems_rbtree_control *chunk_tree = &control->chunk_tree;
+    rtems_rbheap_chunk *first = NULL;
 
-      first = get_chunk(control);
-      if (first != NULL) {
-        first->begin = aligned_begin;
-        first->size = aligned_end - aligned_begin;
-        add_to_chain(free_chain, first);
-        insert_into_tree(chunk_tree, first);
-      } else {
-        sc = RTEMS_NO_MEMORY;
-      }
+    rtems_chain_initialize_empty(free_chain);
+    rtems_chain_initialize_empty(&control->spare_descriptor_chain);
+    rtems_rbtree_initialize_empty(chunk_tree);
+    control->alignment = alignment;
+    control->handler_arg = handler_arg;
+    control->extend_descriptors = extend_descriptors;
+
+    first = get_chunk(control);
+    if (first != NULL) {
+      first->begin = aligned_begin;
+      first->size = aligned_end - aligned_begin;
+      add_to_chain(free_chain, first);
+      insert_into_tree(chunk_tree, first);
     } else {
-      sc = RTEMS_INVALID_ADDRESS;
+      sc = RTEMS_NO_MEMORY;
     }
   } else {
-    sc = RTEMS_INVALID_NUMBER;
+    sc = RTEMS_INVALID_ADDRESS;
   }
 
   return sc;
@@ -198,7 +206,7 @@ static rtems_rbheap_chunk *find(rtems_rbtree_control *chunk_tree, uintptr_t key)
   rtems_rbheap_chunk chunk = { .begin = key };
 
   return rtems_rbheap_chunk_of_node(
-    _RBTree_Find(chunk_tree, &chunk.tree_node)
+    rtems_rbtree_find(chunk_tree, &chunk.tree_node, chunk_compare, true)
   );
 }
 
@@ -230,7 +238,7 @@ static void check_and_merge(
     a->size += b->size;
     rtems_chain_extract_unprotected(&b->chain_node);
     add_to_chain(free_chain, b);
-    _RBTree_Extract(chunk_tree, &b->tree_node);
+    rtems_rbtree_extract(chunk_tree, &b->tree_node);
   }
 }
 

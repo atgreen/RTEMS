@@ -11,7 +11,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_REGIONIMPL_H
@@ -131,18 +131,6 @@ RTEMS_INLINE_ROUTINE bool _Region_Free_segment (
 )
 {
   return _Heap_Free( &the_region->Memory, the_segment );
-}
-
-/**
- *  @brief Region_Is_null
- *
- *  This function returns TRUE if the_region is NULL and FALSE otherwise.
- */
-RTEMS_INLINE_ROUTINE bool _Region_Is_null (
-  Region_Control *the_region
-)
-{
-  return ( the_region == NULL  );
 }
 
 /**

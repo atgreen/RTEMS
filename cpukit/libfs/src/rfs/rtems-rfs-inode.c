@@ -3,7 +3,7 @@
  *
  * @brief RTEMS File Systems Inode Routines
  * @ingroup rtems_rfs
- * 
+ *
  * These functions manage inodes in the RFS file system. An inode is part of a
  * block that reside after the bitmaps in the group.
  */
@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -286,6 +286,17 @@ rtems_rfs_inode_create (rtems_rfs_file_system*  fs,
     rtems_rfs_inode_set_links (&parent_inode,
                                rtems_rfs_inode_get_links (&parent_inode) + 1);
 
+  /*
+   * Update the parent's mtime.
+   */
+  rc = rtems_rfs_inode_time_stamp_now (&parent_inode, true, true);
+  if (rc > 0)
+  {
+    rtems_rfs_inode_delete (fs, &inode);
+    rtems_rfs_inode_close (fs, &inode);
+    return rc;
+  }
+
   rc = rtems_rfs_inode_close (fs, &parent_inode);
   if (rc > 0)
   {
@@ -341,12 +352,17 @@ rtems_rfs_inode_delete (rtems_rfs_file_system*  fs,
       rtems_rfs_buffer_mark_dirty (&handle->buffer);
       /*
        * Do the release here to avoid the ctime field being set on a
-       * close. Also if there loads is greater then one then other loads
+       * close. Also if the loads is greater then one then other loads
        * active. Forcing the loads count to 0.
        */
       rc = rtems_rfs_buffer_handle_release (fs, &handle->buffer);
       handle->loads = 0;
       handle->node = NULL;
+      /*
+       * Return the first error and drop any that followed.
+       */
+      if (rrc > 0)
+        rc = rrc;
     }
   }
   return rc;

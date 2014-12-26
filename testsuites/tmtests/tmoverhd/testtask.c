@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,6 +13,8 @@
 
 #define CONFIGURE_INIT
 #include "system.h"
+
+const char rtems_test_name[] = "OVERHEAD";
 
 uint8_t   Memory_area[ 2048 ];
 uint8_t   Internal_port_area[ 256 ];
@@ -32,7 +34,7 @@ rtems_task Init(
 
   Print_Warning();
 
-  puts( "\n\n*** TIME TEST OVERHEAD ***" );
+  TEST_BEGIN();
 
   status = rtems_task_create(
     rtems_build_name( 'T', 'A', '1', ' ' ),
@@ -1258,7 +1260,7 @@ rtems_test_pause();
          0
       );
 
-  puts( "*** END OF TIME OVERHEAD ***" );
+  TEST_END();
 
   rtems_test_exit( 0 );
 }

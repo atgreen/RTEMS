@@ -29,7 +29,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -144,7 +144,7 @@ extern "C" {
 #define CPU_STRUCTURE_ALIGNMENT \
   __attribute__ ((aligned (PPC_STRUCTURE_ALIGNMENT)))
 
-#define CPU_TIMESTAMP_USE_INT64_INLINE TRUE
+#define CPU_TIMESTAMP_USE_STRUCT_TIMESPEC TRUE
 
 /*
  *  Define what is required to specify how the network to host conversion
@@ -302,6 +302,9 @@ typedef struct {
   PPC_GPR_TYPE gpr30;
   PPC_GPR_TYPE gpr31;
   uint32_t gpr2;
+  #ifdef RTEMS_SMP
+    volatile uint32_t is_executing;
+  #endif
   #ifdef __ALTIVEC__
     /*
      * 12 non-volatile vector registers, cache-aligned area for vscr/vrsave
@@ -327,7 +330,7 @@ typedef struct {
   ];
 } Context_Control;
 
-static inline ppc_context *ppc_get_context( Context_Control *context )
+static inline ppc_context *ppc_get_context( const Context_Control *context )
 {
   uintptr_t clsz = PPC_DEFAULT_CACHE_LINE_SIZE;
   uintptr_t mask = clsz - 1;
@@ -338,6 +341,23 @@ static inline ppc_context *ppc_get_context( Context_Control *context )
 
 #define _CPU_Context_Get_SP( _context ) \
   ppc_get_context(_context)->gpr1
+
+#ifdef RTEMS_SMP
+  static inline bool _CPU_Context_Get_is_executing(
+    const Context_Control *context
+  )
+  {
+    return ppc_get_context(context)->is_executing;
+  }
+
+  static inline void _CPU_Context_Set_is_executing(
+    Context_Control *context,
+    bool is_executing
+  )
+  {
+    ppc_get_context(context)->is_executing = is_executing;
+  }
+#endif
 #endif /* ASM */
 
 #define PPC_CONTEXT_OFFSET_GPR1 32
@@ -367,6 +387,10 @@ static inline ppc_context *ppc_get_context( Context_Control *context )
 #define PPC_CONTEXT_OFFSET_GPR30 PPC_CONTEXT_GPR_OFFSET( 30 )
 #define PPC_CONTEXT_OFFSET_GPR31 PPC_CONTEXT_GPR_OFFSET( 31 )
 #define PPC_CONTEXT_OFFSET_GPR2 PPC_CONTEXT_GPR_OFFSET( 32 )
+
+#ifdef RTEMS_SMP
+  #define PPC_CONTEXT_OFFSET_IS_EXECUTING (PPC_CONTEXT_GPR_OFFSET( 32 ) + 4)
+#endif
 
 #ifndef ASM
 typedef struct {
@@ -599,16 +623,6 @@ SCORE_EXTERN struct {
 #define CPU_MPCI_RECEIVE_SERVER_EXTRA_STACK 0
 
 /*
- *  This defines the number of entries in the ISR_Vector_table managed
- *  by RTEMS.
- *
- *  NOTE: CPU_INTERRUPT_NUMBER_OF_VECTORS and 
- *        CPU_INTERRUPT_MAXIMUM_VECTOR_NUMBER are only used on
- *        Simple Vectored Architectures and thus are not defined
- *        for this architecture.
- */
-
-/*
  *  This is defined if the port has a special way to report the ISR nesting
  *  level.  Most ports maintain the variable _ISR_Nest_level. Note that
  *  this is not an option - RTEMS/score _relies_ on _ISR_Nest_level
@@ -663,17 +677,10 @@ void _BSP_Fatal_error(unsigned int);
 
 #endif /* ASM */
 
-#define _CPU_Fatal_halt( _error ) \
+#define _CPU_Fatal_halt( _source, _error ) \
   _BSP_Fatal_error(_error)
 
 /* end of Fatal Error manager macros */
-
-/*
- * SPRG0 was previously used to make sure that the BSP fixed the PR288 bug.
- * Now SPRG0 is devoted to the interrupt disable mask.
- */
-
-#define PPC_BSP_HAS_FIXED_PR288	ppc_this_is_now_the_interrupt_disable_mask
 
 /*
  *  Should be large enough to run all RTEMS tests.  This ensures
@@ -769,6 +776,30 @@ static inline uint32_t CPU_swap_u32(
 #define CPU_swap_u16( value ) \
   (((value&0xff) << 8) | ((value >> 8)&0xff))
 
+typedef uint32_t CPU_Counter_ticks;
+
+static inline CPU_Counter_ticks _CPU_Counter_read( void )
+{
+  CPU_Counter_ticks value;
+
+#ifdef ppc8540
+  /* Book E has no mftb */
+  __asm__ volatile( "mfspr %0, 268" : "=r" (value) );
+#else
+  __asm__ volatile( "mftb %0" : "=r" (value) );
+#endif
+
+  return value;
+}
+
+static inline CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  return second - first;
+}
+
 #endif /* ASM */
 
 
@@ -797,7 +828,8 @@ void _CPU_Context_Initialize(
   uint32_t          size,
   uint32_t          new_level,
   void             *entry_point,
-  bool              is_fp
+  bool              is_fp,
+  void             *tls_area
 );
 
 /*
@@ -853,7 +885,7 @@ void _CPU_Context_Initialize(
 
 /*
  *  This routine sets _output to the bit number of the first bit
- *  set in _value.  _value is of CPU dependent type Priority_bit_map_Control.
+ *  set in _value.  _value is of CPU dependent type Priority_bit_map_Word.
  *  This type may be either 16 or 32 bits wide although only the 16
  *  least significant bits will be used.
  *
@@ -1009,11 +1041,13 @@ void _CPU_Context_volatile_clobber( uintptr_t pattern );
 void _CPU_Context_validate( uintptr_t pattern );
 
 #ifdef RTEMS_SMP
-  #define _CPU_Context_switch_to_first_task_smp( _context ) \
-    _CPU_Context_restore( _context )
+  uint32_t _CPU_SMP_Initialize( void );
 
-  RTEMS_COMPILER_PURE_ATTRIBUTE static inline uint32_t
-    _CPU_SMP_Get_current_processor( void )
+  bool _CPU_SMP_Start_processor( uint32_t cpu_index );
+
+  void _CPU_SMP_Finalize_initialization( uint32_t cpu_count );
+
+  static inline uint32_t _CPU_SMP_Get_current_processor( void )
   {
     uint32_t pir;
 
@@ -1085,14 +1119,7 @@ typedef struct {
   PPC_GPR_TYPE GPR31;
 } CPU_Exception_frame;
 
-void _BSP_Exception_frame_print( const CPU_Exception_frame *frame );
-
-static inline void _CPU_Exception_frame_print(
-  const CPU_Exception_frame *frame
-)
-{
-  _BSP_Exception_frame_print( frame );
-}
+void _CPU_Exception_frame_print( const CPU_Exception_frame *frame );
 
 /*
  * _CPU_Initialize_altivec()

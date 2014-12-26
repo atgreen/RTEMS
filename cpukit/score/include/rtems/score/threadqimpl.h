@@ -8,12 +8,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2009.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_THREADQIMPL_H
@@ -35,18 +35,6 @@ extern "C" {
  *  Constant for indefinite wait.
  */
 #define THREAD_QUEUE_WAIT_FOREVER  WATCHDOG_NO_TIMEOUT
-
-/**
- *  This is one of the constants used to manage the priority queues.
- *  @ref TASK_QUEUE_DATA_NUMBER_OF_PRIORITY_HEADERS for more details.
- */
-#define TASK_QUEUE_DATA_PRIORITIES_PER_HEADER      64
-
-/**
- *  This is one of the constants used to manage the priority queues.
- *  @ref TASK_QUEUE_DATA_NUMBER_OF_PRIORITY_HEADERS for more details.
- */
-#define TASK_QUEUE_DATA_REVERSE_SEARCH_MASK        0x20
 
 /**
  *  The following type defines the callout used when a remote task
@@ -72,6 +60,9 @@ typedef void ( *Thread_queue_Timeout_callout )(
  *  the_thread_queue.  The selection of this thread is based on
  *  the discipline of the_thread_queue.  If no threads are waiting
  *  on the_thread_queue, then NULL is returned.
+ *
+ *  - INTERRUPT LATENCY:
+ *    + single case
  */
 Thread_Control *_Thread_queue_Dequeue(
   Thread_queue_Control *the_thread_queue
@@ -111,37 +102,38 @@ void _Thread_queue_Enqueue_with_handler(
 );
 
 /**
- *  @brief Invoked when a thread changes priority and is blocked.
- *
- *  This routine is invoked when a thread changes priority and is
- *  blocked on a thread queue.  If the queue is priority ordered,
- *  the_thread is removed from the_thread_queue and reinserted using
- *  its new priority.  This method has no impact on the state of the_thread
- *  or of any timeouts associated with this blocking.
- *
- *  @param[in] the_thread_queue pointer to a threadq header
- *  @param[in] the_thread pointer to a thread control block
- */
-void _Thread_queue_Requeue(
-  Thread_queue_Control *the_thread_queue,
-  Thread_Control       *the_thread
-);
-
-/**
  *  @brief Extracts thread from thread queue.
  *
  *  This routine removes @a the_thread from @a the_thread_queue
  *  and cancels any timeouts associated with this blocking.
  *
  *  @param[in] the_thread_queue is the pointer to the ThreadQ header
- *  @param[in] the_thread is the pointer to a thread control block that is to be removed
- *
- *  @retval true The extract operation was performed by the executing context.
- *  @retval false Otherwise.
+ *  @param[in] the_thread is the pointer to a thread control block that
+ *      is to be removed
  */
-bool _Thread_queue_Extract(
+void _Thread_queue_Extract(
   Thread_queue_Control *the_thread_queue,
   Thread_Control       *the_thread
+);
+
+/**
+ *  @brief Extracts thread from thread queue (w/return code).
+ *
+ *  This routine removes @a the_thread from @a the_thread_queue
+ *  and cancels any timeouts associated with this blocking.
+ *
+ *  @param[in] the_thread_queue is the pointer to the ThreadQ header
+ *  @param[in] the_thread is the pointer to a thread control block that
+ *      is to be removed
+ *  @param[in] return_code specifies the status to be returned.
+ *
+ *  - INTERRUPT LATENCY:
+ *    + single case
+ */
+void _Thread_queue_Extract_with_return_code(
+  Thread_queue_Control *the_thread_queue,
+  Thread_Control       *the_thread,
+  uint32_t              return_code
 );
 
 /**
@@ -151,7 +143,7 @@ bool _Thread_queue_Extract(
  *  and ensures that if there is a proxy for this task on
  *  another node, it is also dealt with.
  */
-bool _Thread_queue_Extract_with_proxy(
+void _Thread_queue_Extract_with_proxy(
   Thread_Control       *the_thread
 );
 
@@ -227,136 +219,6 @@ Thread_Control *_Thread_queue_Dequeue_priority(
 );
 
 /**
- *  @brief Enqueues the currently executing thread on the_thread_queue.
- *
- *  This routine enqueues the currently executing thread on
- *  the_thread_queue with an optional timeout using the
- *  priority discipline.
- *
- *  @param[in] the_thread_queue is the pointer to threadq
- *  @param[in] the_thread is the thread to insert
- *  @param[in] level_p is a pointer to an interrupt level to be returned
- *
- *  @retval This methods returns an indication of the blocking state as
- *          well as filling in *@ level_p with the previous interrupt level.
- *
- *  - INTERRUPT LATENCY:
- *    + forward less than
- *    + forward equal
- */
-Thread_blocking_operation_States _Thread_queue_Enqueue_priority (
-  Thread_queue_Control *the_thread_queue,
-  Thread_Control       *the_thread,
-  ISR_Level            *level_p
-);
-
-/**
- *  @brief Removes the_thread and cancels related timeouts.
- *
- *  This routine removes the_thread from the_thread_queue
- *  and cancels any timeouts associated with this blocking.
- *  @param[in] the_thread_queue pointer to a threadq header
- *  @param[in] the_thread pointer to a thread control block
- *  @param[in] requeuing true if requeuing and should not alter
- *         timeout or state
- *  - INTERRUPT LATENCY:
- *    + EXTRACT_PRIORITY
- *
- *  @retval true The extract operation was performed by the executing context.
- *  @retval false Otherwise.
- */
-bool _Thread_queue_Extract_priority_helper(
-  Thread_Control       *the_thread,
-  bool                  requeuing
-);
-
-/**
- *  @brief Wraps the underlying call and hides the requeuing argument.
- *
- * This macro wraps the underlying call and hides the requeuing argument.
- */
-
-#define _Thread_queue_Extract_priority( _the_thread ) \
-  _Thread_queue_Extract_priority_helper( _the_thread, false )
-/**
- *  @brief Get highest priority thread on the_thread_queue.
- *
- *  This function returns a pointer to the "first" thread
- *  on @a the_thread_queue.  The "first" thread is the highest
- *  priority thread waiting on @a the_thread_queue.
- *
- *  @param[in] the_thread_queue is the pointer to the thread queue
- *  @retval first thread or NULL
- */
-Thread_Control *_Thread_queue_First_priority(
-  Thread_queue_Control *the_thread_queue
-);
-
-/**
- *  @brief Gets a pointer to the thread which has been waiting the longest.
- *
- *  This function returns a pointer to the thread which has
- *  been waiting the longest on  the_thread_queue.  If no
- *  threads are waiting on the_thread_queue, then NULL is returned.
- *
- *  @param[in] the_thread_queue is the pointer to threadq
- *
- *  @retval thread dequeued or NULL
- *
- *  - INTERRUPT LATENCY:
- *    + check sync
- *    + FIFO
- */
-Thread_Control *_Thread_queue_Dequeue_fifo(
-  Thread_queue_Control *the_thread_queue
-);
-
-/**
- *  @brief Enqueues the currently executing thread on the_thread_queue.
- *
- *  This routine enqueues the currently executing thread on
- *  the_thread_queue with an optional timeout using the
- *  FIFO discipline.
- *
- *    @param[in] the_thread_queue pointer to threadq
- *    @param[in] the_thread pointer to the thread to block
- *    @param[in] level_p interrupt level in case the operation blocks actually
- *
- *  - INTERRUPT LATENCY:
- *    + single case
- */
-Thread_blocking_operation_States _Thread_queue_Enqueue_fifo (
-  Thread_queue_Control *the_thread_queue,
-  Thread_Control       *the_thread,
-  ISR_Level            *level_p
-);
-
-/**
- *  @brief Removes the_thread from the_thread_queue and cancels any timeouts.
- *
- *  This routine removes the_thread from the_thread_queue
- *  and cancels any timeouts associated with this blocking.
- */
-bool _Thread_queue_Extract_fifo(
-  Thread_Control       *the_thread
-);
-
-/**
- *  @brief Gets a pointer to the "first" thread on the_thread_queue.
- *
- *  This function returns a pointer to the "first" thread
- *  on the_thread_queue.  The first thread is the thread
- *  which has been waiting longest on the_thread_queue.
- *
- *  @param[in] the_thread_queue is the pointer to threadq
- *
- *  @retval first thread or NULL
- */
-Thread_Control *_Thread_queue_First_fifo(
-  Thread_queue_Control *the_thread_queue
-);
-
-/**
  *  @brief Thread queue timeout.
  *
  *  This routine is invoked when a task's request has not
@@ -367,7 +229,7 @@ Thread_Control *_Thread_queue_First_fifo(
  *
  *  @param[in] id thread id
  */
-void _Thread_queue_Timeout (
+void _Thread_queue_Timeout(
   Objects_Id  id,
   void       *ignored
 );
@@ -389,35 +251,41 @@ void _Thread_queue_Process_timeout(
 );
 
 /**
- * This function returns the index of the priority chain on which
- * a thread of the_priority should be placed.
+ * @brief Compare two thread's priority for RBTree Insertion.
+ *
+ * @param[in] left points to the left thread's RBnode
+ * @param[in] right points to the right thread's RBnode
+ *
+ * @retval 1 The @left node is more important than @right node.
+ * @retval 0 The @left node is of equal importance with @right node.
+ * @retval 1 The @left node is less important than @right node.
  */
-
-RTEMS_INLINE_ROUTINE uint32_t   _Thread_queue_Header_number (
-  Priority_Control the_priority
-)
-{
-  return (the_priority / TASK_QUEUE_DATA_PRIORITIES_PER_HEADER);
-}
+RBTree_Compare_result _Thread_queue_Compare_priority(
+  const RBTree_Node *left,
+  const RBTree_Node *right
+);
 
 /**
- * This function returns true if the_priority indicates that the
- * enqueue search should start at the front of this priority
- * group chain, and false if the search should start at the rear.
+ *  @brief Invoked when a thread changes priority and is blocked.
+ *
+ *  This routine is invoked when a thread changes priority and is
+ *  blocked on a thread queue.  If the queue is priority ordered,
+ *  the_thread is removed from the_thread_queue and reinserted using
+ *  its new priority.  This method has no impact on the state of the_thread
+ *  or of any timeouts associated with this blocking.
+ *
+ *  @param[in] the_thread_queue pointer to a threadq header
+ *  @param[in] the_thread pointer to a thread control block
  */
-
-RTEMS_INLINE_ROUTINE bool _Thread_queue_Is_reverse_search (
-  Priority_Control the_priority
-)
-{
-  return ( the_priority & TASK_QUEUE_DATA_REVERSE_SEARCH_MASK );
-}
+void _Thread_queue_Requeue(
+  Thread_queue_Control *the_thread_queue,
+  Thread_Control       *the_thread
+);
 
 /**
  * This routine is invoked to indicate that the specified thread queue is
  * entering a critical section.
  */
-
 RTEMS_INLINE_ROUTINE void _Thread_queue_Enter_critical_section (
   Thread_queue_Control *the_thread_queue
 )

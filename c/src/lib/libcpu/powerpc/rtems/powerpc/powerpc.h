@@ -32,7 +32,7 @@
  *
  *  The license and distribution terms for this file may in
  *  the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *
  * Note:
@@ -416,6 +416,7 @@ extern "C" {
 #define PPC_IRQ_LAST      PPC_IRQ_NMEXT_BP
 
 #elif defined(ppc601)
+#undef PPC_IRQ_TRACE
 #define PPC_IRQ_TRACE    (PPC_STD_IRQ_LAST+1) /*0x02000-Run/Trace Exception*/
 #define PPC_IRQ_LAST     PPC_IRQ_TRACE
 

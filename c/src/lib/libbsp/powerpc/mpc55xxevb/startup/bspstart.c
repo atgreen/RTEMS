@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <mpc55xx/mpc55xx.h>
@@ -29,6 +29,7 @@
 
 #include <rtems.h>
 #include <rtems/config.h>
+#include <rtems/counter.h>
 
 #include <libcpu/powerpc-utility.h>
 #include <bsp/vectors.h>
@@ -58,11 +59,6 @@ void _BSP_Fatal_error(unsigned n)
 	while (true) {
 		mpc55xx_wait_for_interrupt();
 	}
-}
-
-void mpc55xx_fatal(mpc55xx_fatal_code code)
-{
-  rtems_fatal(RTEMS_FATAL_SOURCE_BSP_SPECIFIC, code);
 }
 
 static void null_pointer_protection(void)
@@ -103,10 +99,10 @@ void bsp_start(void)
 
 	/* Time reference value */
 	bsp_clicks_per_usec = bsp_clock_speed / 1000000;
+	rtems_counter_initialize_converter(bsp_clock_speed);
 
 	/* Initialize exceptions */
 	ppc_exc_initialize_with_vector_base(
-		PPC_INTERRUPT_DISABLE_MASK_DEFAULT,
 		(uintptr_t) bsp_section_work_begin,
 		rtems_configuration_get_interrupt_stack_size(),
 		mpc55xx_exc_vector_base

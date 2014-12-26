@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems/posix/mutex.h>
@@ -150,21 +150,6 @@ POSIX_Mutex_Control *_POSIX_Mutex_Get_interrupt_disable (
   Objects_Locations *location,
   ISR_Level         *level
 );
- 
-/**
- *  @brief POSIX Mutex Is NULL
- *
- *  This method is used to determine if a pointer to a POSIX mutex is NULL.
- *
- *  @return This method returns TRUE if @a the_mutex is NULL and FALSE
- *          otherwise.
- */
-RTEMS_INLINE_ROUTINE bool _POSIX_Mutex_Is_null (
-  POSIX_Mutex_Control *the_mutex
-)
-{
-  return !the_mutex;
-}
 
 #ifdef __cplusplus
 }

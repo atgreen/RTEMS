@@ -1,3 +1,7 @@
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 /*
  *  Fully exercise CPU_SET() methods
  */
@@ -6,10 +10,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include <sys/cpuset.h>
 #include "system.h"
 
-
+#if defined(__RTEMS_HAVE_SYS_CPUSET_H__)
 void test_cpu_and_case_1(size_t cpu1, size_t cpu2);
 void test_cpu_nand_case_1(size_t cpu1, size_t cpu2);
 void test_cpu_or_case_1(size_t cpu1, size_t cpu2);
@@ -30,9 +33,9 @@ void test_cpu_and_case_1(size_t cpu1, size_t cpu2)
   size_t i;
 
   /*  AND set1 and set2 */
-  printf( "Exercise CPU_AND with bits %d,%d\n",cpu1,cpu2 );
+  printf( "Exercise CPU_AND with bits %zd,%zd\n", cpu1, cpu2 );
   CPU_AND(&set3, &set1, &set2);
-   
+
   /* test if all bits clear except cpu1 */
   for (i=0 ; i<CPU_SETSIZE ; i++) {
     if (i== cpu1)
@@ -48,9 +51,9 @@ void test_cpu_nand_case_1(size_t cpu1, size_t cpu2)
   size_t i;
 
    /*  NAND set1 and set2 */
-  printf( "Exercise CPU_NAND with bits %d,%d\n",cpu1,cpu2 );
+  printf( "Exercise CPU_NAND with bits %zd,%zd\n", cpu1, cpu2 );
   CPU_NAND(&set3, &set1, &set2);
-   
+
   /* test if all bits clear except cpu1 */
   for (i=0 ; i<CPU_SETSIZE ; i++) {
     if (i== cpu1)
@@ -65,9 +68,9 @@ void test_cpu_or_case_1(size_t cpu1, size_t cpu2)
   size_t i;
 
   /*  OR set1 and set2 */
-  printf( "Exercise CPU_OR with bits %d,%d\n",cpu1,cpu2 );
+  printf( "Exercise CPU_OR with bits %zd,%zd\n", cpu1, cpu2 );
   CPU_OR(&set3, &set1, &set2);
-   
+
   /* test if all bits clear except cpu1 */
   for (i=0 ; i<CPU_SETSIZE ; i++) {
     if ((i== cpu1) || (i==cpu2))
@@ -82,9 +85,9 @@ void test_cpu_xor_case_1(size_t cpu1, size_t cpu2)
   size_t i;
 
   /*  XOR set1 and set2 */
-  printf( "Exercise CPU_XOR with bits %d,%d\n",cpu1,cpu2 );
+  printf( "Exercise CPU_XOR with bits %zd,%zd\n", cpu1, cpu2 );
   CPU_XOR(&set3, &set1, &set2);
-   
+
   /* test if all bits clear except cpu1 */
   for (i=0 ; i<CPU_SETSIZE ; i++) {
     if (i==cpu2)
@@ -104,7 +107,7 @@ static void test_logic01_setup(size_t cpu1, size_t cpu2)
   CPU_SET(cpu2, &set1);
   CPU_COPY(&set2, &set1);
   CPU_CLR(cpu2, &set2);
-}   
+}
 
 void cpuset_logic_test()
 {
@@ -122,4 +125,4 @@ void cpuset_logic_test()
     }
   }
 }
-
+#endif

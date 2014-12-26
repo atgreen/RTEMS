@@ -14,7 +14,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -192,7 +192,7 @@ typedef struct {
   uint32_t ipending;
 } CPU_Exception_frame;
 
-void _CPU_Initialize_vectors( void );
+#define _CPU_Initialize_vectors()
 
 /**
  * @brief Macro to disable interrupts.
@@ -295,6 +295,7 @@ uint32_t _CPU_ISR_Get_level( void );
  * @param[in] new_level is the interrupt level for the task
  * @param[in] entry_point is the task's entry point
  * @param[in] is_fp is set to @c true if the task is a floating point task
+ * @param[in] tls_area is the thread-local storage (TLS) area
  */
 void _CPU_Context_Initialize(
   Context_Control *context,
@@ -302,13 +303,15 @@ void _CPU_Context_Initialize(
   size_t stack_area_size,
   uint32_t new_level,
   void (*entry_point)( void ),
-  bool is_fp
+  bool is_fp,
+  void *tls_area
 );
 
 #define _CPU_Context_Restart_self( _the_context ) \
   _CPU_Context_restore( (_the_context) );
 
-void _CPU_Fatal_halt( uint32_t _error ) RTEMS_COMPILER_NO_RETURN_ATTRIBUTE;
+void _CPU_Fatal_halt( uint32_t _source, uint32_t _error )
+  RTEMS_COMPILER_NO_RETURN_ATTRIBUTE;
 
 /**
  * @brief CPU initialization.
@@ -361,6 +364,18 @@ static inline uint32_t CPU_swap_u32( uint32_t value )
 
 #define CPU_swap_u16( value ) \
   (((value&0xff) << 8) | ((value >> 8)&0xff))
+
+typedef uint32_t CPU_Counter_ticks;
+
+CPU_Counter_ticks _CPU_Counter_read( void );
+
+static inline CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  return second - first;
+}
 
 #endif /* ASM */
 

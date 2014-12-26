@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <stdlib.h>
@@ -67,34 +67,6 @@ static inline int is_pci_irq(const rtems_irq_number irqLine)
 /*
  * ------------------------ RTEMS Irq helper functions ----------------
  */
-
-#ifdef BSP_PCI_ISA_BRIDGE_IRQ
-/*
- * Caution : this function assumes the variable "*config"
- * is already set and that the tables it contains are still valid
- * and accessible.
- */
-static void compute_i8259_masks_from_prio (rtems_irq_global_settings* config)
-{
-  int i;
-  int j;
-  /*
-   * Always mask at least current interrupt to prevent re-entrance
-   */
-  for (i=BSP_ISA_IRQ_LOWEST_OFFSET; i < BSP_ISA_IRQ_LOWEST_OFFSET + BSP_ISA_IRQ_NUMBER; i++) {
-    * ((unsigned short*) &irq_mask_or_tbl[i]) = (1 << i);
-    for (j = BSP_ISA_IRQ_LOWEST_OFFSET; j < BSP_ISA_IRQ_LOWEST_OFFSET + BSP_ISA_IRQ_NUMBER; j++) {
-      /*
-       * Mask interrupts at i8259 level that have a lower priority
-       */
-      if (config->irqPrioTbl [i] > config->irqPrioTbl [j]) {
-	* ((unsigned short*) &irq_mask_or_tbl[i]) |= (1 << j);
-      }
-    }
-  }
-}
-#endif
-
 void
 BSP_enable_irq_at_pic(const rtems_irq_number name)
 {
@@ -148,34 +120,6 @@ int BSP_setup_the_pic(rtems_irq_global_settings* config)
     */
     default_rtems_entry	= config->defaultEntry;
     rtems_hdl_tbl 		= config->irqHdlTbl;
-
-    /*
-     * set up internal tables used by rtems interrupt prologue
-     */
-#if 0
-#ifdef BSP_PCI_ISA_BRIDGE_IRQ
-    /*
-     * start with ISA IRQ
-     */
-    compute_i8259_masks_from_prio (config);
-
-    for (i=BSP_ISA_IRQ_LOWEST_OFFSET; i < BSP_ISA_IRQ_LOWEST_OFFSET + BSP_ISA_IRQ_NUMBER; i++) {
-      if (rtems_hdl_tbl[i].hdl != default_rtems_entry.hdl) {
-         BSP_irq_enable_at_i8259s (i);
-      }
-      else {
-         BSP_irq_disable_at_i8259s (i);
-      }
-    }
-
-	if ( BSP_ISA_IRQ_NUMBER > 0 ) {
-    	/*
-		 * must enable slave pic anyway
-		 */
-		BSP_irq_enable_at_i8259s (2);
-	}
-#endif
-#endif
 
     /*
      * continue with PCI IRQ

@@ -8,10 +8,12 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
+#include <bsp/fatal.h>
+#include <leon.h>
 #include <ambapp.h>
 
 /* AMBA Plug&Play information description.
@@ -21,8 +23,8 @@
  */
 struct ambapp_bus ambapp_plb;
 
-/* GRLIB extended IRQ controller register */
-extern void leon3_ext_irq_init(void);
+rtems_interrupt_lock LEON3_IrqCtrl_Lock =
+  RTEMS_INTERRUPT_LOCK_INITIALIZER("LEON3 IrqCtrl");
 
 /* Pointers to Interrupt Controller configuration registers */
 volatile struct irqmp_regs *LEON3_IrqCtrl_Regs;
@@ -58,7 +60,7 @@ void amba_initialize(void)
      *
      *  What else can we do but stop ...
      */
-    asm volatile( "mov 1, %g1; ta 0x0" );
+    bsp_fatal(LEON3_FATAL_NO_IRQMP_CONTROLLER);
   }
 
   LEON3_IrqCtrl_Regs = (volatile struct irqmp_regs *)DEV_TO_APB(adev)->start;
@@ -87,7 +89,11 @@ void amba_initialize(void)
     LEON3_Timer_Regs = (volatile struct gptimer_regs *)DEV_TO_APB(adev)->start;
 
     /* Register AMBA Bus Frequency */
-    ambapp_freq_init(&ambapp_plb, adev,
-                     (LEON3_Timer_Regs->scaler_reload + 1) * 1000000);
+    ambapp_freq_init(
+      &ambapp_plb,
+      adev,
+      (LEON3_Timer_Regs->scaler_reload + 1)
+        * LEON3_GPTIMER_0_FREQUENCY_SET_BY_BOOT_LOADER
+    );
   }
 }

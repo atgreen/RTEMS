@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -84,23 +84,18 @@ void print_formula(void);
 #include <rtems/score/prioritybitmapimpl.h>
 #include <rtems/score/schedulerpriority.h>
 
-/* Priority scheduling uninitialized (globals) consumption */
-#define SCHEDULER_OVHD     ((sizeof _Scheduler)              + \
-                           (sizeof _Priority_Major_bit_map) + \
-                           (sizeof _Priority_Bit_map))
-
 /* Priority scheduling per-thread consumption. Gets 
  * included in the PER_TASK consumption.
  */
-#define SCHEDULER_TASK_WKSP     (sizeof(Scheduler_priority_Per_thread))
+#define SCHEDULER_TASK_WKSP     (sizeof(Scheduler_priority_Node))
 
 /* Priority scheduling workspace consumption 
  *
- * Include allocation of ready queue.  Pointers are already counted by 
- * including _Scheduler in SCHEDULER_OVHD.
+ * Include allocation of ready queue.
  */
 #define SCHEDULER_WKSP_SIZE  \
-    ((RTEMS_MAXIMUM_PRIORITY + 1) * sizeof(Chain_Control ))
+    (sizeof(Scheduler_priority_Context) + \
+     RTEMS_MAXIMUM_PRIORITY * sizeof(Chain_Control ))
 /****** END OF MEMORY USAGE OF DEFAULT PRIORITY SCHEDULER ******/
 
 #define PER_TASK      \
@@ -291,9 +286,6 @@ uninitialized =
 
 /*intr.h*/      0                                         +
 
-/*io.h*/        (sizeof _IO_Number_of_drivers)            +
-                (sizeof _IO_Driver_address_table)         +
-
 /*isr.h*/       (sizeof _ISR_Nest_level)                  +
 #if (CPU_SIMPLE_VECTORED_INTERRUPTS == TRUE)
                 (sizeof _ISR_Vector_table)                +
@@ -356,8 +348,6 @@ uninitialized =
 
 /*rtems.h*/     /* Not applicable */
 
-/*scheduler.h*/ SCHEDULER_OVHD                            + 
-
 /*semimpl.h*/   (sizeof _Semaphore_Information)           +
 
 #if defined(RTEMS_MULTIPROCESSING)
@@ -385,10 +375,7 @@ uninitialized =
 
 /*tasksimpl.h*/ (sizeof _RTEMS_tasks_Information)         +
 
-/*thread.h*/    (sizeof _Thread_BSP_context)              +
-                (sizeof _Thread_Dispatch_disable_level)   +
-                (sizeof _Thread_Maximum_extensions)       +
-                (sizeof _Thread_Ticks_per_timeslice)      +
+/*thread.h*/    (sizeof _Thread_Dispatch_disable_level)   +
                 (sizeof _Thread_Executing)                +
                 (sizeof _Thread_Heir)                     +
 #if (CPU_HARDWARE_FP == 1) || (CPU_SOFTWARE_FP == 1)

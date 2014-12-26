@@ -29,9 +29,8 @@
          *
          *  On entry:
          *
-         *    l0 = psr (from trap table)
-         *    l1 = pc
-         *    l2 = npc
+         *    prev regwin l1 = pc
+         *    prev regwin l2 = npc
          */
 
         PUBLIC(window_overflow_trap_handler)
@@ -51,38 +50,33 @@ SYM(window_overflow_trap_handler):
          *        register will result in the local register set changing.
          */
 
-        mov  %wim, %l3                   ! l3 = WIM
-        mov  %g1, %l7                    ! save g1
-        srl  %l3, 1, %g1                 ! g1 = WIM >> 1
-        sll  %l3, SPARC_NUMBER_OF_REGISTER_WINDOWS-1 , %l4
-                                         ! l4 = WIM << (Number Windows - 1)
-        or   %l4, %g1, %g1               ! g1 = (WIM >> 1) |
-                                         !      (WIM << (Number Windows - 1))
-
-        save                             ! Get into window to be saved.
-        mov  %g1, %wim                   ! load new WIM
-        nop; nop; nop                    ! 3 slot delay
         std  %l0, [%sp + 0x00]           ! save local register set
         std  %l2, [%sp + 0x08]
+        mov  %wim, %l3
+        sll  %l3, SPARC_NUMBER_OF_REGISTER_WINDOWS-1 , %l2
+                                         ! l2  = WIM << (Number Windows - 1)
         std  %l4, [%sp + 0x10]
         std  %l6, [%sp + 0x18]
+        srl  %l3, 1, %l3                 ! l3  = WIM >> 1
+        wr   %l3, %l2, %wim              ! WIM = (WIM >> 1) ^
+                                         !       (WIM << (Number Windows - 1))
+                                         ! 3 instruction delay not needed here
         std  %i0, [%sp + 0x20]           ! save input register set
         std  %i2, [%sp + 0x28]
         std  %i4, [%sp + 0x30]
         std  %i6, [%sp + 0x38]
         restore                          ! Go back to trap window.
-        mov  %l7, %g1                    ! restore g1
         jmp  %l1                         ! Re-execute save.
-        rett %l2
+         rett %l2
 
         /*
          *  Window underflow trap handler.
          *
          *  On entry:
          *
-         *    l0 = psr (from trap table)
          *    l1 = pc
          *    l2 = npc
+         *    l3 = wim (from trap table)
          */
 
         PUBLIC(window_underflow_trap_handler)
@@ -102,17 +96,15 @@ SYM(window_underflow_trap_handler):
          *        register will result in the local register set changing.
          */
 
-        mov  %wim, %l3                  ! Calculate new WIM
+        ! In WIM 3 write instruction delay. since WIM<=0 from trap entry
         sll  %l3, 1, %l4                ! l4 = WIM << 1
         srl  %l3, SPARC_NUMBER_OF_REGISTER_WINDOWS-1, %l5
-                                        ! l5 = WIM >> (Number Windows-1)
-        or   %l5, %l4, %l5              ! l5 = (WIM << 1) |
+        or   %l5, %l4, %i5              ! %i5= (WIM << 1) |
                                         !      (WIM >> (Number Windows-1))
-        mov  %l5, %wim                  ! load the new WIM
-        nop; nop; nop
         restore                         ! Two restores to get into the
-        restore                         ! window to restore
+        restore %o5, %g0, %l7           ! window to restore. Carry along new WIM
         ldd  [%sp + 0x00], %l0          ! First the local register set
+        mov   %l7, %wim                 ! load the new WIM
         ldd  [%sp + 0x08], %l2
         ldd  [%sp + 0x10], %l4
         ldd  [%sp + 0x18], %l6
@@ -123,7 +115,7 @@ SYM(window_underflow_trap_handler):
         save                            ! Get back to the trap window.
         save
         jmp  %l1                        ! Re-execute restore.
-        rett  %l2
+         rett  %l2
 
         /*
          *  Flush All Windows trap handler.

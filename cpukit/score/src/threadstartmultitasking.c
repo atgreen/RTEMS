@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -20,22 +20,22 @@
 
 #include <rtems/score/threadimpl.h>
 
-void _Thread_Start_multitasking( Context_Control *context )
+void _Thread_Start_multitasking( void )
 {
-  Per_CPU_Control *self_cpu = _Per_CPU_Get();
-  Thread_Control  *heir = self_cpu->heir;
+  Per_CPU_Control *cpu_self = _Per_CPU_Get();
+  Thread_Control  *heir;
 
 #if defined(RTEMS_SMP)
-  _Per_CPU_Change_state( self_cpu, PER_CPU_STATE_UP );
+  _Per_CPU_State_change( cpu_self, PER_CPU_STATE_UP );
 
-  _Per_CPU_Acquire( self_cpu );
-
-  self_cpu->executing->is_executing = false;
-  heir->is_executing = true;
+  /*
+   * Threads begin execution in the _Thread_Handler() function.   This
+   * function will set the thread dispatch disable level to zero.
+   */
+  cpu_self->thread_dispatch_disable_level = 1;
 #endif
 
-  self_cpu->dispatch_necessary = false;
-  self_cpu->executing = heir;
+  heir = _Thread_Get_heir_and_make_it_executing( cpu_self );
 
    /*
     * Get the init task(s) running.
@@ -59,26 +59,24 @@ void _Thread_Start_multitasking( Context_Control *context )
      _Context_Restore_fp( &heir->fp_context );
 #endif
 
+  _Profiling_Thread_dispatch_disable( cpu_self, 0 );
+
 #if defined(RTEMS_SMP)
-  if ( context != NULL ) {
+  /*
+   * The _CPU_Context_Restart_self() implementations usually assume that self
+   * context is executing.
+   *
+   * FIXME: We have a race condition here in case another thread already
+   * performed scheduler operations and moved our heir thread to another
+   * processor.  The time frame for this is likely too small to be practically
+   * relevant.
+   */
+  _CPU_Context_Set_is_executing( &heir->Registers, true );
 #endif
 
 #if defined(_CPU_Start_multitasking)
-    _CPU_Start_multitasking( context, &heir->Registers );
+  _CPU_Start_multitasking( &heir->Registers );
 #else
-    _Context_Switch( context, &heir->Registers );
-#endif
-
-#if defined(RTEMS_SMP)
-  } else {
-    /*
-     * Threads begin execution in the _Thread_Handler() function.   This
-     * function will set the thread dispatch disable level to zero and calls
-     * _Per_CPU_Release().
-     */
-    self_cpu->thread_dispatch_disable_level = 1;
-
-    _CPU_Context_switch_to_first_task_smp( &heir->Registers );
-  }
+  _CPU_Context_Restart_self( &heir->Registers );
 #endif
 }

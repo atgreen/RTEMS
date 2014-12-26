@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,8 +13,10 @@
 
 #include <timesys.h>
 #include <pthread.h>
-#include <rtems/timerdrv.h>
+#include <rtems/btimer.h>
 #include "test_support.h"
+
+const char rtems_test_name[] = "PSXTMCOND 05";
 
 /* forward declarations to avoid warnings */
 void *POSIX_Init(void *argument);
@@ -24,8 +26,8 @@ pthread_cond_t CondID;
 
 void benchmark_broadcast(void)
 {
-  long end_time;
-  int  status;
+  uint32_t end_time;
+  int      status;
 
   benchmark_timer_initialize();
   status = pthread_cond_broadcast(&CondID);
@@ -47,13 +49,13 @@ void *POSIX_Init(
 )
 {
 
-  puts( "\n\n*** POSIX TIME TEST PSXTMCOND05 ***" );
+  TEST_BEGIN();
 
   pthread_cond_init(&CondID, NULL);
 
   benchmark_broadcast();
 
-  puts( "*** END OF POSIX TIME TEST PSXTMCOND05 ***" );
+  TEST_END();
   rtems_test_exit(0);
 }
 

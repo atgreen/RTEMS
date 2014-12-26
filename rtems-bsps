@@ -1,0 +1,36 @@
+#! /bin/sh
+
+base="c/src/lib/libbsp"
+base_e=$(echo ${base} | sed -e 's/\//\\\//g')
+
+last_arch=""
+
+cfg_list=$(LANG=C LC_COLLATE=C find ${base} -name \*.cfg | sort)
+
+max_bsp_len=0
+
+for bsp in ${cfg_list};
+do
+  bsp=$(echo ${bsp} | sed -e "s/.*\///" -e 's/\.cfg//')
+  len=${#bsp}
+  if [ $len -gt $max_bsp_len ]; then
+    max_bsp_len=$len
+  fi
+done
+max_bsp_len=$(expr ${max_bsp_len} + 2)
+
+echo "RTEMS 4.11"
+for bsp_path in ${cfg_list};
+do
+ arch=$(echo ${bsp_path} | sed -e "s/${base_e}*\///" -e 's/\/.*//')
+ bsp=$(echo ${bsp_path} | sed -e "s/.*\///" -e 's/\.cfg//')
+ path=$(echo ${bsp_path} | sed -e "s/\/make.*//")
+ if test "${last_arch}" != "${arch}"; then
+   echo "${arch}:"
+   last_arch=${arch}
+ fi
+ spaces=$(echo ${bsp} | awk '{ printf("%*s", '${max_bsp_len}' -length(), " "); }')
+ echo " ${bsp}${spaces}${path}"
+done
+
+exit 0

@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -24,6 +24,8 @@
 
 /* #define __USE_XOPEN2K XXX already defined on GNU/Linux */
 #include <pthread.h>
+
+const char rtems_test_name[] = "PSXRWLOCK 1";
 
 /* forward declarations to avoid warnings */
 void *ReadLockThread(void *arg);
@@ -102,13 +104,14 @@ int main(
 #endif
 {
   pthread_rwlock_t     rwlock;
+  pthread_rwlock_t     rwlock2;
   pthread_rwlockattr_t attr;
   int                  status;
   int                  p;
   int                  i;
   struct timespec      abstime;
 
-  puts( "\n\n*** POSIX RWLOCK TEST 01 ***" );
+  TEST_BEGIN();
 
   /*************** NULL POINTER CHECKS *****************/
   puts( "pthread_rwlockattr_init( NULL ) -- EINVAL" );
@@ -150,6 +153,42 @@ int main(
   puts( "pthread_rwlockattr_setpshared( &attr, private ) -- EINVAL" );
   status = pthread_rwlockattr_setpshared( &attr, ~PTHREAD_PROCESS_PRIVATE );
   rtems_test_assert( status == EINVAL );
+
+  /*************** AUTO INITIALIZATION *****************/
+
+  rwlock = PTHREAD_RWLOCK_INITIALIZER;
+  rwlock2 = PTHREAD_RWLOCK_INITIALIZER;
+
+  status = pthread_rwlock_rdlock( &rwlock );
+  rtems_test_assert( status == 0 );
+
+  status = pthread_rwlock_rdlock( &rwlock2 );
+  rtems_test_assert( status == EINVAL );
+
+  status = pthread_rwlock_destroy( &rwlock );
+  rtems_test_assert( status == 0 );
+
+  status = pthread_rwlock_rdlock( &rwlock2 );
+  rtems_test_assert( status == 0 );
+
+  status = pthread_rwlock_destroy( &rwlock );
+  rtems_test_assert( status == 0 );
+
+  rwlock = PTHREAD_RWLOCK_INITIALIZER;
+  rwlock2 = PTHREAD_RWLOCK_INITIALIZER;
+
+  status = pthread_rwlock_rdlock( &rwlock );
+  rtems_test_assert( status == 0 );
+
+  status = pthread_rwlock_destroy( &rwlock2 );
+  rtems_test_assert( status == EINVAL );
+
+  status = pthread_rwlock_destroy( &rwlock );
+  rtems_test_assert( status == 0 );
+
+  status = pthread_rwlock_destroy( &rwlock2 );
+  rtems_test_assert( status == 0 );
+  rtems_test_assert( rwlock2 != PTHREAD_RWLOCK_INITIALIZER );
 
   /*************** ACTUALLY WORK THIS TIME *****************/
   puts( "pthread_rwlockattr_init( &attr ) -- OK" );
@@ -483,6 +522,6 @@ int main(
   rtems_test_assert( status == 0 );
 
   /*************** END OF TEST *****************/
-  puts( "*** END OF POSIX RWLOCK TEST 01 ***" );
+  TEST_END();
   exit(0);
 }

@@ -6,14 +6,11 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <stdio.h>
 #include <ambapp.h>
-
-extern char *ambapp_device_id2str(int vendor, int id);
-extern char *ambapp_vendor_id2str(int vendor);
 
 struct ambapp_dev_print_arg {
   int show_depth;
@@ -21,7 +18,7 @@ struct ambapp_dev_print_arg {
 
 static char *unknown = "unknown";
 
-int ambapp_dev_print(struct ambapp_dev *dev, int index, void *arg)
+static int ambapp_dev_print(struct ambapp_dev *dev, int index, void *arg)
 {
   char *dev_str, *ven_str, *type_str;
   struct ambapp_dev_print_arg *p = arg;

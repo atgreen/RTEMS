@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,6 +13,8 @@
 
 #define CONFIGURE_INIT
 #include "system.h"
+
+const char rtems_test_name[] = "SPPARTITION_ERR 1";
 
 uint32_t Other_Memory;
 
@@ -331,10 +333,10 @@ rtems_task Init(
   rtems_task_argument argument
 )
 {
-  puts( "\n\n*** TEST PARTITION ERROR 01 ***" );
+  TEST_BEGIN();
 
   test_partition_errors();
 
-  puts( "*** END OF TEST PARTITION ERROR 01 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -21,12 +21,12 @@
 uint32_t _TOD_Seconds_since_epoch( void )
 {
   TOD_Control      *tod = &_TOD;
-  ISR_Level         level;
+  ISR_lock_Context  lock_context;
   Timestamp_Control now;
 
-  _TOD_Acquire( tod, level );
+  _TOD_Acquire( tod, &lock_context );
    now = tod->now;
-  _TOD_Release( tod, level );
+  _TOD_Release( tod, &lock_context );
 
   return _Timestamp_Get_seconds( &now );
 }

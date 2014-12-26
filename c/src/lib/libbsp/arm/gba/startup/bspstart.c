@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <stdio.h>
@@ -34,7 +34,7 @@ volatile unsigned int *Regs = (unsigned int *)GBA_IO_REGS_ADDR;
  *  @param  None
  *  @return None
  */
-void bsp_start_default( void )
+static void bsp_start_default( void )
 {
   /* Init conio  */
   gba_textmode(CO60);

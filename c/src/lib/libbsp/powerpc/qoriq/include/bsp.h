@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef LIBBSP_POWERPC_QORIQ_BSP_H
@@ -51,6 +51,16 @@ int qoriq_if_intercom_attach_detach(
   int attaching
 );
 
+#if defined(HAS_UBOOT)
+  /* Routine to obtain U-Boot environment variables */
+  const char *bsp_uboot_getenv(
+    const char *name
+  );
+#endif
+
+void *bsp_idle_thread( uintptr_t ignored );
+#define BSP_IDLE_TASK_BODY bsp_idle_thread
+
 #define RTEMS_BSP_NETWORK_DRIVER_ATTACH BSP_tsec_attach
 #define RTEMS_BSP_NETWORK_DRIVER_ATTACH4 qoriq_if_intercom_attach_detach
 
@@ -58,8 +68,6 @@ int qoriq_if_intercom_attach_detach(
 #define RTEMS_BSP_NETWORK_DRIVER_NAME2 "tsec2"
 #define RTEMS_BSP_NETWORK_DRIVER_NAME3 "tsec3"
 #define RTEMS_BSP_NETWORK_DRIVER_NAME4 "intercom1"
-
-void qoriq_secondary_cpu_initialize(void);
 
 #ifdef __cplusplus
 }

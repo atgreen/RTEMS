@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,6 +17,8 @@
 #include <rtems/score/objectimpl.h>
 #include "tmacros.h"
 
+const char rtems_test_name[] = "PSX 14";
+
 void *POSIX_Init(
   void *argument
 )
@@ -25,7 +27,7 @@ void *POSIX_Init(
   char              *ptr;
   rtems_status_code  status;
 
-  puts( "\n\n*** POSIX TEST 14 ***" );
+  TEST_BEGIN();
 
   ptr = rtems_object_get_name( pthread_self(), 128, name );
   printf( "rtems_object_get_name returned (%s) for init thread\n", ptr );
@@ -60,7 +62,7 @@ void *POSIX_Init(
   );
 
 
-  puts( "*** END OF POSIX TEST 14 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 
   return NULL;

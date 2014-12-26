@@ -8,16 +8,14 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 
 #ifndef _BSP_H
 #define _BSP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef ASM
 
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
@@ -28,6 +26,10 @@ extern "C" {
 
 #include <libcpu/bf537.h>
 #include <libcpu/memoryRegs.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* configure data cache to use 16K of each SRAM bank when enabled */
 #define BSP_DATA_CACHE_CONFIG  (3 << DMEM_CONTROL_DMC_SHIFT)
@@ -89,13 +91,20 @@ void setLED(uint8_t value);
 /*
  * Helper Function to use the EzKits LEDS
  */
-uint8_t getLED(void);
+uint8_t getLEDs(void);
+void setLEDs(uint8_t value);
+uint8_t getButtons(void);
 
 rtems_isr_entry set_vector(                     /* returns old vector */
   rtems_isr_entry     handler,                  /* isr routine        */
   rtems_vector_number vector,                   /* vector number      */
   int                 type                      /* RTEMS or RAW intr  */
 );
+
+/*
+ *  Internal BSP methods that are used across file boundaries
+ */
+void Init_RTC(void);
 
 /*
  * Network driver configuration
@@ -109,5 +118,7 @@ extern int bf537Stamp_network_driver_attach(struct rtems_bsdnet_ifconfig *, int)
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* !ASM */
 
 #endif

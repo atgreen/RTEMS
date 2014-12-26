@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_EXTENSIONIMPL_H
@@ -57,13 +57,6 @@ RTEMS_INLINE_ROUTINE Extension_Control *_Extension_Get (
 {
   return (Extension_Control *)
     _Objects_Get( &_Extension_Information, id, location );
-}
-
-RTEMS_INLINE_ROUTINE bool _Extension_Is_null (
-  Extension_Control *the_extension
-)
-{
-  return ( the_extension == NULL );
 }
 
 #ifdef __cplusplus

@@ -1,23 +1,25 @@
-/*  timer.c
+/**
+ *  @file
+ *  @brief
  *
- *  This file implements a benchmark timer using the PPC Timebase
- *
- *  Notes: NONE
- *
- *  COPYRIGHT (c) 1989-2000.
+ *  This file implements a benchmark timer using the PPC Timebase Register.
+ */
+
+/*
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may in
  *  the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
-#include <rtems/system.h>
-#include <assert.h>
-#include <rtems.h>
 #include <bsp.h>
+#include <rtems.h>
+#include <rtems/system.h>
+#include <rtems/btimer.h>
+#include <assert.h>
 #include <libcpu/powerpc-utility.h>
-
 
 uint64_t   Timer_driver_Start_time;
 
@@ -27,8 +29,7 @@ unsigned clicks_overhead = 0;
 /*
  * Timer Get overhead
  */
-
-int Timer_get_clicks_overhead(void)
+static int Timer_get_clicks_overhead(void)
 {
   uint64_t    clicks;
 
@@ -58,7 +59,7 @@ void benchmark_timer_initialize(void)
  *  benchmark_timer_read
  */
 
-int benchmark_timer_read(void)
+benchmark_timer_t benchmark_timer_read(void)
 {
   uint64_t    total64;
   uint32_t    total;
@@ -75,14 +76,6 @@ int benchmark_timer_read(void)
     return total;          /* in "clicks" of the decrementer units */
 
   return (int) BSP_Convert_decrementer(total - clicks_overhead);
-}
-
-unsigned long long Read_long_timer(void)
-{
-  uint64_t    total64;
-
-  total64 = PPC_Get_timebase_register();
-  return BSP_Convert_decrementer(total64 - clicks_overhead);
 }
 
 void benchmark_timer_disable_subtracting_average_overhead(bool find_flag)

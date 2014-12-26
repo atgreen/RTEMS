@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,6 +13,8 @@
 
 #define CONFIGURE_INIT
 #include "system.h"
+
+const char rtems_test_name[] = "TIME TEST 23";
 
 rtems_id          Timer_id[ OPERATION_COUNT+1 ];
 
@@ -50,7 +52,7 @@ rtems_task Init(
 
   Print_Warning();
 
-  puts( "\n\n*** TIME TEST 23 ***" );
+  TEST_BEGIN();
 
   benchmark_timer_initialize();
     for ( index=1 ; index <= OPERATION_COUNT ; index++ )
@@ -300,6 +302,6 @@ rtems_task Low_task(
     CALLING_OVERHEAD_TASK_WAKE_WHEN
   );
 
-  puts( "*** END OF TEST 23 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

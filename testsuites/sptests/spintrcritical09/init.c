@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,8 +17,10 @@
 #include <rtems/rtems/semimpl.h>
 #include <rtems/score/watchdogimpl.h>
 
+const char rtems_test_name[] = "SPINTRCRITICAL 9";
+
 static rtems_id Semaphore;
-static bool case_hit;
+static bool case_hit = false;
 
 static Thread_blocking_operation_States getState(void)
 {
@@ -62,14 +64,22 @@ static rtems_timer_service_routine test_release_from_isr(
   }
 }
 
+static bool test_body( void *arg )
+{
+  (void) arg;
+
+  rtems_semaphore_obtain( Semaphore, RTEMS_DEFAULT_OPTIONS, 1 );
+
+  return case_hit;
+}
+
 static rtems_task Init(
   rtems_task_argument ignored
 )
 {
   rtems_status_code     sc;
-  int                   resets;
 
-  puts( "\n\n*** TEST INTERRUPT CRITICAL SECTION 09 ***" );
+  TEST_BEGIN();
 
   puts( "Init - Test may not be able to detect case is hit reliably" );
   puts( "Init - Trying to generate timeout from ISR while blocking" );
@@ -82,20 +92,11 @@ static rtems_task Init(
   );
   directive_failed( sc, "rtems_semaphore_create of SM1" );
 
-  interrupt_critical_section_test_support_initialize( test_release_from_isr );
-
-  case_hit = false;
-
-  for (resets=0 ; resets< 2 ;) {
-    if ( interrupt_critical_section_test_support_delay() )
-      resets++;
-
-    (void) rtems_semaphore_obtain( Semaphore, RTEMS_DEFAULT_OPTIONS, 1 );
-  }
+  interrupt_critical_section_test( test_body, NULL, test_release_from_isr );
 
   if ( case_hit ) {
     puts( "Init - It appears the case has been hit" );
-    puts( "*** END OF TEST INTERRUPT CRITICAL SECTION 09 ***" );
+    TEST_END();
   } else
     puts( "Init - Case not hit - ran too long" );
 
@@ -110,6 +111,9 @@ static rtems_task Init(
 #define CONFIGURE_MAXIMUM_TASKS       1
 #define CONFIGURE_MAXIMUM_TIMERS      1
 #define CONFIGURE_MAXIMUM_SEMAPHORES  1
+#define CONFIGURE_MAXIMUM_USER_EXTENSIONS 1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 #define CONFIGURE_MICROSECONDS_PER_TICK  1000
 

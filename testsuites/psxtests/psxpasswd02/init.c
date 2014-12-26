@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -20,6 +20,8 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <limits.h>
+
+const char rtems_test_name[] = "PSXPASSWD 2";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument ignored);
@@ -76,7 +78,7 @@ rtems_task Init(
 
   FILE *fp = NULL;
 
-  puts( "*** PASSWORD/GROUP TEST - 02 ***" );
+  TEST_BEGIN();
 
   puts( "Init - Creating /etc" );
   status = mkdir( "/etc", 0777 );
@@ -211,7 +213,7 @@ rtems_task Init(
   rtems_test_assert( !gr );
   rtems_test_assert( errno == EINVAL );
   
-  puts( "*** END OF PASSWORD/GROUP TEST - 02 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -220,10 +222,13 @@ rtems_task Init(
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 6
 
 #define CONFIGURE_MAXIMUM_TASKS 1
+#define CONFIGURE_MAXIMUM_POSIX_KEYS 1
+#define CONFIGURE_MAXIMUM_POSIX_KEY_VALUE_PAIRS 1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

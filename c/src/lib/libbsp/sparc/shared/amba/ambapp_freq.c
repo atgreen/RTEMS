@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <ambapp.h>
@@ -21,7 +21,7 @@
  * If a unsupported bridge is found the invalid frequncy of 0Hz is
  * returned.
  */
-unsigned int ambapp_freq_calc(
+static unsigned int ambapp_freq_calc(
   struct ambapp_bus *abus,
   int ahbidx,
   unsigned int freq_hz,

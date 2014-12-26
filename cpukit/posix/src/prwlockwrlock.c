@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -46,9 +46,6 @@ int pthread_rwlock_wrlock(
   POSIX_RWLock_Control  *the_rwlock;
   Objects_Locations      location;
   Thread_Control        *executing;
-
-  if ( !rwlock )
-    return EINVAL;
 
   the_rwlock = _POSIX_RWLock_Get( rwlock, &location );
   switch ( location ) {

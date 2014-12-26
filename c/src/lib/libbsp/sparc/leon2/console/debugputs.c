@@ -14,13 +14,19 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
 #include <rtems/libio.h>
 #include <stdlib.h>
 #include <assert.h>
+
+/*
+ *  Method is shared with console.c
+ */
+void console_outbyte_polled( int port, unsigned char ch );
+int console_inbyte_nonblocking( int port );
 
 /*
  *  console_outbyte_polled

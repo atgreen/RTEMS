@@ -2,13 +2,15 @@
  *  This file contains the hardware independent portion of a polled
  *  console device driver.  If a BSP chooses to use this, then it
  *  only has to provide a few board dependent routines.
- *
+ */
+
+/*
  *  COPYRIGHT (c) 1989-1997.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
@@ -16,18 +18,12 @@
 #include <stdlib.h>
 #include <assert.h>
 
-/* external prototypes for monitor interface routines */
+#include <bsp/console-polled.h>
 
-void console_outbyte_polled(
-  int  port,
-  char ch
-);
-
-int console_inbyte_nonblocking(
-  int port
-);
-
-void console_initialize_hardware(void);
+/*
+ *  Prototypes
+ */
+ssize_t console_write_support(int, const char *, size_t);
 
 /*
  *  Console Termios Support Entry Points

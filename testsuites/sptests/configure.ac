@@ -1,7 +1,7 @@
 ## Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([rtems-c-src-tests-sptests],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-c-src-tests-sptests],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([sp01])
 AC_CONFIG_HEADER([config.h])
 RTEMS_TOP([../..],[..])
@@ -11,16 +11,21 @@ RTEMS_CANONICAL_TARGET_CPU
 AM_INIT_AUTOMAKE([no-define foreign 1.12.2])
 AM_MAINTAINER_MODE
 
+RTEMS_ENABLE_CXX
 RTEMS_ENV_RTEMSBSP
 RTEMS_CHECK_RTEMS_TEST_NO_PAUSE
 
 RTEMS_PROJECT_ROOT
 
 RTEMS_PROG_CC_FOR_TARGET
+RTEMS_PROG_CXX_FOR_TARGET
 
 RTEMS_CANONICALIZE_TOOLS
 
 RTEMS_CHECK_CUSTOM_BSP(RTEMS_BSP)
+RTEMS_CHECK_CXX(RTEMS_BSP)
+
+AM_CONDITIONAL([HAS_CPLUSPLUS],[test $HAS_CPLUSPLUS = "yes"])
 
 # FIXME: We should get rid of this. It's a cludge.
 AC_CHECK_SIZEOF([time_t])
@@ -29,10 +34,28 @@ AC_CHECK_SIZEOF([time_t])
 AC_CHECK_HEADERS([sys/cpuset.h])
 AM_CONDITIONAL(HAS_CPUSET,test x"${ac_cv_header_sys_cpuset_h}" = x"yes")
 
+# Some tests should not be built/run in SMP configurations
+RTEMS_CHECK_CPUOPTS([RTEMS_SMP])
+AM_CONDITIONAL(HAS_SMP,test "$rtems_cv_RTEMS_SMP" = "yes")
+
 # Explicitly list all Makefiles here
 AC_CONFIG_FILES([Makefile
+spglobalcon01/Makefile
+spintrcritical22/Makefile
+spsem03/Makefile
+spresource01/Makefile
+spmrsp01/Makefile
+spscheduler01/Makefile
+spfatal28/Makefile
+spthreadlife01/Makefile
+spprofiling01/Makefile
+spcache01/Makefile
+sptls03/Makefile
+spcpucounter01/Makefile
+sptls02/Makefile
+sptls01/Makefile
 spintrcritical20/Makefile
-spintrcritical19/Makefile
+spintrcritical21/Makefile
 spcontext01/Makefile
 spfatal26/Makefile
 spinternalerror02/Makefile
@@ -48,7 +71,6 @@ sp05/Makefile
 sp06/Makefile
 sp07/Makefile
 sp08/Makefile
-sp09/Makefile
 sp10/Makefile
 sp11/Makefile
 sp12/Makefile
@@ -79,7 +101,6 @@ sp35/Makefile
 sp36/Makefile
 sp37/Makefile
 sp38/Makefile
-sp39/Makefile
 sp40/Makefile
 sp41/Makefile
 sp42/Makefile
@@ -124,6 +145,7 @@ spcbssched02/Makefile
 spcbssched03/Makefile
 spchain/Makefile
 spclockget/Makefile
+spclock_err01/Makefile
 spclock_err02/Makefile
 spcoverage/Makefile
 spedfsched01/Makefile
@@ -132,6 +154,7 @@ spedfsched03/Makefile
 sperror01/Makefile
 sperror02/Makefile
 sperror03/Makefile
+spevent_err03/Makefile
 spfatal01/Makefile
 spfatal02/Makefile
 spfatal03/Makefile
@@ -153,15 +176,16 @@ spfatal18/Makefile
 spfatal19/Makefile
 spfatal20/Makefile
 spfatal22/Makefile
-spfatal23/Makefile
 spfatal24/Makefile
 spfatal25/Makefile
+spfatal27/Makefile
 spfifo01/Makefile
 spfifo02/Makefile
 spfifo03/Makefile
 spfifo04/Makefile
 spfifo05/Makefile
 spfreechain01/Makefile
+spintr_err01/Makefile
 spintrcritical01/Makefile
 spintrcritical02/Makefile
 spintrcritical03/Makefile
@@ -182,16 +206,23 @@ spintrcritical17/Makefile
 spheapprot/Makefile
 spmkdir/Makefile
 spmountmgr01/Makefile
+spmsgq_err01/Makefile
+spmsgq_err02/Makefile
 spnotepad01/Makefile
 spnsext01/Makefile
 spobjgetnext/Makefile
 sppagesize/Makefile
+spport_err01/Makefile
 spprintk/Makefile
 spprivenv01/Makefile
 spqreslib/Makefile
+spratemon_err01/Makefile
 sprbtree01/Makefile
+spsem_err01/Makefile
+spsem_err02/Makefile
 spsem01/Makefile
 spsem02/Makefile
+spsignal_err01/Makefile
 spsimplesched01/Makefile
 spsimplesched02/Makefile
 spsimplesched03/Makefile
@@ -202,6 +233,10 @@ spthreadq01/Makefile
 sptimespec01/Makefile
 spwatchdog/Makefile
 spwkspace/Makefile
+sptask_err01/Makefile
+sptask_err02/Makefile
+sptask_err03/Makefile
+sptask_err04/Makefile
 sptimer_err01/Makefile
 sptimer_err02/Makefile
 spcpuset01/Makefile

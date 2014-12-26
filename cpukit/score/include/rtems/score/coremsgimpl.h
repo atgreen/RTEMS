@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_COREMSGIMPL_H
@@ -528,16 +528,6 @@ RTEMS_INLINE_ROUTINE void _CORE_message_queue_Prepend_unprotected (
     &the_message_queue->Pending_messages,
     &the_message->Node
   );
-}
-
-/**
- * This function returns true if the_message_queue is true and false otherwise.
- */
-RTEMS_INLINE_ROUTINE bool _CORE_message_queue_Is_null (
-  CORE_message_queue_Control *the_message_queue
-)
-{
-  return ( the_message_queue == NULL  );
 }
 
 #if defined(RTEMS_SCORE_COREMSG_ENABLE_NOTIFICATION)

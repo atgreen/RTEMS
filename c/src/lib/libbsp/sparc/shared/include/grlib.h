@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef __GRLIB_H__
@@ -35,6 +35,14 @@ struct apbuart_regs {
   volatile unsigned int scaler;
 };
 
+/* IRQMP and IRQAMP interrupt controller timestamps */
+struct irqmp_timestamp_regs {
+  volatile unsigned int counter;     /* 0x00 */
+  volatile unsigned int control;     /* 0x04 */
+  volatile unsigned int assertion;   /* 0x08 */
+  volatile unsigned int ack;         /* 0x0c */
+};
+
 /* IRQMP and IRQAMP interrupt controllers */
 struct irqmp_regs {
   volatile unsigned int ilevel;      /* 0x00 */
@@ -44,7 +52,7 @@ struct irqmp_regs {
   volatile unsigned int mpstat;      /* 0x10 */
   volatile unsigned int bcast;       /* 0x14 */
   volatile unsigned int notused02;   /* 0x18 */
-  volatile unsigned int notused03;   /* 0x1c */
+  volatile unsigned int wdgctrl;     /* 0x1c */
   volatile unsigned int ampctrl;     /* 0x20 */
   volatile unsigned int icsel[2];    /* 0x24,0x28 */
   volatile unsigned int notused13;   /* 0x2c */
@@ -56,8 +64,10 @@ struct irqmp_regs {
   volatile unsigned int force[16];   /* 0x80 */
   /* Extended IRQ registers */
   volatile unsigned int intid[16];   /* 0xc0 */
-  /* 0x100, align to 4Kb boundary */
-  volatile unsigned int resv1[(0x1000-0x100)/4];
+  volatile struct irqmp_timestamp_regs timestamp[16]; /* 0x100 */
+  volatile unsigned int resetaddr[4]; /* 0x200 */
+  /* 0x210, align to 4Kb boundary */
+  volatile unsigned int resv1[(0x1000-0x210)/4];
 };
 
 /* GPTIMER Timer instance */
@@ -67,6 +77,14 @@ struct gptimer_timer_regs {
   volatile unsigned int ctrl;
   volatile unsigned int notused;
 };
+
+#define GPTIMER_TIMER_CTRL_EN 0x00000001U
+#define GPTIMER_TIMER_CTRL_RS 0x00000002U
+#define GPTIMER_TIMER_CTRL_LD 0x00000004U
+#define GPTIMER_TIMER_CTRL_IE 0x00000008U
+#define GPTIMER_TIMER_CTRL_IP 0x00000010U
+#define GPTIMER_TIMER_CTRL_CH 0x00000020U
+#define GPTIMER_TIMER_CTRL_DH 0x00000040U
 
 /* GPTIMER common registers */
 struct gptimer_regs {
@@ -86,6 +104,31 @@ struct grgpio_regs {
   volatile unsigned int ipol;        /* 0x10 Interrupt polarity register */
   volatile unsigned int iedge;       /* 0x14 Interrupt edge register */
   volatile unsigned int bypass;      /* 0x18 Bypass register */
+};
+
+/* L2C - Level 2 Cache Controller registers */
+struct l2c_regs {
+  volatile unsigned int control;
+  volatile unsigned int status;
+  volatile unsigned int flush_mem_addr;
+  volatile unsigned int flush_set_index;
+  volatile unsigned int access_counter;
+  volatile unsigned int hit_counter;
+  volatile unsigned int bus_cycle_counter;
+  volatile unsigned int bus_usage_counter;
+  volatile unsigned int error_status_control;
+  volatile unsigned int error_addr;
+  volatile unsigned int tag_check_bit;
+  volatile unsigned int data_check_bit;
+  volatile unsigned int scrub_control_status;
+  volatile unsigned int scrub_delay;
+  volatile unsigned int error_injection;
+  volatile unsigned int reserved_3c[17];
+  volatile unsigned int mtrr;
+  volatile unsigned int reserved_84[131039];
+  volatile unsigned int diag_iface_tag[16384];
+  volatile unsigned int reserved_90000[376832];
+  volatile unsigned int diag_iface_data[524288];
 };
 
 #ifdef __cplusplus

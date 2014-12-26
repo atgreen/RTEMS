@@ -8,7 +8,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -19,6 +19,8 @@
 #include <intrcritical.h>
 
 #include <rtems/rtems/timerimpl.h>
+
+const char rtems_test_name[] = "SPINTRCRITICAL 17";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -76,7 +78,7 @@ static void trigger_callback(rtems_id timer_id, void *arg)
   rtems_status_code sc = RTEMS_SUCCESSFUL;
 
   if (case_hit) {
-    puts("*** END OF INTERRUPT CRITICAL SECTION 17 ***");
+    TEST_END();
 
     rtems_test_exit(0);
   } else if (interrupt_critical_section_test_support_delay()) {
@@ -94,7 +96,7 @@ rtems_task Init( rtems_task_argument ignored )
   rtems_status_code sc = RTEMS_SUCCESSFUL;
   size_t i = 0;
 
-  puts("\n\n*** TEST INTERRUPT CRITICAL SECTION 17 ***");
+  TEST_BEGIN();
 
   build_time(&tod, 4, 12, 2009, 9, 34, 11, 0);
   sc = rtems_clock_set(&tod);
@@ -155,6 +157,8 @@ rtems_task Init( rtems_task_argument ignored )
 
 #define CONFIGURE_MAXIMUM_TASKS 2
 #define CONFIGURE_MAXIMUM_TIMERS 4
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

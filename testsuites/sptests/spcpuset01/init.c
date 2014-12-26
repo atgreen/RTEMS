@@ -11,10 +11,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-
-#include <sys/cpuset.h>
 #include "system.h"
 
+const char rtems_test_name[] = "SPCPUSET 1";
+
+#if defined(__RTEMS_HAVE_SYS_CPUSET_H__)
 static void test_cpu_zero_case_1(void)
 {
   size_t i;
@@ -76,10 +77,10 @@ static void test_cpu_set_case_1(size_t cpu)
   /*
    * Set to all zeros and verify
    */
-  printf( "Exercise CPU_ZERO, CPU_SET(%u), and CPU_ISET\n", cpu );
+  printf( "Exercise CPU_ZERO, CPU_SET(%zu), and CPU_ISSET\n", cpu );
   CPU_ZERO(&set1);
   CPU_SET(cpu, &set1);
-  
+
   /* test if all bits except 1 clear */
   for (i=0 ; i<CPU_SETSIZE ; i++) {
     if (i==cpu)
@@ -98,7 +99,7 @@ static void test_cpu_clr_case_1(size_t cpu)
   /*
    * Set to all zeros and verify
    */
-  printf( "Exercise CPU_FILL, CPU_CLR(%u), and CPU_ISET\n", cpu );
+  printf( "Exercise CPU_FILL, CPU_CLR(%zu), and CPU_ISSET\n", cpu );
   CPU_FILL(&set1);
   CPU_CLR(cpu, &set1);
 
@@ -118,7 +119,7 @@ static void test_cpu_copy_case_1(void)
   /*
    * CPU_EQUAL
    */
-  puts( "Exercise CPU_ZERO, CPU_COPY, and CPU_ISET" );
+  puts( "Exercise CPU_ZERO, CPU_COPY, and CPU_ISSET" );
   CPU_ZERO(&set1);
   CPU_FILL(&set2);
 
@@ -136,7 +137,7 @@ rtems_task Init(
 {
   size_t    i;
 
-  puts( "*** CPUSET01 Test ***" );
+  TEST_BEGIN();
 
   test_cpu_zero_case_1();
   test_cpu_fill_case_1();
@@ -150,6 +151,18 @@ rtems_task Init(
 
   cpuset_logic_test();
 
-  puts( "*** END OF CPUSET01 Test ***" );
+  TEST_END();
   exit( 0 );
 }
+#else
+#error "Init - No cpuset"
+rtems_task Init(
+  rtems_task_argument ignored
+)
+{
+  TEST_BEGIN();
+  puts( "  cpuset not supported\n" );
+  TEST_END();
+  exit( 0 );
+}
+#endif

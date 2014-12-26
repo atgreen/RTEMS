@@ -45,7 +45,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -583,7 +583,6 @@ FRAME(_CPU_Context_restore,sp,0,ra)
 ENDFRAME(_CPU_Context_restore)
 
 .extern _Thread_Dispatch
-.extern _ISR_Vector_table
 
 /*  void _DBG_Handler()
  *

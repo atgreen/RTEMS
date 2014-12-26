@@ -56,6 +56,8 @@
 #include <bsp/apic.h>
 #include <bsp/smp-imps.h>
 #include <bsp/irq.h>
+#include <rtems/score/smpimpl.h>
+#include <rtems/score/schedulerimpl.h>
 
 /*
  *  XXXXX  The following absolutely must be defined!!!
@@ -77,7 +79,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <rtems.h>
-#include <rtems/bspsmp.h>
 #include <rtems/bspIo.h>
 #include <libcpu/cpu.h>
 #include <assert.h>
@@ -386,7 +387,12 @@ imps_read_config_table(unsigned start, int count)
     switch (*((unsigned char *)start)) {
     case IMPS_BCT_PROCESSOR:
       if ( imps_num_cpus < rtems_configuration_get_maximum_processors() ) {
-	add_processor((imps_processor *)start);
+        const Scheduler_Assignment *assignment =
+          _Scheduler_Get_assignment((uint32_t) imps_num_cpus);
+
+        if (_Scheduler_Should_start_processor(assignment)) {
+          add_processor((imps_processor *)start);
+        }
       } else
         imps_num_cpus++;
       start += 12;  /* 20 total */
@@ -742,13 +748,13 @@ static void smp_apic_ack(void)
   IMPS_LAPIC_WRITE(LAPIC_EOI, 0 );     /* ACK the interrupt */
 }
 
-static void ap_ipi_isr(void *arg)
+static void bsp_inter_processor_interrupt(void *arg)
 {
   (void) arg;
 
   smp_apic_ack();
 
-  rtems_smp_process_interrupt();
+  _SMP_Inter_processor_interrupt_handler();
 }
 
 static void ipi_install_irq(void)
@@ -759,7 +765,7 @@ static void ipi_install_irq(void)
     16,
     "smp-imps",
     RTEMS_INTERRUPT_UNIQUE,
-    ap_ipi_isr,
+    bsp_inter_processor_interrupt,
     NULL
   );
   assert(status == RTEMS_SUCCESSFUL);
@@ -783,29 +789,30 @@ static void secondary_cpu_initialize(void)
   enable_sse();
 #endif
 
-  rtems_smp_secondary_cpu_initialize();
+  _SMP_Start_multitasking_on_secondary_processor();
 }
 
-#include <rtems/bspsmp.h>
-uint32_t bsp_smp_initialize( uint32_t configured_cpu_count )
+uint32_t _CPU_SMP_Initialize( void )
 {
-  int cores;
   /* XXX need to deal with finding too many cores */
 
-  cores = imps_probe();
+  return (uint32_t) imps_probe();
+}
 
-  if ( cores > 1 )
+bool _CPU_SMP_Start_processor( uint32_t cpu_index )
+{
+  (void) cpu_index;
+
+  return true;
+}
+
+void _CPU_SMP_Finalize_initialization( uint32_t cpu_count )
+{
+  if ( cpu_count > 1 )
     ipi_install_irq();
-  return cores;
 }
 
 void _CPU_SMP_Send_interrupt( uint32_t target_processor_index )
 {
   send_ipi( target_processor_index, 0x30 );
-}
-
-void bsp_smp_broadcast_interrupt(void)
-{
-  /* Single broadcast interrupt */
-  send_ipi( 0, LAPIC_ICR_DS_ALLEX | 0x30 );
 }

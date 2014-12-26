@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -25,6 +25,8 @@
 
 #include "edfparams.h"
 
+const char rtems_test_name[] = "SPEDFSCHED 3";
+
 rtems_task Init(
   rtems_task_argument argument
 )
@@ -32,7 +34,7 @@ rtems_task Init(
   uint32_t    index;
   rtems_status_code status;
 
-  puts( "\n\n*** TEST EDF SCHEDULER 3 ***" );
+  TEST_BEGIN();
 
   build_task_name();
 

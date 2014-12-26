@@ -4,23 +4,22 @@
  *  in an specific CPU port of RTEMS.  These algorithms must be implemented
  *  in assembly language. 
  *
- *  COPYRIGHT (c) 1989-2007.
- *  On-Line Applications Research Corporation (OAR).
+ *  COPYRIGHT (c) 1989-2007. On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  Ported to ERC32 implementation of the SPARC by On-Line Applications
  *  Research Corporation (OAR) under contract to the European Space 
  *  Agency (ESA).
  *
- *  ERC32 modifications of respective RTEMS file: COPYRIGHT (c) 1995. 
- *  European Space Agency.
+ *  ERC32 modifications of respective RTEMS file:
+ *  COPYRIGHT (c) 1995. European Space Agency.
  *
  *  Ported to UltraSPARC T1 Niagara implementation of the SPARC-v9.
  *  Niagara modifications of respective RTEMS file: 
- *    COPYRIGHT (c) 2010. Gedare Bloom.
+ *  COPYRIGHT (c) 2010. Gedare Bloom.
  */
 
 #include <rtems/asm.h>

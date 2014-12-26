@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *****************************************************************************/
 
@@ -78,7 +78,7 @@
 typedef struct rtems_sector_data_s
 {
     uint32_t   sector_num; /* sector number on the device */
-    uint8_t    data[0]; /* raw sector data */
+    uint8_t    data[RTEMS_ZERO_LENGTH_ARRAY]; /* raw sector data */
 } rtems_sector_data_t;
 
 

@@ -17,14 +17,12 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
-#include <bsp/start.h>
 #include <bsp/arm-cp15-start.h>
 
-BSP_START_DATA_SECTION const arm_cp15_start_section_config
-bsp_mm_config_table[] = {
+const arm_cp15_start_section_config arm_cp15_start_mmu_config_table[] = {
   {
     .begin = (uint32_t) bsp_section_fast_text_begin,
     .end = (uint32_t) bsp_section_fast_text_end,
@@ -72,5 +70,5 @@ bsp_mm_config_table[] = {
   }
 };
 
-BSP_START_DATA_SECTION const size_t bsp_mm_config_table_size =
-RTEMS_ARRAY_SIZE(bsp_mm_config_table);
+const size_t arm_cp15_start_mmu_config_table_size =
+  RTEMS_ARRAY_SIZE(arm_cp15_start_mmu_config_table);

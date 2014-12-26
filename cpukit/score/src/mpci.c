@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2008.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -23,6 +23,7 @@
 #include <rtems/score/interr.h>
 #include <rtems/score/stackimpl.h>
 #include <rtems/score/sysstate.h>
+#include <rtems/score/schedulerimpl.h>
 #include <rtems/score/threadimpl.h>
 #include <rtems/score/threadqimpl.h>
 #include <rtems/config.h>
@@ -47,7 +48,7 @@ void _MPCI_Handler_initialization(
   users_mpci_table = _Configuration_MP_table->User_mpci_table;
 
   if ( _System_state_Is_multiprocessing && !users_mpci_table )
-    _Internal_error_Occurred(
+    _Terminate(
       INTERNAL_ERROR_CORE,
       true,
       INTERNAL_ERROR_NO_MPCI
@@ -105,6 +106,7 @@ void _MPCI_Create_server( void )
   _Thread_Initialize(
     &_Thread_Internal_information,
     _MPCI_Receive_server_tcb,
+    _Scheduler_Get_by_CPU_index( _SMP_Get_current_processor() ),
     NULL,        /* allocate the stack */
     _Stack_Minimum() +
       CPU_MPCI_RECEIVE_SERVER_EXTRA_STACK +
@@ -149,7 +151,7 @@ MP_packet_Prefix *_MPCI_Get_packet ( void )
   (*_MPCI_table->get_packet)( &the_packet );
 
   if ( the_packet == NULL )
-    _Internal_error_Occurred(
+    _Terminate(
       INTERNAL_ERROR_CORE,
       true,
       INTERNAL_ERROR_OUT_OF_PACKETS
@@ -316,7 +318,7 @@ Thread _MPCI_Receive_server(
       the_function = _MPCI_Packet_processors[ the_packet->the_class ];
 
       if ( !the_function )
-        _Internal_error_Occurred(
+        _Terminate(
           INTERNAL_ERROR_CORE,
           true,
           INTERNAL_ERROR_BAD_PACKET
@@ -398,7 +400,7 @@ void _MPCI_Internal_packets_Process_packet (
 
         _MPCI_Return_packet( the_packet_prefix );
 
-        _Internal_error_Occurred(
+        _Terminate(
           INTERNAL_ERROR_CORE,
           true,
           INTERNAL_ERROR_INCONSISTENT_MP_INFORMATION

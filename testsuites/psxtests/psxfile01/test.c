@@ -19,7 +19,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -44,6 +44,8 @@
 #include <rtems/libio.h>
 
 #include "primode.h"
+
+const char rtems_test_name[] = "PSXFILE 1";
 
 /* forward declarations to avoid warnings */
 void test_case_reopen_append(void);
@@ -158,7 +160,7 @@ int main(
   rtems_status_code rtems_status;
   rtems_time_of_day time;
 
-  printf( "\n\n*** FILE TEST 1 ***\n" );
+  TEST_BEGIN();
 
   /*
    *  Grab the maximum size of an in-memory file.
@@ -655,7 +657,7 @@ since new path is not valid");
 
   test_case_reopen_append();
 
-  printf( "*** END OF FILE TEST 1 ***\n" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 

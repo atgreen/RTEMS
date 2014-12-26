@@ -1,5 +1,5 @@
 @c
-@c  COPYRIGHT (c) 1988-2008.
+@c  COPYRIGHT (c) 1988-2014.
 @c  On-Line Applications Research Corporation (OAR).
 @c  All rights reserved.
 
@@ -318,7 +318,7 @@ variable's value each time a task switch occurs to or from the calling task.
 
 The value seen by other tasks, including those which have not added the
 variable to their set and are thus accessing the variable as a common
-location shared among tasks, can not be affected by a task once it has
+location shared among tasks, cannot be affected by a task once it has
 added a variable to its local set.  Changes made to the variable by
 other tasks will not affect the value seen by a task which has added the
 variable to its private set.
@@ -339,6 +339,13 @@ containing the task's private "global" data.
 
 A critical point with per-task variables is that each task must separately
 request that the same global variable is per-task private.
+
+@b{WARNING}: Per-Task variables are inherently broken on SMP systems. They
+only work correctly when there is one task executing in the system and
+that task is the logical owner of the value in the per-task variable's
+location. There is no way for a single memory image to contain the
+correct value for each task executing on each core. Consequently,
+per-task variables are disabled in SMP configurations of RTEMS.
 
 @subsection Building a Task Attribute Set
 
@@ -1284,6 +1291,9 @@ The calling task may be preempted if its preemption mode is
 enabled and it lowers its own priority or raises another task's
 priority.
 
+In case the new priority equals the current priority of the task, then nothing
+happens.
+
 Setting the priority of a global task which does not reside on
 the local node will generate a request to the remote node to
 change the priority of the specified task.
@@ -1779,6 +1789,9 @@ is to have a single task variable that is a pointer to a dynamically
 allocated structure containing the task's private `global' data.
 In this case the destructor function could be `free'.
 
+Per-task variables are disabled in SMP configurations and this service
+is not available.
+
 @page
 
 @subsection TASK_VARIABLE_GET - Obtain value of a per task variable
@@ -1832,6 +1845,9 @@ will optimize it correctly.  In this case both the pointer
 @code{task_variable_value} and data referenced by @code{task_variable_value}
 should be considered volatile.
 
+Per-task variables are disabled in SMP configurations and this service
+is not available.
+
 @page
 
 @subsection TASK_VARIABLE_DELETE - Remove per task variable
@@ -1874,4 +1890,6 @@ This directive removes the given location from a task's context.
 
 @subheading NOTES:
 
-NONE
+Per-task variables are disabled in SMP configurations and this service
+is not available.
+

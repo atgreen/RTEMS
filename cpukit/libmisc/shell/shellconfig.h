@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SHELL_CONFIG_h
@@ -24,6 +24,9 @@
 extern rtems_shell_cmd_t rtems_shell_HELP_Command;
 extern rtems_shell_cmd_t rtems_shell_ALIAS_Command;
 extern rtems_shell_cmd_t rtems_shell_TIME_Command;
+extern rtems_shell_cmd_t rtems_shell_CMDLS_Command;
+extern rtems_shell_cmd_t rtems_shell_CMDCHOWN_Command;
+extern rtems_shell_cmd_t rtems_shell_CMDCHMOD_Command;
 extern rtems_shell_cmd_t rtems_shell_LOGOFF_Command;
 extern rtems_shell_cmd_t rtems_shell_SETENV_Command;
 extern rtems_shell_cmd_t rtems_shell_GETENV_Command;
@@ -39,6 +42,7 @@ extern rtems_shell_cmd_t rtems_shell_MMOVE_Command;
 extern rtems_shell_cmd_t rtems_shell_JOEL_Command;
 extern rtems_shell_cmd_t rtems_shell_DATE_Command;
 extern rtems_shell_cmd_t rtems_shell_ECHO_Command;
+extern rtems_shell_cmd_t rtems_shell_EDIT_Command;
 extern rtems_shell_cmd_t rtems_shell_SLEEP_Command;
 extern rtems_shell_cmd_t rtems_shell_ID_Command;
 extern rtems_shell_cmd_t rtems_shell_TTY_Command;
@@ -71,11 +75,13 @@ extern rtems_shell_cmd_t rtems_shell_DD_Command;
 extern rtems_shell_cmd_t rtems_shell_HEXDUMP_Command;
 extern rtems_shell_cmd_t rtems_shell_DEBUGRFS_Command;
 extern rtems_shell_cmd_t rtems_shell_DF_Command;
+extern rtems_shell_cmd_t rtems_shell_MD5_Command;
 
 extern rtems_shell_cmd_t rtems_shell_RTC_Command;
 
-extern rtems_shell_cmd_t rtems_shell_HALT_Command;
+extern rtems_shell_cmd_t rtems_shell_SHUTDOWN_Command;
 extern rtems_shell_cmd_t rtems_shell_CPUUSE_Command;
+extern rtems_shell_cmd_t rtems_shell_TOP_Command;
 extern rtems_shell_cmd_t rtems_shell_STACKUSE_Command;
 extern rtems_shell_cmd_t rtems_shell_PERIODUSE_Command;
 extern rtems_shell_cmd_t rtems_shell_WKSPACE_INFO_Command;
@@ -84,9 +90,10 @@ extern rtems_shell_cmd_t rtems_shell_MALLOC_INFO_Command;
   extern rtems_shell_cmd_t rtems_shell_IFCONFIG_Command;
   extern rtems_shell_cmd_t rtems_shell_ROUTE_Command;
   extern rtems_shell_cmd_t rtems_shell_NETSTATS_Command;
+  extern rtems_shell_cmd_t rtems_shell_PING_Command;
 #endif
 
-extern rtems_shell_cmd_t *rtems_shell_Initial_commands[];
+extern rtems_shell_cmd_t * const rtems_shell_Initial_commands[];
 
 /*
  *  Extern for alias commands
@@ -95,7 +102,7 @@ extern rtems_shell_alias_t rtems_shell_DIR_Alias;
 extern rtems_shell_alias_t rtems_shell_CD_Alias;
 extern rtems_shell_alias_t rtems_shell_EXIT_Alias;
 
-extern rtems_shell_alias_t *rtems_shell_Initial_aliases[];
+extern rtems_shell_alias_t * const rtems_shell_Initial_aliases[];
 
 /*
  *  If we are configured to alias a command, then make sure the underlying
@@ -120,7 +127,7 @@ extern rtems_shell_alias_t *rtems_shell_Initial_aliases[];
 #endif
 
 #if defined(CONFIGURE_SHELL_COMMANDS_INIT)
-  rtems_shell_alias_t *rtems_shell_Initial_aliases[] = {
+  rtems_shell_alias_t * const rtems_shell_Initial_aliases[] = {
     #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
          !defined(CONFIGURE_SHELL_NO_COMMAND_DIR)) || \
         defined(CONFIGURE_SHELL_COMMAND_DIR)
@@ -146,7 +153,7 @@ extern rtems_shell_alias_t *rtems_shell_Initial_aliases[];
     NULL
   };
 
-  rtems_shell_cmd_t *rtems_shell_Initial_commands[] = {
+  rtems_shell_cmd_t * const rtems_shell_Initial_commands[] = {
     /*
      *  General comamnds that should be present
      */
@@ -157,6 +164,21 @@ extern rtems_shell_alias_t *rtems_shell_Initial_aliases[];
     /*
      *  Common commands that can be optional
      */
+    #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
+         !defined(CONFIGURE_SHELL_NO_COMMAND_CMDLS)) || \
+        defined(CONFIGURE_SHELL_COMMAND_CMDLS)
+      &rtems_shell_CMDLS_Command,
+    #endif
+    #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
+         !defined(CONFIGURE_SHELL_NO_COMMAND_CMDCHOWN)) || \
+        defined(CONFIGURE_SHELL_COMMAND_CMDCHOWN)
+      &rtems_shell_CMDCHOWN_Command,
+    #endif
+    #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
+         !defined(CONFIGURE_SHELL_NO_COMMAND_CMDCHMOD)) || \
+        defined(CONFIGURE_SHELL_COMMAND_CMDCHMOD)
+      &rtems_shell_CMDCHMOD_Command,
+    #endif
     #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
          !defined(CONFIGURE_SHELL_NO_COMMAND_JOEL)) || \
         defined(CONFIGURE_SHELL_COMMAND_JOEL)
@@ -171,6 +193,11 @@ extern rtems_shell_alias_t *rtems_shell_Initial_aliases[];
          !defined(CONFIGURE_SHELL_NO_COMMAND_ECHO)) || \
         defined(CONFIGURE_SHELL_COMMAND_ECHO)
       &rtems_shell_ECHO_Command,
+    #endif
+    #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
+         !defined(CONFIGURE_SHELL_NO_COMMAND_EDIT)) || \
+        defined(CONFIGURE_SHELL_COMMAND_EDIT)
+      &rtems_shell_EDIT_Command,
     #endif
     #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
          !defined(CONFIGURE_SHELL_NO_COMMAND_SLEEP)) || \
@@ -381,14 +408,19 @@ extern rtems_shell_alias_t *rtems_shell_Initial_aliases[];
         defined(CONFIGURE_SHELL_COMMAND_DF)
       &rtems_shell_DF_Command,
     #endif
+    #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
+         !defined(CONFIGURE_SHELL_NO_COMMAND_MD5)) || \
+        defined(CONFIGURE_SHELL_COMMAND_MD5)
+      &rtems_shell_MD5_Command,
+    #endif
 
     /*
      *  RTEMS Related commands
      */
     #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
-         !defined(CONFIGURE_SHELL_NO_COMMAND_HALT)) || \
-        defined(CONFIGURE_SHELL_COMMAND_HALT)
-      &rtems_shell_HALT_Command,
+         !defined(CONFIGURE_SHELL_NO_COMMAND_SHUTDOWN)) || \
+        defined(CONFIGURE_SHELL_COMMAND_SHUTDOWN)
+      &rtems_shell_SHUTDOWN_Command,
     #endif
     #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
          !defined(CONFIGURE_SHELL_NO_COMMAND_CPUUSE)) || \
@@ -396,6 +428,11 @@ extern rtems_shell_alias_t *rtems_shell_Initial_aliases[];
       &rtems_shell_CPUUSE_Command,
     #endif
     #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
+         !defined(CONFIGURE_SHELL_NO_COMMAND_TOP)) || \
+        defined(CONFIGURE_SHELL_COMMAND_TOP)
+      &rtems_shell_TOP_Command,
+    #endif
+     #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
          !defined(CONFIGURE_SHELL_NO_COMMAND_STACKUSE)) || \
         defined(CONFIGURE_SHELL_COMMAND_STACKUSE)
       &rtems_shell_STACKUSE_Command,
@@ -440,6 +477,12 @@ extern rtems_shell_alias_t *rtems_shell_Initial_aliases[];
            !defined(CONFIGURE_SHELL_NO_COMMAND_NETSTATS)) || \
           defined(CONFIGURE_SHELL_COMMAND_NETSTATS)
         &rtems_shell_NETSTATS_Command,
+      #endif
+
+      #if (defined(CONFIGURE_SHELL_COMMANDS_ALL_NETWORKING) && \
+           !defined(CONFIGURE_SHELL_NO_COMMAND_PING)) || \
+          defined(CONFIGURE_SHELL_COMMAND_PING)
+        &rtems_shell_PING_Command,
       #endif
     #endif
 

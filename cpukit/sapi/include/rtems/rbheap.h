@@ -15,7 +15,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RBHEAP_H
@@ -154,7 +154,6 @@ struct rtems_rbheap_control {
  * @param[in] handler_arg The handler argument.
  *
  * @retval RTEMS_SUCCESSFUL Successful operation.
- * @retval RTEMS_INVALID_NUMBER The alignment is not positive.
  * @retval RTEMS_INVALID_ADDRESS The memory area is invalid.
  * @retval RTEMS_NO_MEMORY Not enough chunk descriptors.
  */
@@ -254,7 +253,7 @@ void rtems_rbheap_extend_descriptors_with_malloc(
 /* Private API */
 
 #define rtems_rbheap_chunk_of_node(node) \
-  rtems_rbtree_container_of(node, rtems_rbheap_chunk, tree_node)
+  RTEMS_CONTAINER_OF(node, rtems_rbheap_chunk, tree_node)
 
 static inline bool rtems_rbheap_is_chunk_free(const rtems_rbheap_chunk *chunk)
 {

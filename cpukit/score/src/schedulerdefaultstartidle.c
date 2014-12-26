@@ -1,9 +1,9 @@
 /*
- * Copyright (c) 2013 embedded brains GmbH
+ * Copyright (c) 2013-2014 embedded brains GmbH
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -13,10 +13,12 @@
 #include <rtems/score/schedulerimpl.h>
 
 void _Scheduler_default_Start_idle(
-  Thread_Control  *thread,
-  Per_CPU_Control *processor
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread,
+  Per_CPU_Control         *cpu
 )
 {
-  (void) processor;
-  _Scheduler_Unblock( thread );
+  (void) scheduler;
+  (void) cpu;
+  _Scheduler_Unblock( the_thread );
 }

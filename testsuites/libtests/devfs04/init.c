@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -22,6 +22,8 @@
 #include "test_driver.h"
 #include <rtems/devnull.h>
 
+const char rtems_test_name[] = "DEVFS 4";
+
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
 
@@ -33,7 +35,7 @@ rtems_task Init(
   int fdr = 0, fdw = 0;
   char buf[10];
 
-  puts( "\n\n*** TEST DEVFS04 ***" );
+  TEST_BEGIN();
 
   puts( "Init - attempt to open the /dev/test WR mode -- OK" );
   fdw = open( "/dev/test", O_WRONLY );
@@ -70,7 +72,7 @@ rtems_task Init(
   status = mknod( "/dev/null", 0777 | S_IFCHR, 0LL );
   rtems_test_assert( status == 0 );
 
-  puts( "*** END OF TEST DEVFS04 ***" );
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -82,11 +84,13 @@ rtems_task Init(
 
 /* include an extra slot for registering the termios one dynamically */
 #define CONFIGURE_MAXIMUM_DRIVERS 3
-#define CONFIGURE_MAXIMUM_DEVICES 6
+#define CONFIGURE_MAXIMUM_DEVICES 10
 
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 5
 
 #define CONFIGURE_MAXIMUM_TASKS             1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_USE_DEVFS_AS_BASE_FILESYSTEM

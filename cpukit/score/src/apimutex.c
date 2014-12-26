@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -58,9 +58,12 @@ void _API_Mutex_Allocate(
     0
   };
 
-  mutex = (API_Mutex_Control *) _Objects_Allocate( &_API_Mutex_Information );
+  mutex = (API_Mutex_Control *)
+    _Objects_Allocate_unprotected( &_API_Mutex_Information );
 
-  _CORE_mutex_Initialize( &mutex->Mutex, NULL, &attr, CORE_MUTEX_UNLOCKED );
+  _Assert( mutex != NULL );
+
+  _CORE_mutex_Initialize( &mutex->Mutex, NULL, &attr, false );
 
   _Objects_Open_u32( &_API_Mutex_Information, &mutex->Object, 1 );
 

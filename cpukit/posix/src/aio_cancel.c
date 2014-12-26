@@ -10,7 +10,7 @@
  * 
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -55,7 +55,7 @@ int aio_cancel(int fildes, struct aiocb  *aiocbp)
 
         AIO_printf ("Request chain on [IQ]\n");
 
-        rtems_chain_explicit_extract (idle_req_chain, &r_chain->next_fd);
+        rtems_chain_extract (&r_chain->next_fd);
         rtems_aio_remove_fd (r_chain);
         pthread_mutex_destroy (&r_chain->mutex);
         pthread_cond_destroy (&r_chain->mutex);
@@ -72,7 +72,7 @@ int aio_cancel(int fildes, struct aiocb  *aiocbp)
     AIO_printf ("Request chain on [WQ]\n");
 
     pthread_mutex_lock (&r_chain->mutex);
-    rtems_chain_explicit_extract (work_req_chain, &r_chain->next_fd);
+    rtems_chain_extract (&r_chain->next_fd);
     rtems_aio_remove_fd (r_chain);
     pthread_mutex_unlock (&r_chain->mutex);
     pthread_mutex_unlock (&aio_request_queue.mutex);

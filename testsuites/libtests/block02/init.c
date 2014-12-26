@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -30,6 +30,8 @@
 #include <rtems/ramdisk.h>
 #include <rtems/bdbuf.h>
 #include <rtems/diskdevs.h>
+
+const char rtems_test_name[] = "BLOCK 2";
 
 /* forward declarations to avoid warnings */
 static rtems_task Init(rtems_task_argument argument);
@@ -80,7 +82,7 @@ static void task_low(rtems_task_argument arg)
 
   rtems_test_assert(bd->dd == dd_a);
 
-  printk("*** END OF TEST BLOCK 2 ***\n");
+  rtems_test_endk();
 
   exit(0);
 }
@@ -134,7 +136,7 @@ static rtems_task Init(rtems_task_argument argument)
   dev_t dev_a = 0;
   dev_t dev_b = 0;
 
-  printk("\n\n*** TEST BLOCK 2 ***\n");
+  rtems_test_begink();
 
   sc = rtems_disk_io_initialize();
   ASSERT_SC(sc);
@@ -197,10 +199,10 @@ static rtems_task Init(rtems_task_argument argument)
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_LIBBLOCK
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 #define CONFIGURE_MAXIMUM_TASKS 3
 #define CONFIGURE_MAXIMUM_DRIVERS 3
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

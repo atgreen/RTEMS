@@ -27,7 +27,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 /* DO NOT INTRODUCE #ifdef <cpu_flavor> in this file */
@@ -361,7 +361,6 @@ rtems_status_code ppc_exc_make_prologue(
  * @see ppc_exc_initialize().
  */
 void ppc_exc_initialize_with_vector_base(
-  uint32_t interrupt_disable_mask,
   uintptr_t interrupt_stack_begin,
   uintptr_t interrupt_stack_size,
   void *vector_base
@@ -371,8 +370,8 @@ void ppc_exc_initialize_with_vector_base(
  * @brief Initializes the exception handling.
  *
  * If the initialization fails, then this is a fatal error.  The fatal error
- * source is RTEMS_FATAL_SOURCE_BSP_GENERIC and the fatal error code is
- * BSP_GENERIC_FATAL_EXCEPTION_INITIALIZATION.
+ * source is RTEMS_FATAL_SOURCE_BSP and the fatal error code is
+ * PPC_FATAL_EXCEPTION_INITIALIZATION.
  *
  * Possible error reasons are
  * - no category set available for the current CPU,
@@ -381,13 +380,11 @@ void ppc_exc_initialize_with_vector_base(
  * - the minimal prologue creation failed.
  */
 static inline void ppc_exc_initialize(
-  uint32_t interrupt_disable_mask,
   uintptr_t interrupt_stack_begin,
   uintptr_t interrupt_stack_size
 )
 {
   ppc_exc_initialize_with_vector_base(
-    interrupt_disable_mask,
     interrupt_stack_begin,
     interrupt_stack_size,
     NULL

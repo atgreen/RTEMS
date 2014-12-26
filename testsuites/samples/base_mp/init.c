@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -15,8 +15,12 @@
 #include "system.h"
 #include <stdio.h>
 
+#include "tmacros.h"
+
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
+
+const char rtems_test_name[] = "SAMPLE MULTIPROCESSOR APPLICATION";
 
 rtems_task Init(
   rtems_task_argument argument
@@ -26,7 +30,7 @@ rtems_task Init(
   rtems_id          tid;
   rtems_status_code status;
 
-  printf( "\n\n*** SAMPLE MULTIPROCESSOR APPLICATION ***\n" );
+  TEST_BEGIN();
   printf( "Creating and starting an application task\n" );
   task_name = rtems_build_name( 'T', 'A', '1', ' ' );
   status = rtems_task_create( task_name, 1, RTEMS_MINIMUM_STACK_SIZE,

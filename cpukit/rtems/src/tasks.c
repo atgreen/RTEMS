@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2009.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -22,12 +22,14 @@
 #include <rtems/config.h>
 #include <rtems/rtems/asrimpl.h>
 #include <rtems/rtems/eventimpl.h>
+#include <rtems/rtems/signalimpl.h>
 #include <rtems/rtems/status.h>
 #include <rtems/rtems/support.h>
 #include <rtems/rtems/modes.h>
-#include <rtems/score/stack.h>
 #include <rtems/rtems/tasksimpl.h>
-#include <rtems/score/thread.h>
+#include <rtems/posix/keyimpl.h>
+#include <rtems/score/stack.h>
+#include <rtems/score/threadimpl.h>
 #include <rtems/score/userextimpl.h>
 #include <rtems/score/wkspace.h>
 #include <rtems/score/apiext.h>
@@ -48,28 +50,17 @@ static bool _RTEMS_tasks_Create_extension(
 )
 {
   RTEMS_API_Control *api;
-  int                i;
-  size_t             to_allocate;
+  size_t             i;
 
-  /*
-   *  Notepads must be the last entry in the structure and they
-   *  can be left off if disabled in the configuration.
-   */
-  to_allocate = sizeof( RTEMS_API_Control );
-  if ( !rtems_configuration_get_notepads_enabled() )
-    to_allocate -= (RTEMS_NUMBER_NOTEPADS * sizeof(uint32_t));
-
-  api = _Workspace_Allocate( to_allocate );
-
-  if ( !api )
-    return false;
-
-  created->API_Extensions[ THREAD_API_RTEMS ] = api;
+  api = created->API_Extensions[ THREAD_API_RTEMS ];
 
   _Event_Initialize( &api->Event );
   _Event_Initialize( &api->System_event );
-  _ASR_Initialize( &api->Signal );
+  _ASR_Create( &api->Signal );
+  _Thread_Action_initialize( &api->Signal_action, _Signal_Action_handler );
+#if !defined(RTEMS_SMP)
   created->task_variables = NULL;
+#endif
 
   if ( rtems_configuration_get_notepads_enabled() ) {
     for (i=0; i < RTEMS_NUMBER_NOTEPADS; i++)
@@ -99,45 +90,56 @@ static void _RTEMS_tasks_Start_extension(
   _Event_Initialize( &api->System_event );
 }
 
-/*
- *  _RTEMS_tasks_Delete_extension
- *
- *  This extension routine is invoked when a task is deleted.
- */
-
 static void _RTEMS_tasks_Delete_extension(
   Thread_Control *executing,
   Thread_Control *deleted
 )
 {
-  rtems_task_variable_t *tvp, *next;
+  RTEMS_API_Control *api;
 
-  /*
-   *  Free per task variable memory
-   */
+  api = deleted->API_Extensions[ THREAD_API_RTEMS ];
 
-  tvp = deleted->task_variables;
-  deleted->task_variables = NULL;
-  while (tvp) {
-    next = (rtems_task_variable_t *)tvp->next;
-    _RTEMS_Tasks_Invoke_task_variable_dtor( deleted, tvp );
-    tvp = next;
-  }
-
-  /*
-   *  Free API specific memory
-   */
-
-  (void) _Workspace_Free( deleted->API_Extensions[ THREAD_API_RTEMS ] );
-  deleted->API_Extensions[ THREAD_API_RTEMS ] = NULL;
+  _ASR_Destroy( &api->Signal );
 }
 
+static void _RTEMS_tasks_Terminate_extension(
+  Thread_Control *executing
+)
+{
+  /*
+   *  Free per task variable memory
+   *
+   *  Per Task Variables are only enabled in uniprocessor configurations
+   */
+  #if !defined(RTEMS_SMP)
+    do { 
+      rtems_task_variable_t *tvp, *next;
+
+      tvp = executing->task_variables;
+      executing->task_variables = NULL;
+      while (tvp) {
+	next = (rtems_task_variable_t *)tvp->next;
+	_RTEMS_Tasks_Invoke_task_variable_dtor( executing, tvp );
+	tvp = next;
+      }
+    } while (0);
+  #endif
+
+  /*
+   *  Run all the key destructors
+   */
+  _POSIX_Keys_Run_destructors( executing );
+}
+
+#if !defined(RTEMS_SMP)
 /*
  *  _RTEMS_tasks_Switch_extension
  *
  *  This extension routine is invoked at each context switch.
+ *
+ *  @note Since this only needs to address per-task variables, it is
+ *        disabled entirely for SMP configurations.
  */
-
 static void _RTEMS_tasks_Switch_extension(
   Thread_Control *executing,
   Thread_Control *heir
@@ -146,7 +148,7 @@ static void _RTEMS_tasks_Switch_extension(
   rtems_task_variable_t *tvp;
 
   /*
-   *  Per Task Variables
+   *  Per Task Variables are only enabled in uniprocessor configurations
    */
 
   tvp = executing->task_variables;
@@ -163,6 +165,10 @@ static void _RTEMS_tasks_Switch_extension(
     tvp = (rtems_task_variable_t *)tvp->next;
   }
 }
+#define RTEMS_TASKS_SWITCH_EXTENSION _RTEMS_tasks_Switch_extension
+#else 
+#define RTEMS_TASKS_SWITCH_EXTENSION NULL
+#endif
 
 API_extensions_Control _RTEMS_tasks_API_extensions = {
   #if defined(FUNCTIONALITY_NOT_CURRENTLY_USED_BY_ANY_API)
@@ -173,15 +179,16 @@ API_extensions_Control _RTEMS_tasks_API_extensions = {
 
 User_extensions_Control _RTEMS_tasks_User_extensions = {
   { NULL, NULL },
-  { { NULL, NULL }, _RTEMS_tasks_Switch_extension },
+  { { NULL, NULL }, RTEMS_TASKS_SWITCH_EXTENSION },
   { _RTEMS_tasks_Create_extension,            /* create */
     _RTEMS_tasks_Start_extension,             /* start */
     _RTEMS_tasks_Start_extension,             /* restart */
     _RTEMS_tasks_Delete_extension,            /* delete */
-    _RTEMS_tasks_Switch_extension,            /* switch */
+    RTEMS_TASKS_SWITCH_EXTENSION,             /* switch */
     NULL,                                     /* begin */
     NULL,                                     /* exitted */
-    NULL                                      /* fatal */
+    NULL,                                     /* fatal */
+    _RTEMS_tasks_Terminate_extension          /* terminate */
   }
 };
 
@@ -193,7 +200,7 @@ void _RTEMS_tasks_Manager_initialization(void)
     OBJECTS_RTEMS_TASKS,       /* object class */
     Configuration_RTEMS_API.maximum_tasks,
                                /* maximum objects of this class */
-    sizeof( Thread_Control ),  /* size of this object's control block */
+    _Thread_Control_size,      /* size of this object's control block */
     false,                     /* true if the name is a string */
     RTEMS_MAXIMUM_NAME_LENGTH  /* maximum length of an object name */
 #if defined(RTEMS_MULTIPROCESSING)

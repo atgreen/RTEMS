@@ -9,7 +9,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
 */
 
 #ifndef __rtems_umon_h
@@ -46,10 +46,19 @@ void *rtems_bsp_get_umon_monptr(void);
  *
  * @param[in] path is the mount point
  *
- * @return This method returns 0 on sucess.
+ * @return This method returns 0 on success.
  */
 int rtems_initialize_tfs_filesystem(
   const char *path
 );
+
+/**
+ * @brief Read from MicroMonitor Port
+ *
+ * This method reads a character from the MicroMonitor console.
+ *
+ * @return This method returns a character.
+ */
+int umoncons_poll_read(int minor);
 
 #endif

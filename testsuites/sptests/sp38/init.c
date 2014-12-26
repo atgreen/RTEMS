@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -15,6 +15,8 @@
 
 #define CONFIGURE_INIT
 #include "system.h"
+
+const char rtems_test_name[] = "SP 38";
 
 volatile bool signal_sent;
 volatile bool signal_processed;
@@ -55,7 +57,7 @@ rtems_task Init(
   rtems_interval        start;
   rtems_interval        now;
 
-  puts( "\n\n*** TEST 38 ***" );
+  TEST_BEGIN();
 
   main_task = rtems_task_self();
 
@@ -93,6 +95,6 @@ rtems_task Init(
   }
 
   puts( "Signal sent from ISR has been processed" );
-  puts( "*** END OF TEST 38 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

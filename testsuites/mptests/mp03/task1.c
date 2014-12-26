@@ -1,18 +1,10 @@
-/*  Test_task
- *
- *  This task suspends and resumes a remote task.
- *
- *  Input parameters:
- *    argument - task argument
- *
- *  Output parameters:  NONE
- *
+/*
  *  COPYRIGHT (c) 1989-2009.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -20,12 +12,6 @@
 #endif
 
 #include "system.h"
-
-/*PAGE
- *
- *  Test_Task_Support
- *
- */
 
 void Test_Task_Support(
   uint32_t    node

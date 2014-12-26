@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -48,6 +48,8 @@ void _RTEMS_tasks_Initialize_user_tasks_body( void )
   rtems_id                          id;
   rtems_status_code                 return_value;
   rtems_initialization_tasks_table *user_tasks;
+  bool                              register_global_construction;
+  rtems_task_entry                  entry_point;
 
   /*
    *  Move information into local variables
@@ -60,6 +62,8 @@ void _RTEMS_tasks_Initialize_user_tasks_body( void )
    */
   if ( !user_tasks )
     return;
+
+  register_global_construction = true;
 
   /*
    *  Now iterate over the initialization tasks and create/start them.
@@ -74,14 +78,21 @@ void _RTEMS_tasks_Initialize_user_tasks_body( void )
       &id
     );
     if ( !rtems_is_status_successful( return_value ) )
-      _Internal_error_Occurred( INTERNAL_ERROR_RTEMS_API, true, return_value );
+      _Terminate( INTERNAL_ERROR_RTEMS_API, true, return_value );
+
+    entry_point = user_tasks[ index ].entry_point;
+
+    if ( register_global_construction && entry_point != NULL ) {
+      register_global_construction = false;
+      entry_point = (rtems_task_entry) _Thread_Global_construction;
+    }
 
     return_value = rtems_task_start(
       id,
-      user_tasks[ index ].entry_point,
+      entry_point,
       user_tasks[ index ].argument
     );
     if ( !rtems_is_status_successful( return_value ) )
-      _Internal_error_Occurred( INTERNAL_ERROR_RTEMS_API, true, return_value );
+      _Terminate( INTERNAL_ERROR_RTEMS_API, true, return_value );
   }
 }

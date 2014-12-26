@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
@@ -20,13 +20,6 @@
 
 #include <stdint.h>
 #include <rtems/chain.h>
-
-/*
- *  Malloc Statistics Structure
- */
-extern rtems_malloc_statistics_t rtems_malloc_statistics;
-
-#define MSBUMP(_f,_n)    rtems_malloc_statistics._f += (_n)
 
 /*
  *  Process deferred free operations

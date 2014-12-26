@@ -12,7 +12,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_TIMER_INL
@@ -217,18 +217,6 @@ RTEMS_INLINE_ROUTINE bool _Timer_Is_dormant_class (
 )
 {
   return ( the_class == TIMER_DORMANT );
-}
-
-/**
- *  @brief Timer_Is_null
- *
- *  This function returns TRUE if the_timer is NULL and FALSE otherwise.
- */
-RTEMS_INLINE_ROUTINE bool _Timer_Is_null (
-  Timer_Control *the_timer
-)
-{
-  return ( the_timer == NULL );
 }
 
 /**@}*/

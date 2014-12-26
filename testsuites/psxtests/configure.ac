@@ -1,7 +1,7 @@
 ## Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([rtems-c-src-tests-psxtests],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-c-src-tests-psxtests],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([psx01])
 AC_CONFIG_HEADER([config.h])
 RTEMS_TOP([../..],[..])
@@ -11,17 +11,22 @@ RTEMS_CANONICAL_TARGET_CPU
 AM_INIT_AUTOMAKE([no-define foreign 1.12.2])
 AM_MAINTAINER_MODE
 
+RTEMS_ENABLE_CXX
+
 RTEMS_ENV_RTEMSBSP
 
 RTEMS_PROJECT_ROOT
 
 RTEMS_PROG_CC_FOR_TARGET
+RTEMS_PROG_CXX_FOR_TARGET
 
 RTEMS_CANONICALIZE_TOOLS
 
 RTEMS_CHECK_CUSTOM_BSP(RTEMS_BSP)
+RTEMS_CHECK_CXX(RTEMS_BSP)
 
-AM_CONDITIONAL([HAS_NETWORKING],[test "$HAS_NETWORKING" = "yes"])
+AM_CONDITIONAL([HAS_NETWORKING],[test x"$HAS_NETWORKING" = x"yes"])
+AM_CONDITIONAL([HAS_CPLUSPLUS],[test x"$HAS_CPLUSPLUS" = x"yes"])
 
 RTEMS_CHECK_CPUOPTS([RTEMS_POSIX_API])
 AM_CONDITIONAL(HAS_POSIX,test x"${rtems_cv_RTEMS_POSIX_API}" = x"yes")
@@ -49,19 +54,29 @@ AC_CHECK_DECLS([pthread_attr_getguardsize],[],[],[[#include <pthread.h>]])
 AC_CHECK_DECLS([pthread_attr_setguardsize],[],[],[[#include <pthread.h>]])
 
 # Added to newlib pthreads for RTEMS SMP (np), may not be present
-AC_CHECK_DECLS([pthread_attr_setaffinity_np],[].[],,[[#include <pthread.h>]])
+AC_CHECK_DECLS([pthread_attr_setaffinity_np],[],[],[[
+  #define _GNU_SOURCE
+  #include <pthread.h>]])
 
 # Added to newlib pthreads for RTEMS SMP (np), may not be present
-AC_CHECK_DECLS([pthread_attr_getaffinity_np],[].[],,[[#include <pthread.h>]])
+AC_CHECK_DECLS([pthread_attr_getaffinity_np],[],[],[[
+  #define _GNU_SOURCE
+  #include <pthread.h>]])
 
 # Added to newlib pthreads for RTEMS SMP (np), may not be present
-AC_CHECK_DECLS([pthread_setaffinity_np],[].[],,[[#include <pthread.h>]])
+AC_CHECK_DECLS([pthread_setaffinity_np],[],[],[[
+  #define _GNU_SOURCE
+  #include <pthread.h>]])
 
 # Added to newlib pthreads for RTEMS SMP (np), may not be present
-AC_CHECK_DECLS([pthread_getaffinity_np],[].[],,[[#include <pthread.h>]])
+AC_CHECK_DECLS([pthread_getaffinity_np],[],[],[[
+  #define _GNU_SOURCE
+  #include <pthread.h>]])
 
-# Added to newlib pthreads for RTEMS (np), may not be present
-AC_CHECK_DECLS([pthread_getattr_np],[].[],,[[#include <pthread.h>]])
+# Added to newlib pthreads for RTEMS SMP (np), may not be present
+AC_CHECK_DECLS([pthread_getattr_np],[],[],[[
+  #define _GNU_SOURCE
+  #include <pthread.h>]])
 
 # Added to newlib pthreads for RTEMS SMP (np), may not be present
 AC_CHECK_HEADERS([cpuset.h])
@@ -133,7 +148,10 @@ psxfchx01/Makefile
 psxfile01/Makefile
 psxfile02/Makefile
 psxfilelock01/Makefile
+psxgetattrnp01/Makefile
 psxgetrusage01/Makefile
+psxglobalcon01/Makefile
+psxglobalcon02/Makefile
 psxhdrs/Makefile
 psxid01/Makefile
 psximfs01/Makefile
@@ -157,6 +175,7 @@ psxmsgq03/Makefile
 psxmsgq04/Makefile
 psxmutexattr01/Makefile
 psxobj01/Makefile
+psxonce01/Makefile
 psxpasswd01/Makefile
 psxpasswd02/Makefile
 psxpipe01/Makefile

@@ -7,7 +7,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *
  *  2007-07-11, Daniel Hellstrom <daniel@gaisler.com>
@@ -34,6 +34,8 @@
 
 #ifndef APBUART_PREFIX
  #define APBUART_PREFIX(name) apbuart##name
+#else
+ #define APBUART_REGISTER_STATIC
 #endif
 
 #if !defined(APBUART_DEVNAME) || !defined(APBUART_DEVNAME_NO)
@@ -156,7 +158,7 @@ static void apbuart_hw_open(apbuart_priv *uart);
 #if 0
 static int apbuart_outbyte_try(struct apbuart_regs *regs, unsigned char ch)
 {
-	if ( (READ_REG(&regs->status) & LEON_REG_UART_STATUS_THE) == 0 )
+	if ( (READ_REG(&regs->status) & APBUART_STATUS_TE) == 0 )
 		return -1; /* Failed */
 
 	/* There is room in fifo, put ch in it */
@@ -169,12 +171,12 @@ static int apbuart_inbyte_try(struct apbuart_regs *regs)
 {
 	unsigned int status;
 	/* Clear errors if any */
-	if ( (status=READ_REG(&regs->status)) & LEON_REG_UART_STATUS_ERR) {
-		regs->status = status & ~LEON_REG_UART_STATUS_ERR;
+	if ( (status=READ_REG(&regs->status)) & APBUART_STATUS_ERR) {
+		regs->status = status & ~APBUART_STATUS_ERR;
 	}
 
 	/* Is Data available? */
-	if ( (READ_REG(&regs->status) & LEON_REG_UART_STATUS_DR) == 0 )
+	if ( (READ_REG(&regs->status) & APBUART_STATUS_DR) == 0 )
 		return -1; /* No data avail */
 
 	/* Return Data */
@@ -323,6 +325,9 @@ static void apbuart_interrupt(apbuart_priv *uart){
 	}
 }
 
+#ifdef APBUART_REGISTER_STATIC
+static
+#endif
 int APBUART_PREFIX(_register)(struct ambapp_bus *bus) {
 	rtems_status_code r;
 	rtems_device_major_number m;

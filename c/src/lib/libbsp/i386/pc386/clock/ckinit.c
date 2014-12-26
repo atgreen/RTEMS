@@ -20,7 +20,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
@@ -256,8 +256,6 @@ static void clockOff(void)
   outport_byte(TIMER_CNTR0, 0);
   outport_byte(TIMER_CNTR0, 0);
 } /* Clock_exit */
-
-#define Clock_driver_support_shutdown_hardware() clockOff()
 
 bool Clock_isr_enabled = false;
 static void Clock_isr_handler(void *param)

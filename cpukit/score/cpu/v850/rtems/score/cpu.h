@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -549,25 +549,6 @@ typedef struct {
  */
 #define CPU_MPCI_RECEIVE_SERVER_EXTRA_STACK 0
 
-/* XXX this should not be needed on PIC architectures */
-/* XXX evaluate removing it */
-#if 0
-/**
- * This defines the number of entries in the @ref _ISR_Vector_table managed
- * by RTEMS.
- *
- * Port Specific Information:
- *
- * XXX document implementation including references if appropriate
- */
-#define CPU_INTERRUPT_NUMBER_OF_VECTORS      32
-#endif
-
-/**
- * This defines the highest interrupt vector number for this port.
- */
-#define CPU_INTERRUPT_MAXIMUM_VECTOR_NUMBER  (CPU_INTERRUPT_NUMBER_OF_VECTORS - 1)
-
 /**
  * This is defined if the port has a special way to report the ISR nesting
  * level.  Most ports maintain the variable @a _ISR_Nest_level.
@@ -790,6 +771,7 @@ uint32_t   _CPU_ISR_Get_level( void );
  *       point thread.  This is typically only used on CPUs where the
  *       FPU may be easily disabled by software such as on the SPARC
  *       where the PSR contains an enable FPU bit.
+ * @param[in] tls_area is the thread-local storage (TLS) area
  *
  * Port Specific Information:
  *
@@ -801,7 +783,8 @@ void _CPU_Context_Initialize(
   uint32_t          size,
   uint32_t          new_level,
   void             *entry_point,
-  bool              is_fp
+  bool              is_fp,
+  void             *tls_area
 );
 
 /**
@@ -888,7 +871,7 @@ void _CPU_Context_Initialize(
  *
  * Move the error code into r10, disable interrupts and halt.
  */
-#define _CPU_Fatal_halt( _error ) \
+#define _CPU_Fatal_halt( _source, _error ) \
   do { \
     __asm__ __volatile__ ( "di" ); \
     __asm__ __volatile__ ( "mov %0, r10; " : "=r" ((_error)) ); \
@@ -933,7 +916,7 @@ void _CPU_Context_Initialize(
 /**
  * This routine sets @a _output to the bit number of the first bit
  * set in @a _value.  @a _value is of CPU dependent type
- * @a Priority_bit_map_Control.  This type may be either 16 or 32 bits
+ * @a Priority_bit_map_Word.  This type may be either 16 or 32 bits
  * wide although only the 16 least significant bits will be used.
  *
  * There are a number of variables in using a "find first bit" type
@@ -1229,6 +1212,18 @@ static inline uint16_t CPU_swap_u16( uint16_t value )
     swapped = ((value & 0xff) << 8) | ((value >> 8) & 0xff);
   #endif
   return swapped;
+}
+
+typedef uint32_t CPU_Counter_ticks;
+
+CPU_Counter_ticks _CPU_Counter_read( void );
+
+static inline CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  return second - first;
 }
 
 #ifdef __cplusplus

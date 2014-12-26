@@ -18,8 +18,6 @@ noinst_PROGRAMS =
 
 include_HEADERS += ../../shared/include/coverhd.h
 
-nodist_include_HEADERS += ../../shared/tod.h
-
 include_bsp_HEADERS = include/irq.h \
 	../../shared/include/irq-generic.h \
 	../../shared/include/irq-info.h \
@@ -30,7 +28,6 @@ include_bsp_HEADERS = include/irq.h \
 	../shared/include/start.h \
 	../shared/include/tictac.h \
 	../shared/include/linker-symbols.h \
-	include/hwreg_vals.h \
 	include/tsec-config.h \
 	include/u-boot-config.h \
 	include/mmu.h \
@@ -94,15 +91,11 @@ libbsp_a_SOURCES += ../../shared/src/irq-shell.c
 libbsp_a_SOURCES += irq/irq.c
 
 # Console
-libbsp_a_SOURCES += ../../shared/console.c \
-        ../../shared/console_select.c \
-	console/uart-bridge-master.c \
-	console/uart-bridge-slave.c \
-	console/console-config.c \
-        ../../shared/console_read.c \
-        ../../shared/console_write.c \
-        ../../shared/console_control.c
-
+libbsp_a_SOURCES += ../../shared/console-termios-init.c
+libbsp_a_SOURCES += ../../shared/console-termios.c
+libbsp_a_SOURCES += console/uart-bridge-master.c
+libbsp_a_SOURCES += console/uart-bridge-slave.c
+libbsp_a_SOURCES += console/console-config.c
 
 # RTC
 libbsp_a_SOURCES += ../../shared/tod.c \
@@ -126,7 +119,7 @@ libbsp_a_LIBADD += ../../../libcpu/@RTEMS_CPU@/tsec.rel
 endif
 
 if HAS_SMP
-libbsp_a_SOURCES += startup/smp.c
+libbsp_a_SOURCES += startup/bspsmp.c
 endif
 
 include $(srcdir)/preinstall.am

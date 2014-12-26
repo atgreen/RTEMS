@@ -1,7 +1,7 @@
 ## Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([rtems-c-src-lib-libbsp-i386-pc386],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-c-src-lib-libbsp-i386-pc386],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([bsp_specs])
 RTEMS_TOP(../../../../../..)
 
@@ -81,6 +81,24 @@ RTEMS_BSPOPTS_HELP([USE_CIRRUS_GD5446],
 
  NOTE: This has only been tested on Qemu.])
 AM_CONDITIONAL(USE_CIRRUS_GD5446,test "$USE_CIRRUS_GD5446" = "1")
+
+RTEMS_BSPOPTS_SET([USE_VBE_RM],[*],[0])
+RTEMS_BSPOPTS_HELP([USE_VBE_RM],
+[If defined, enables use of the Vesa Bios Extensions - real mode interface,
+ which enables graphical mode and introduce it upon bootup.])
+AM_CONDITIONAL(USE_VBE_RM,test "$USE_VBE_RM" = "1")
+
+if test "${USE_VBE_RM}" = "1" ; then
+  if test -z "${NUM_APP_DRV_GDT_DESCRIPTORS}"; then
+      NUM_APP_DRV_GDT_DESCRIPTORS=2 ;
+  else
+      NUM_APP_DRV_GDT_DESCRIPTORS+=2 ;
+  fi
+fi
+RTEMS_BSPOPTS_SET([NUM_APP_DRV_GDT_DESCRIPTORS],[*],[0])
+RTEMS_BSPOPTS_HELP([NUM_APP_DRV_GDT_DESCRIPTORS],
+[Defines how many descriptors in GDT may be allocated for application or
+ driver usage.])
 
 if test X${CLOCK_DRIVER_USE_TSC} = X1 -a X${CLOCK_DRIVER_USE_8254} = X1 ; then
   AC_MSG_ERROR([pc386 both TSC and 8254 specified for clock driver])

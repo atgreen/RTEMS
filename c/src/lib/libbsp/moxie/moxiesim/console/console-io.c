@@ -1,7 +1,9 @@
 /*
  *  This file contains the hardware specific portions of the TTY driver
  *  for the Moxie GDB simulator.
- *
+ */
+
+/*
  *  COPYRIGHT (c) 2011.
  *  Anthony Green.
  *
@@ -10,11 +12,12 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  */
 
 #include <bsp.h>
+#include <bsp/console-polled.h>
 #include <rtems/libio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -60,7 +63,7 @@ int console_inbyte_nonblocking(
 
 #include <rtems/bspIo.h>
 
-void moxiesim_output_char(char c) { console_outbyte_polled( 0, c ); }
+static void moxiesim_output_char(char c) { console_outbyte_polled( 0, c ); }
 
 BSP_output_char_function_type           BSP_output_char = moxiesim_output_char;
 BSP_polling_getchar_function_type       BSP_poll_char = NULL;

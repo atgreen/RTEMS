@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_SCHEDULERCBS_H
@@ -52,16 +52,16 @@ extern "C" {
     _Scheduler_EDF_Yield,            /* yield entry point */ \
     _Scheduler_EDF_Block,            /* block entry point */ \
     _Scheduler_CBS_Unblock,          /* unblock entry point */ \
-    _Scheduler_CBS_Allocate,         /* allocate entry point */ \
-    _Scheduler_EDF_Free,             /* free entry point */ \
-    _Scheduler_EDF_Update,           /* update entry point */ \
-    _Scheduler_EDF_Enqueue,          /* enqueue entry point */ \
-    _Scheduler_EDF_Enqueue_first,    /* enqueue_first entry point */ \
-    _Scheduler_EDF_Extract,          /* extract entry point */ \
+    _Scheduler_EDF_Change_priority,  /* change priority entry point */ \
+    SCHEDULER_OPERATION_DEFAULT_ASK_FOR_HELP \
+    _Scheduler_CBS_Node_initialize,  /* node initialize entry point */ \
+    _Scheduler_default_Node_destroy, /* node destroy entry point */ \
+    _Scheduler_EDF_Update_priority,  /* update priority entry point */ \
     _Scheduler_EDF_Priority_compare, /* compares two priorities */ \
     _Scheduler_CBS_Release_job,      /* new period of task */ \
     _Scheduler_default_Tick,         /* tick entry point */ \
     _Scheduler_default_Start_idle    /* start idle entry point */ \
+    SCHEDULER_OPERATION_DEFAULT_GET_SET_AFFINITY \
   }
 
 /* Return values for CBS server. */
@@ -81,7 +81,7 @@ extern "C" {
 #define SCHEDULER_CBS_ERROR_NOSERVER           SCHEDULER_CBS_ERROR_NOT_FOUND
 
 /** Maximum number of simultaneous servers. */
-extern uint32_t _Scheduler_CBS_Maximum_servers;
+extern const uint32_t _Scheduler_CBS_Maximum_servers;
 
 /** Server id. */
 typedef uint32_t Scheduler_CBS_Server_id;
@@ -115,6 +115,13 @@ typedef struct {
   Scheduler_CBS_Parameters parameters;
   /** Callback function invoked when a budget overrun occurs. */
   Scheduler_CBS_Budget_overrun  cbs_budget_overrun;
+
+  /**
+   * @brief Indicates if this CBS server is initialized.
+   *
+   * @see _Scheduler_CBS_Create_server() and _Scheduler_CBS_Destroy_server().
+   */
+  bool initialized;
 } Scheduler_CBS_Server;
 
 /**
@@ -122,17 +129,17 @@ typedef struct {
  */
 typedef struct {
   /** EDF scheduler specific data of a task. */
-  Scheduler_EDF_Per_thread      edf_per_thread;
+  Scheduler_EDF_Node            Base;
   /** CBS server specific data of a task. */
   Scheduler_CBS_Server         *cbs_server;
-} Scheduler_CBS_Per_thread;
+} Scheduler_CBS_Node;
 
 
 /**
  * List of servers. The @a Scheduler_CBS_Server is the index to the array
  * of pointers to @a _Scheduler_CBS_Server_list.
  */
-extern Scheduler_CBS_Server **_Scheduler_CBS_Server_list;
+extern Scheduler_CBS_Server _Scheduler_CBS_Server_list[];
 
 /**
  *  @brief Unblocks a thread from the queue.
@@ -147,8 +154,9 @@ extern Scheduler_CBS_Server **_Scheduler_CBS_Server_list;
  *
  *  @note This has to be asessed as missed deadline of the current job.
  */
-void _Scheduler_CBS_Unblock(
-  Thread_Control    *the_thread
+Scheduler_Void_or_thread _Scheduler_CBS_Unblock(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
 );
 
 /**
@@ -164,8 +172,9 @@ void _Scheduler_CBS_Unblock(
  */
 
 void _Scheduler_CBS_Release_job (
-  Thread_Control  *the_thread,
-  uint32_t         length
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread,
+  uint32_t                 length
 );
 
 /**
@@ -328,16 +337,13 @@ void _Scheduler_CBS_Budget_callout(
 );
 
 /**
- *  @brief Allocates CBS specific information of @a the_thread.
- *
- *  This routine allocates CBS specific information of @a the_thread.
- *
- *  @param[in] the_thread is the thread the scheduler is allocating
- *             management memory for.
+ *  @brief Initializes a CBS specific scheduler node of @a the_thread.
  */
-void *_Scheduler_CBS_Allocate(
-  Thread_Control      *the_thread
+void _Scheduler_CBS_Node_initialize(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
 );
+
 #ifdef __cplusplus
 }
 #endif

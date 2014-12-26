@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_LIBCSUPPORT_H
@@ -85,9 +85,8 @@ bool newlib_create_hook(
 
 #define __RTEMS_NEWLIB_BEGIN 0
 
-void newlib_delete_hook(
-  rtems_tcb *current_task,
-  rtems_tcb *deleted_task
+void newlib_terminate_hook(
+  rtems_tcb *current_task
 );
 
 #define RTEMS_NEWLIB_EXTENSION \
@@ -95,11 +94,12 @@ void newlib_delete_hook(
   newlib_create_hook,     /* rtems_task_create  */ \
   0,                      /* rtems_task_start   */ \
   0,                      /* rtems_task_restart */ \
-  newlib_delete_hook,     /* rtems_task_delete  */ \
+  0,                      /* rtems_task_delete  */ \
   0,                      /* task_switch  */ \
   __RTEMS_NEWLIB_BEGIN,   /* task_begin   */ \
   0,                      /* task_exitted */ \
-  0                       /* fatal        */ \
+  0,                      /* fatal        */ \
+  newlib_terminate_hook   /* thread terminate */ \
 }
 
 typedef struct {
@@ -118,7 +118,6 @@ typedef struct {
 typedef struct {
   uint32_t active_barriers;
   uint32_t active_condition_variables;
-  uint32_t active_keys;
   uint32_t active_message_queues;
   uint32_t active_message_queue_descriptors;
   uint32_t active_mutexes;
@@ -132,6 +131,8 @@ typedef struct {
 typedef struct {
   Heap_Information_block workspace_info;
   Heap_Information_block heap_info;
+  uint32_t active_posix_key_value_pairs;
+  uint32_t active_posix_keys;
   rtems_resource_rtems_api rtems_api;
   rtems_resource_posix_api posix_api;
   int open_files;

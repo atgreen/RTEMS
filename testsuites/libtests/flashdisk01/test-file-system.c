@@ -9,14 +9,12 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include "test-file-system.h"
 
 #include <bsp.h>
-
-#if !BSP_SMALL_MEMORY
 
 #include <sys/types.h>
 #include <sys/param.h>
@@ -835,5 +833,3 @@ void test_file_system_with_handler(
 
   free(fs);
 }
-
-#endif /* !BSP_SMALL_MEMORY */

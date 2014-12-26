@@ -1,20 +1,18 @@
 /*
- *  This routine starts the application.  It includes application,
- *  board, and monitor specific initialization and configuration.
- *  The generic CPU dependent initialization has been performed
- *  before this routine is invoked.
- *
- *  COPYRIGHT (c) 1989-2007.
+ *  This routine does the bulk of the system initialization.
+ */
+
+/*
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
-#warning The interrupt disable mask is now stored in SPRG0, please verify that this is compatible to this BSP (see also bootcard.c).
-
 #include <bsp/consoleIo.h>
+#include <bsp/bootcard.h>
 #include <libcpu/spr.h>
 #include <bsp/residual.h>
 #include <bsp/pci.h>
@@ -27,6 +25,7 @@
 #include <libcpu/cpuIdent.h>
 #include <bsp/vectors.h>
 #include <rtems/powerpc/powerpc.h>
+#include <rtems/counter.h>
 
 extern unsigned long __bss_start[], __SBSS_START__[], __SBSS_END__[];
 extern unsigned long __SBSS2_START__[], __SBSS2_END__[];
@@ -50,37 +49,19 @@ uint8_t LightIdx = 0;
 extern int RAM_END;
 unsigned int BSP_mem_size = (unsigned int)&RAM_END;
 
-void BSP_Increment_Light(void){
+static void BSP_Increment_Light(void)
+{
   uint8_t data;
+
   data = *GENERAL_REGISTER1;
   data &= 0xf0;
   data |= LightIdx++;
   *GENERAL_REGISTER1 = data;
 }
 
-void BSP_Fatal_Fault_Light(void) {
-  uint8_t data;
-  data = *GENERAL_REGISTER1;
-  data &= 0xf0;
-  data |= 0x7;
-  while(1)
-    *GENERAL_REGISTER1 = data;
-}
-
-void write_to_Q2ram(int offset, unsigned int data )
-{
-printk("0x%x ==> %d\n", offset, data );
-#if 0
-  unsigned int *ptr = 0x82000000;
-  ptr += offset;
-  *ptr = data;
-#endif
-}
-
 /*
  * Vital Board data Start using DATA RESIDUAL
  */
-
 uint32_t VME_Slot1 = FALSE;
 
 /*
@@ -159,27 +140,10 @@ void bsp_pretasking_hook(void)
   rsPMCQ1Init();
 }
 
-void zero_bss(void)
-{
-  memset(__SBSS_START__, 0, ((unsigned) __SBSS_END__) - ((unsigned)__SBSS_START__));
-  memset(__SBSS2_START__, 0, ((unsigned) __SBSS2_END__) - ((unsigned)__SBSS2_START__));
-  memset(__bss_start, 0, ((unsigned) __rtems_end) - ((unsigned)__bss_start));
-}
-
-char * save_boot_params(RESIDUAL* r3, void *r4, void* r5, char *additional_boot_options)
-{
-#if 0
-  residualCopy = *r3;
-  strncpy(loaderParam, additional_boot_options, MAX_LOADER_ADD_PARM);
-  loaderParam[MAX_LOADER_ADD_PARM - 1] ='\0';
-  return loaderParam;
-#endif
-  return 0;
-}
-
 unsigned int EUMBBAR;
 
-unsigned int get_eumbbar(void) {
+static unsigned int get_eumbbar(void)
+{
   register int a, e;
 
   __asm__ volatile( "lis %0,0xfec0; ori  %0,%0,0x0000": "=r" (a) );
@@ -197,7 +161,7 @@ unsigned int get_eumbbar(void) {
   return e;
 }
 
-void Read_ep1a_config_registers( ppc_cpu_id_t myCpu ) {
+static void Read_ep1a_config_registers( ppc_cpu_id_t myCpu ) {
   unsigned char value;
 
   /*
@@ -272,13 +236,11 @@ void Read_ep1a_config_registers( ppc_cpu_id_t myCpu ) {
  *
  *  This routine does the bulk of the system initialization.
  */
-
 void bsp_start( void )
 {
   uintptr_t intrStackStart;
   uintptr_t intrStackSize;
   ppc_cpu_id_t myCpu;
-  ppc_cpu_revision_t myCpuRevision;
   Triv121PgTbl	pt=0;   /*  R = e; */
 
   /*
@@ -287,8 +249,8 @@ void bsp_start( void )
    * latter...
    */
   BSP_Increment_Light();
-  myCpu         = get_ppc_cpu_type();
-  myCpuRevision = get_ppc_cpu_revision();
+  myCpu = get_ppc_cpu_type();
+  get_ppc_cpu_revision();
 
   EUMBBAR = get_eumbbar();
   printk("EUMBBAR 0x%08x\n", EUMBBAR );
@@ -300,6 +262,9 @@ void bsp_start( void )
   Read_ep1a_config_registers( myCpu );
 
   bsp_clicks_per_usec = BSP_processor_frequency/(BSP_time_base_divisor * 1000);
+  rtems_counter_initialize_converter(
+    BSP_processor_frequency / (BSP_time_base_divisor / 1000)
+  );
 
 ShowBATS();
 #if 0   /* XXX - Add back in cache enable when we get this up and running!! */
@@ -319,11 +284,7 @@ ShowBATS();
   /*
    * Initialize default raw exception hanlders.
    */
-  ppc_exc_initialize(
-    PPC_INTERRUPT_DISABLE_MASK_DEFAULT,
-    intrStackStart,
-    intrStackSize
-  );
+  ppc_exc_initialize(intrStackStart, intrStackSize);
 
   /*
    * Init MMU block address translation to enable hardware

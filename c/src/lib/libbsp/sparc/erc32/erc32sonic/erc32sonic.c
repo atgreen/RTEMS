@@ -1,10 +1,23 @@
-/*
- *  THARSYS VME SPARC RT board SONIC Configuration Information
+/**
+ * @file
+ *
+ * @ingroup sparc_erc32
+ *
+ * @brief THARSYS VME SPARC RT board SONIC Configuration Information
  *
  *  References:
  *
  *  1) SVME/DMV-171 Single Board Computer Documentation Package, #805905,
  *     DY 4 Systems Inc., Kanata, Ontario, September, 1996.
+ */
+
+/*
+ *  COPYRIGHT (c) 2000.
+ *  European Space Agency.
+ *
+ *  The license and distribution terms for this file may be
+ *  found in the file LICENSE in this distribution or at
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
@@ -98,9 +111,10 @@ sonic_configuration_t erc32_sonic_configuration = {
 int rtems_erc32_sonic_driver_attach(struct rtems_bsdnet_ifconfig *config)
 {
 
-  ERC32_MEC.IO_Configuration |= (0x15 << (((SONIC_BASE_ADDRESS >> 24) & 0x3) * 8));
+  ERC32_MEC.IO_Configuration |=
+      (0x15 << (((SONIC_BASE_ADDRESS >> 24) & 0x3) * 8));
   ERC32_MEC.Control &= ~0x60001; /* Disable DMA time-out, parity & power-down */
-  ERC32_MEC.Control |= 0x10000; 		/* Enable DMA */
+  ERC32_MEC.Control |= 0x10000;  /* Enable DMA */
   ERC32_MEC.Interrupt_Mask &= ~(1 << (SONIC_VECTOR - 0x10));
   return(rtems_sonic_driver_attach( config, &erc32_sonic_configuration ));
 

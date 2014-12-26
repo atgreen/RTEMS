@@ -15,7 +15,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -32,8 +32,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-struct rtems_termios_tty *rtems_termios_ttyHead;
-struct rtems_termios_tty *rtems_termios_ttyTail;
 rtems_id rtems_termios_ttyMutex;
 
 void

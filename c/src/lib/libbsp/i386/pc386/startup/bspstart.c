@@ -24,7 +24,7 @@
 | *
 | *  The license and distribution terms for this file may be
 | *  found in the file LICENSE in this distribution or at
-| *  http://www.rtems.com/license/LICENSE.
+| *  http://www.rtems.org/license/LICENSE.
 | **************************************************************************
 +--------------------------------------------------------------------------*/
 
@@ -36,9 +36,6 @@
 /*
  *  External routines
  */
-extern void Calibrate_loop_1ms(void);
-extern void rtems_irq_mngt_init(void);
-extern void bsp_size_memory(void);
 void Clock_driver_install_handler(void);
 
 /*-------------------------------------------------------------------------+
@@ -48,7 +45,7 @@ void Clock_driver_install_handler(void);
 |        Arguments: None.
 |          Returns: Nothing.
 +--------------------------------------------------------------------------*/
-void bsp_start_default( void )
+static void bsp_start_default( void )
 {
   int pci_init_retval;
 
@@ -84,11 +81,10 @@ void bsp_start_default( void )
 
   bsp_ide_cmdline_init();
 
-} /* bsp_start */
+} /* bsp_start_default */
 
 /*
  *  By making this a weak alias for bsp_start_default, a brave soul
  *  can override the actual bsp_start routine used.
  */
-
 void bsp_start (void) __attribute__ ((weak, alias("bsp_start_default")));

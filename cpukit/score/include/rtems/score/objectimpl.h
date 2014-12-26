@@ -13,13 +13,14 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_OBJECTIMPL_H
 #define _RTEMS_SCORE_OBJECTIMPL_H
 
 #include <rtems/score/object.h>
+#include <rtems/score/apimutex.h>
 #include <rtems/score/isrlevel.h>
 #include <rtems/score/threaddispatch.h>
 
@@ -98,6 +99,15 @@ typedef enum {
 
 /** This macro is used to generically specify the last API index. */
 #define OBJECTS_POSIX_CLASSES_LAST OBJECTS_POSIX_RWLOCKS
+
+/*
+ * For fake objects, which have an object identifier, but no objects
+ * information block.
+ */
+typedef enum {
+  OBJECTS_FAKE_OBJECTS_NO_CLASS   = 0,
+  OBJECTS_FAKE_OBJECTS_SCHEDULERS = 1
+} Objects_Fake_objects_API;
 
 /**
  *  This enumerated type lists the locations which may be returned
@@ -264,25 +274,120 @@ unsigned int _Objects_API_maximum_class(
 );
 
 /**
- *  @brief Allocate an object.
+ * @brief Allocates an object without locking the allocator mutex.
  *
- *  This function allocates an object control block from
- *  the inactive chain of free object control blocks.
+ * This function can be called in two contexts
+ * - the executing thread is the owner of the object allocator mutex, or
+ * - in case the system state is not up, e.g. during sequential system
+ *   initialization.
  *
- *  @param[in] information points to an object class information block.
+ * @param[in] information The object information block.
+ *
+ * @retval NULL No object available.
+ * @retval object The allocated object.
+ *
+ * @see _Objects_Allocate() and _Objects_Free().
  */
-Objects_Control *_Objects_Allocate(
+Objects_Control *_Objects_Allocate_unprotected(
   Objects_Information *information
 );
 
 /**
- *  @brief Free an object.
+ * @brief Allocates an object.
  *
- *  This function frees an object control block to the
- *  inactive chain of free object control blocks.
+ * This function locks the object allocator mutex via
+ * _Objects_Allocator_lock().  The caller must later unlock the object
+ * allocator mutex via _Objects_Allocator_unlock().  The caller must unlock the
+ * mutex in any case, even if the allocation failed due to resource shortage.
  *
- *  @param[in] information points to an object class information block.
- *  @param[in] the_object points to the object to deallocate.
+ * A typical object allocation code looks like this:
+ * @code
+ * rtems_status_code some_create( rtems_id *id )
+ * {
+ *   rtems_status_code  sc;
+ *   Some_Control      *some;
+ *
+ *   // The object allocator mutex protects the executing thread from
+ *   // asynchronous thread restart and deletion.
+ *   some = (Some_Control *) _Objects_Allocate( &_Some_Information );
+ *
+ *   if ( some != NULL ) {
+ *     _Some_Initialize( some );
+ *     sc = RTEMS_SUCCESSFUL;
+ *   } else {
+ *     sc = RTEMS_TOO_MANY;
+ *   }
+ *
+ *   _Objects_Allocator_unlock();
+ *
+ *   return sc;
+ * }
+ * @endcode
+ *
+ * @param[in] information The object information block.
+ *
+ * @retval NULL No object available.
+ * @retval object The allocated object.
+ *
+ * @see _Objects_Free().
+ */
+Objects_Control *_Objects_Allocate( Objects_Information *information );
+
+/**
+ * @brief Frees an object.
+ *
+ * Appends the object to the chain of inactive objects.
+ *
+ * @param[in] information The object information block.
+ * @param[in] the_object The object to free.
+ *
+ * @see _Objects_Allocate().
+ *
+ * A typical object deletion code looks like this:
+ * @code
+ * rtems_status_code some_delete( rtems_id id )
+ * {
+ *   rtems_status_code  sc;
+ *   Some_Control      *some;
+ *   Objects_Locations  location;
+ *
+ *   // The object allocator mutex protects the executing thread from
+ *   // asynchronous thread restart and deletion.
+ *   _Objects_Allocator_lock();
+ *
+ *   // This will disable thread dispatching, so this starts a thread dispatch
+ *   // critical section.
+ *   some = (Semaphore_Control *)
+ *     _Objects_Get( &_Some_Information, id, &location );
+ *
+ *   switch ( location ) {
+ *     case OBJECTS_LOCAL:
+ *       // After the object close an object get with this identifier will
+ *       // fail.
+ *       _Objects_Close( &_Some_Information, &some->Object );
+ *
+ *       _Some_Delete( some );
+ *
+ *       // This enables thread dispatching, so the thread dispatch critical
+ *       // section ends here.
+ *       _Objects_Put( &some->Object );
+ *
+ *       // Thread dispatching is enabled.  The object free is only protected
+ *       // by the object allocator mutex.
+ *       _Objects_Free( &_Some_Information, &some->Object );
+ *
+ *       sc = RTEMS_SUCCESSFUL;
+ *       break;
+ *     default:
+ *       sc = RTEMS_INVALID_ID;
+ *       break;
+ *   }
+ *
+ *   _Objects_Allocator_unlock();
+ *
+ *   return sc;
+ * }
+ * @endcode
  */
 void _Objects_Free(
   Objects_Information *information,
@@ -770,6 +875,9 @@ RTEMS_INLINE_ROUTINE void _Objects_Invalidate_Id(
   Objects_Control      *the_object
 )
 {
+  _Assert( information != NULL );
+  _Assert( the_object != NULL );
+
   _Objects_Set_local_object(
     information,
     _Objects_Get_index( the_object->id ),
@@ -791,13 +899,16 @@ RTEMS_INLINE_ROUTINE void _Objects_Open(
   Objects_Name         name
 )
 {
+  _Assert( information != NULL );
+  _Assert( the_object != NULL );
+
+  the_object->name = name;
+
   _Objects_Set_local_object(
     information,
     _Objects_Get_index( the_object->id ),
     the_object
   );
-
-  the_object->name = name;
 }
 
 /**
@@ -814,14 +925,14 @@ RTEMS_INLINE_ROUTINE void _Objects_Open_u32(
   uint32_t             name
 )
 {
+  /* ASSERT: information->is_string == false */
+  the_object->name.name_u32 = name;
+
   _Objects_Set_local_object(
     information,
     _Objects_Get_index( the_object->id ),
     the_object
   );
-
-  /* ASSERT: information->is_string == false */
-  the_object->name.name_u32 = name;
 }
 
 /**
@@ -838,16 +949,16 @@ RTEMS_INLINE_ROUTINE void _Objects_Open_string(
   const char          *name
 )
 {
+  #if defined(RTEMS_SCORE_OBJECT_ENABLE_STRING_NAMES)
+    /* ASSERT: information->is_string */
+    the_object->name.name_p = name;
+  #endif
+
   _Objects_Set_local_object(
     information,
     _Objects_Get_index( the_object->id ),
     the_object
   );
-
-  #if defined(RTEMS_SCORE_OBJECT_ENABLE_STRING_NAMES)
-    /* ASSERT: information->is_string */
-    the_object->name.name_p = name;
-  #endif
 }
 
 /**
@@ -880,23 +991,6 @@ RTEMS_INLINE_ROUTINE void _Objects_Put_without_thread_dispatch(
 }
 
 /**
- * @brief Puts back an object obtained with _Objects_Get().
- *
- * The thread dispatch disable level will remain unchanged.
- *
- * On SMP configurations the Giant lock will be released.
- */
-RTEMS_INLINE_ROUTINE void _Objects_Put_and_keep_thread_dispatch_disabled(
-  Objects_Control *the_object
-)
-{
-  (void) the_object;
-#if defined(RTEMS_SMP)
-  _Giant_Release();
-#endif
-}
-
-/**
  * @brief Puts back an object obtained with _Objects_Get_isr_disable().
  */
 RTEMS_INLINE_ROUTINE void _Objects_Put_for_get_isr_disable(
@@ -907,6 +1001,37 @@ RTEMS_INLINE_ROUTINE void _Objects_Put_for_get_isr_disable(
 #if defined(RTEMS_SMP)
   _Thread_Enable_dispatch();
 #endif
+}
+
+/**
+ * @brief Locks the object allocator mutex.
+ *
+ * While holding the allocator mutex the executing thread is protected from
+ * asynchronous thread restart and deletion.
+ *
+ * The usage of the object allocator mutex with the thread life protection
+ * makes it possible to allocate and free objects without thread dispatching
+ * disabled.  The usage of a unified workspace and unlimited objects may lead
+ * to heap fragmentation.  Thus the execution time of the _Objects_Allocate()
+ * function may increase during system run-time.
+ *
+ * @see _Objects_Allocator_unlock() and _Objects_Allocate().
+ */
+RTEMS_INLINE_ROUTINE void _Objects_Allocator_lock( void )
+{
+  _RTEMS_Lock_allocator();
+}
+
+/**
+ * @brief Unlocks the object allocator mutex.
+ *
+ * In case the mutex is fully unlocked, then this function restores the
+ * previous thread life protection state and thus may not return if the
+ * executing thread was restarted or deleted in the mean-time.
+ */
+RTEMS_INLINE_ROUTINE void _Objects_Allocator_unlock( void )
+{
+  _RTEMS_Unlock_allocator();
 }
 
 /** @} */

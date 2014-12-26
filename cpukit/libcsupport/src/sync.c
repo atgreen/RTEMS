@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -39,12 +39,10 @@ static void sync_wrapper(FILE *f)
   int fn = fileno(f);
 
   /*
-   *  We are explicitly NOT checking the return values as it does not
-   *  matter if they succeed.  We are just making a best faith attempt
-   *  at both and trusting that we were passed a good FILE pointer.
+   * There is no way to report errors here.  So this is a best-effort approach.
    */
-  fsync(fn);
-  fdatasync(fn);
+  (void) fsync(fn);
+  (void) fdatasync(fn);
 }
 
 /* iterate over all FILE *'s for this thread */

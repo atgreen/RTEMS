@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_MESSAGEIMPL_H
@@ -90,16 +90,6 @@ rtems_status_code _Message_queue_Submit(
 );
 
 /**
- * @brief Message Queue Allocate
- *
- * This function allocates a message queue control block from
- * the inactive chain of free message queue control blocks.
- *
- * @retval the_message_queue filled in if successful, NULL otherwise
- */
-Message_queue_Control *_Message_queue_Allocate (void);
-
-/**
  * @brief Message queue Translate Core Message Queue Return Code
  *
  * This function returns a RTEMS status code based on
@@ -112,20 +102,6 @@ Message_queue_Control *_Message_queue_Allocate (void);
 rtems_status_code _Message_queue_Translate_core_message_queue_return_code (
   uint32_t   the_message_queue_status
 );
-
-/**
- *  @brief Check whether message queue is null.
- *
- *  This function places the_message at the rear of the outstanding
- *  messages on the_message_queue.
- */
-RTEMS_INLINE_ROUTINE bool _Message_queue_Is_null (
-  Message_queue_Control *the_message_queue
-)
-{
-  return ( the_message_queue == NULL  );
-}
-
 
 /**
  *  @brief Deallocates a message queue control block into
@@ -160,6 +136,12 @@ RTEMS_INLINE_ROUTINE Message_queue_Control *_Message_queue_Get (
 {
   return (Message_queue_Control *)
      _Objects_Get( &_Message_queue_Information, id, location );
+}
+
+RTEMS_INLINE_ROUTINE Message_queue_Control *_Message_queue_Allocate( void )
+{
+  return (Message_queue_Control *)
+    _Objects_Allocate( &_Message_queue_Information );
 }
 
 /**@}*/

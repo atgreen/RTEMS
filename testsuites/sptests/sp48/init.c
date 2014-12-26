@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -16,10 +16,12 @@
 #include <tmacros.h>
 #include <rtems/libcsupport.h>
 
+const char rtems_test_name[] = "SP 48";
+
 rtems_task Init(rtems_task_argument ignored);
 
-#define MAX 5000
-rtems_id Semaphores[MAX];
+#define SEMA_COUNT 5000
+rtems_id Semaphores[SEMA_COUNT];
 
 rtems_task Init(rtems_task_argument ignored)
 {
@@ -27,13 +29,13 @@ rtems_task Init(rtems_task_argument ignored)
   int               i;
   int               created;
 
-  puts( "\n\n*** TEST 48 ***" );
+  TEST_BEGIN();
 
   printf(
     "Largest C program heap block available: %zu\n",
     malloc_free_space()
   );
-  for (i=0 ; i<MAX ; i++ ) {
+  for (i=0 ; i<SEMA_COUNT ; i++ ) {
     sc = rtems_semaphore_create(
       rtems_build_name('s', 'e', 'm', ' '),
       1,
@@ -55,7 +57,7 @@ rtems_task Init(rtems_task_argument ignored)
   }
 
   created = i;
-  if ( created == MAX )
+  if ( created == SEMA_COUNT )
     puts( "Created all semaphores allowed in this test" );
 
   printf( "%d semaphores created\n", i );
@@ -79,7 +81,7 @@ rtems_task Init(rtems_task_argument ignored)
     malloc_free_space()
   );
 
-  puts( "*** END OF TEST 48 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -95,6 +97,8 @@ rtems_task Init(rtems_task_argument ignored)
 #else
   #define CONFIGURE_MEMORY_OVERHEAD    1024
 #endif
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

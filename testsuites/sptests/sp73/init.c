@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -14,6 +14,8 @@
 #include <bsp.h>
 #include <inttypes.h>
 #include "tmacros.h"
+
+const char rtems_test_name[] = "SP 73";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -36,7 +38,7 @@ rtems_task Test_task(
     directive_failed( status, "get tod" );
 
     if ( time.second >= 15 ) {
-      puts( "*** END OF SP73 (YIELD) TEST ***" );
+      TEST_END();
       rtems_test_exit( 0 );
     }
     put_name( Task_name[ task_index ], FALSE );
@@ -56,7 +58,7 @@ rtems_task Init(
   rtems_time_of_day   time;
   rtems_task_priority old;
 
-  puts( "\n\n*** SP73 (YIELD) TEST ***" );
+  TEST_BEGIN();
 
   time.year   = 1988;
   time.month  = 12;
@@ -119,6 +121,8 @@ rtems_task Init(
 #define CONFIGURE_MAXIMUM_TASKS           4
 
 #define CONFIGURE_INIT_TASK_PRIORITY      2
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

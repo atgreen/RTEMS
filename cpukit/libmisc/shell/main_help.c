@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -27,11 +27,15 @@
  * show the help for one command.
  */
 static int rtems_shell_help_cmd(
-  rtems_shell_cmd_t *shell_cmd
+  const rtems_shell_cmd_t *shell_cmd
 )
 {
   const char * pc;
   int    col,line;
+
+  if (!rtems_shell_can_see_cmd(shell_cmd)) {
+    return 0;
+  }
 
   printf("%-12.12s - ",shell_cmd->name);
   col = 14;
@@ -83,7 +87,6 @@ static int rtems_shell_help(
   int col,line,lines,arg;
   char* lines_env;
   rtems_shell_topic_t *topic;
-  rtems_shell_cmd_t * shell_cmd = rtems_shell_first_cmd;
 
   lines_env = getenv("SHELL_LINES");
   if (lines_env)
@@ -92,17 +95,16 @@ static int rtems_shell_help(
     lines = 16;
 
   if (argc<2) {
-    printf("help: ('r' repeat last cmd - 'e' edit last cmd)\n"
-           "  TOPIC? The topics are\n");
+    printf("help: The topics are\n");
     topic = rtems_shell_first_topic;
-    col = 0;
+    col = printf("  all");
     while (topic) {
       if (!col){
-        col = printf("   %s",topic->topic);
+        col = printf("  %s",topic->topic);
       } else {
         if ((col+strlen(topic->topic)+2)>78){
           printf("\n");
-          col = printf("   %s",topic->topic);
+          col = printf("  %s",topic->topic);
         } else {
           col+= printf(", %s",topic->topic);
         }
@@ -114,26 +116,35 @@ static int rtems_shell_help(
   }
   line = 0;
   for (arg = 1;arg<argc;arg++) {
+    const char *cur = argv[arg];
+    rtems_shell_cmd_t *shell_cmd;
+
     if (lines && (line > lines)) {
       printf("Press any key to continue...");getchar();
       printf("\n");
       line = 0;
     }
-    topic  =  rtems_shell_lookup_topic(argv[arg]);
-    if (!topic){
-      if ((shell_cmd = rtems_shell_lookup_cmd(argv[arg])) == NULL) {
-        printf("help: topic or cmd '%s' not found. Try <help> alone for a list\n",
-            argv[arg]);
-        line++;
+    topic  =  rtems_shell_lookup_topic(cur);
+    if (topic == NULL) {
+      if ((shell_cmd = rtems_shell_lookup_cmd(cur)) == NULL) {
+        if (strcmp(cur, "all") != 0) {
+          printf(
+            "help: topic or cmd '%s' not found. Try <help> alone for a list\n",
+            cur
+          );
+          line++;
+          continue;
+        }
       } else {
         line+= rtems_shell_help_cmd(shell_cmd);
+        continue;
       }
-      continue;
     }
-    printf("help: list for the topic '%s'\n",argv[arg]);
+    printf("help: list for the topic '%s'\n",cur);
     line++;
+    shell_cmd = rtems_shell_first_cmd;
     while (shell_cmd) {
-      if (!strcmp(topic->topic,shell_cmd->topic))
+      if (topic == NULL || !strcmp(topic->topic,shell_cmd->topic))
         line+= rtems_shell_help_cmd(shell_cmd);
       if (lines && (line > lines)) {
         printf("Press any key to continue...");
@@ -149,10 +160,9 @@ static int rtems_shell_help(
 }
 
 rtems_shell_cmd_t rtems_shell_HELP_Command  =  {
-  "help",                                       /* name  */
-   "help [topic] # list of usage of commands",  /* usage */
-  "help",                                       /* topic */
-  rtems_shell_help,                             /* command */
-  NULL,                                         /* alias */
-  NULL                                          /* next */
+  .name = "help",
+  .usage = "help [topic] # list of usage of commands",
+  .topic = "help",
+  .command = rtems_shell_help,
+  .mode = S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH
 };

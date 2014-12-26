@@ -1,9 +1,9 @@
-/* clock.c
- *
+/*
  *  This routine initializes the PIT on the MPC5xx.
- *  The tick frequency is specified by the bsp.
- *
- *
+ *  The tick frequency is specified by the BSP.
+ */
+
+/*
  *  MPC5xx port sponsored by Defence Research and Development Canada - Suffield
  *  Copyright (C) 2004, Real-Time Systems Inc. (querbach@realtime.bc.ca)
  *
@@ -36,7 +36,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
@@ -53,13 +53,6 @@ extern int BSP_disconnect_clock_handler(void);
 extern uint32_t bsp_clicks_per_usec;
 
 void Clock_exit( void );
-
-/*
- * These are set by clock driver during its init
- */
-
-rtems_device_major_number rtems_clock_major = ~0;
-rtems_device_minor_number rtems_clock_minor;
 
 /*
  *  ISR Handler
@@ -107,8 +100,7 @@ void clockOn(void* unused)
   usiu.piscrk = 0;
 }
 
-void
-clockOff(void* unused)
+void clockOff(void* unused)
 {
   /* disable PIT and PIT interrupts */
   usiu.piscrk = USIU_UNLOCK_KEY;
@@ -127,26 +119,18 @@ int clockIsOn(void* unused)
  * Called via atexit()
  * Remove the clock interrupt handler by setting handler to NULL
  */
-void
-Clock_exit(void)
+void Clock_exit(void)
 {
   (void) BSP_disconnect_clock_handler ();
 }
 
-void Install_clock(rtems_isr_entry clock_isr)
+static void Install_clock(rtems_isr_entry clock_isr)
 {
   Clock_driver_ticks = 0;
 
   BSP_connect_clock_handler (clock_isr);
   atexit(Clock_exit);
 }
-
-void
-ReInstall_clock(rtems_isr_entry new_clock_isr)
-{
-  BSP_connect_clock_handler (new_clock_isr);
-}
-
 
 rtems_device_driver Clock_initialize(
   rtems_device_major_number major,
@@ -155,13 +139,6 @@ rtems_device_driver Clock_initialize(
 )
 {
   Install_clock( Clock_isr );
-
-  /*
-   * make major/minor avail to others such as shared memory driver
-   */
-
-  rtems_clock_major = major;
-  rtems_clock_minor = minor;
 
   return RTEMS_SUCCESSFUL;
 }

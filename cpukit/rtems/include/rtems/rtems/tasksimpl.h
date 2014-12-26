@@ -6,12 +6,12 @@
  * @brief Classic Tasks Manager Implementation
  */
 
-/*  COPYRIGHT (c) 1989-2008.
+/*  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_TASKSIMPL_H
@@ -19,6 +19,7 @@
 
 #include <rtems/rtems/tasks.h>
 #include <rtems/score/objectimpl.h>
+#include <rtems/score/threadimpl.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,6 +66,7 @@ void _RTEMS_tasks_Manager_initialization(void);
  */
 void _RTEMS_tasks_Initialize_user_tasks( void );
 
+#if !defined(RTEMS_SMP)
 /**
  *  @brief RTEMS Tasks Invoke Task Variable Destructor
  *
@@ -75,16 +77,16 @@ void _RTEMS_Tasks_Invoke_task_variable_dtor(
   Thread_Control        *the_thread,
   rtems_task_variable_t *tvp
 );
+#endif
 
-/**
- *  @brief Allocates a task control block.
- *
- *  This function allocates a task control block from
- *  the inactive chain of free task control blocks.
- */
-RTEMS_INLINE_ROUTINE Thread_Control *_RTEMS_tasks_Allocate( void )
+RTEMS_INLINE_ROUTINE Thread_Control *_RTEMS_tasks_Allocate(void)
 {
-  return (Thread_Control *) _Objects_Allocate( &_RTEMS_tasks_Information );
+  _Objects_Allocator_lock();
+
+  _Thread_Kill_zombies();
+
+  return (Thread_Control *)
+    _Objects_Allocate_unprotected( &_RTEMS_tasks_Information );
 }
 
 /**

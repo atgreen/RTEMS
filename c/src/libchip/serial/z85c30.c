@@ -25,7 +25,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
@@ -269,7 +269,6 @@ Z85C30_STATIC void z85c30_init(int minor)
 
   pz85c30Context->ucModemCtrl = SCC_WR5_TX_8_BITS | SCC_WR5_TX_EN;
 
-  ulCtrlPort = Console_Port_Tbl[minor]->ulCtrlPort1;
   if ( ulCtrlPort == Console_Port_Tbl[minor]->ulCtrlPort2 ) {
     /*
      * This is channel A
@@ -437,6 +436,7 @@ Z85C30_STATIC int z85c30_set_attributes(
   uint32_t               wr4;
   uint32_t               wr5;
   int                    baud_requested;
+  uint32_t               baud_number;
   setRegister_f          setReg;
   rtems_interrupt_level  Irql;
 
@@ -445,15 +445,20 @@ Z85C30_STATIC int z85c30_set_attributes(
 
   /*
    *  Calculate the baud rate divisor
+   *
+   *  Assert ensures there is no division by 0.
    */
 
   baud_requested = t->c_cflag & CBAUD;
   if (!baud_requested)
     baud_requested = B9600;              /* default to 9600 baud */
 
+  baud_number = (uint32_t) rtems_termios_baud_to_number( baud_requested );
+  _Assert( baud_number != 0 );
+
   ulBaudDivisor = Z85C30_Baud(
     (uint32_t) Console_Port_Tbl[minor]->ulClock,
-    (uint32_t) rtems_termios_baud_to_number( baud_requested )
+    baud_number
   );
 
   wr3 = SCC_WR3_RX_EN;

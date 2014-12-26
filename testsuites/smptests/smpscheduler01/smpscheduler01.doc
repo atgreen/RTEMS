@@ -1,0 +1,13 @@
+This file describes the directives and concepts tested by this test set.
+
+test set name: smpscheduler01
+
+directives:
+
+  - _Scheduler_SMP_Enqueue_ordered()
+  - _Scheduler_SMP_Block()
+
+concepts:
+
+  - Ensure that the per-processor state is consistent after a sequence of
+    scheduling events.

@@ -4,10 +4,10 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
-#define FATAL_ERROR_TEST_NAME            "/DEV/NULL FATAL 01"
+#define FATAL_ERROR_TEST_NAME            "/DEV/NULL 1"
 #define FATAL_ERROR_DESCRIPTION          "/dev/null already registered"
 #define FATAL_ERROR_EXPECTED_SOURCE      INTERNAL_ERROR_RTEMS_API
 #define FATAL_ERROR_EXPECTED_IS_INTERNAL FALSE

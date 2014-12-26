@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -211,7 +211,7 @@ extern "C" {
  * The SPARC does not appear to have particularly strict alignment
  * requirements.  This value was chosen to take advantages of caches.
  */
-#define CPU_STRUCTURE_ALIGNMENT          __attribute__ ((aligned (16)))
+#define CPU_STRUCTURE_ALIGNMENT          __attribute__ ((aligned (32)))
 
 #define CPU_TIMESTAMP_USE_INT64_INLINE TRUE
 
@@ -401,33 +401,32 @@ typedef struct {
 /**
  * @brief SPARC basic context.
  *
- * This structure defines the basic integer and processor state context
- * for the SPARC architecture.
+ * This structure defines the non-volatile integer and processor state context
+ * for the SPARC architecture according to "SYSTEM V APPLICATION BINARY
+ * INTERFACE - SPARC Processor Supplement", Third Edition.
+ *
+ * The registers g2 through g4 are reserved for applications.  GCC uses them as
+ * volatile registers by default.  So they are treated like volatile registers
+ * in RTEMS as well.
+ *
+ * The register g6 contains the per-CPU control of the current processor.  It
+ * is an invariant of the processor context.  This register must not be saved
+ * and restored during context switches or interrupt services.
  */
 typedef struct {
-  /**
-   * Using a double g0_g1 will put everything in this structure on a
-   * double word boundary which allows us to use double word loads
-   * and stores safely in the context switch.
-   */
-  double     g0_g1;
-  /** This will contain the contents of the g2 register. */
-  uint32_t   g2;
-  /** This will contain the contents of the g3 register. */
-  uint32_t   g3;
-  /** This will contain the contents of the g4 register. */
-  uint32_t   g4;
   /** This will contain the contents of the g5 register. */
   uint32_t   g5;
-  /** This will contain the contents of the g6 register. */
-  uint32_t   g6;
   /** This will contain the contents of the g7 register. */
   uint32_t   g7;
 
-  /** This will contain the contents of the l0 register. */
-  uint32_t   l0;
-  /** This will contain the contents of the l1 register. */
-  uint32_t   l1;
+  /**
+   * This will contain the contents of the l0 and l1 registers.
+   *
+   * Using a double l0_and_l1 will put everything in this structure on a double
+   * word boundary which allows us to use double word loads and stores safely
+   * in the context switch.
+   */
+  double     l0_and_l1;
   /** This will contain the contents of the l2 register. */
   uint32_t   l2;
   /** This will contain the contents of the l3 register. */
@@ -458,21 +457,12 @@ typedef struct {
   /** This will contain the contents of the i7 register. */
   uint32_t   i7;
 
-  /** This will contain the contents of the o0 register. */
-  uint32_t   o0;
-  /** This will contain the contents of the o1 register. */
-  uint32_t   o1;
-  /** This will contain the contents of the o2 register. */
-  uint32_t   o2;
-  /** This will contain the contents of the o3 register. */
-  uint32_t   o3;
-  /** This will contain the contents of the o4 register. */
-  uint32_t   o4;
-  /** This will contain the contents of the o5 register. */
-  uint32_t   o5;
   /** This will contain the contents of the o6 (e.g. frame pointer) register. */
   uint32_t   o6_sp;
-  /** This will contain the contents of the o7 register. */
+  /**
+   * This will contain the contents of the o7 (e.g. address of CALL
+   * instruction) register.
+   */
   uint32_t   o7;
 
   /** This will contain the contents of the processor status register. */
@@ -483,6 +473,10 @@ typedef struct {
    * SPARC CPU models at high interrupt rates.
    */
   uint32_t   isr_dispatch_disable;
+
+#if defined(RTEMS_SMP)
+  volatile uint32_t is_executing;
+#endif
 } Context_Control;
 
 /**
@@ -493,6 +487,23 @@ typedef struct {
 #define _CPU_Context_Get_SP( _context ) \
   (_context)->o6_sp
 
+#ifdef RTEMS_SMP
+  static inline bool _CPU_Context_Get_is_executing(
+    const Context_Control *context
+  )
+  {
+    return context->is_executing;
+  }
+
+  static inline void _CPU_Context_Set_is_executing(
+    Context_Control *context,
+    bool is_executing
+  )
+  {
+    context->is_executing = is_executing;
+  }
+#endif
+
 #endif /* ASM */
 
 /*
@@ -500,80 +511,60 @@ typedef struct {
  */
 
 /** This macro defines an offset into the context for use in assembly. */
-#define G0_OFFSET    0x00
+#define G5_OFFSET    0x00
 /** This macro defines an offset into the context for use in assembly. */
-#define G1_OFFSET    0x04
-/** This macro defines an offset into the context for use in assembly. */
-#define G2_OFFSET    0x08
-/** This macro defines an offset into the context for use in assembly. */
-#define G3_OFFSET    0x0C
-/** This macro defines an offset into the context for use in assembly. */
-#define G4_OFFSET    0x10
-/** This macro defines an offset into the context for use in assembly. */
-#define G5_OFFSET    0x14
-/** This macro defines an offset into the context for use in assembly. */
-#define G6_OFFSET    0x18
-/** This macro defines an offset into the context for use in assembly. */
-#define G7_OFFSET    0x1C
+#define G7_OFFSET    0x04
 
 /** This macro defines an offset into the context for use in assembly. */
-#define L0_OFFSET    0x20
+#define L0_OFFSET    0x08
 /** This macro defines an offset into the context for use in assembly. */
-#define L1_OFFSET    0x24
+#define L1_OFFSET    0x0C
 /** This macro defines an offset into the context for use in assembly. */
-#define L2_OFFSET    0x28
+#define L2_OFFSET    0x10
 /** This macro defines an offset into the context for use in assembly. */
-#define L3_OFFSET    0x2C
+#define L3_OFFSET    0x14
 /** This macro defines an offset into the context for use in assembly. */
-#define L4_OFFSET    0x30
+#define L4_OFFSET    0x18
 /** This macro defines an offset into the context for use in assembly. */
-#define L5_OFFSET    0x34
+#define L5_OFFSET    0x1C
 /** This macro defines an offset into the context for use in assembly. */
-#define L6_OFFSET    0x38
+#define L6_OFFSET    0x20
 /** This macro defines an offset into the context for use in assembly. */
-#define L7_OFFSET    0x3C
+#define L7_OFFSET    0x24
 
 /** This macro defines an offset into the context for use in assembly. */
-#define I0_OFFSET    0x40
+#define I0_OFFSET    0x28
 /** This macro defines an offset into the context for use in assembly. */
-#define I1_OFFSET    0x44
+#define I1_OFFSET    0x2C
 /** This macro defines an offset into the context for use in assembly. */
-#define I2_OFFSET    0x48
+#define I2_OFFSET    0x30
 /** This macro defines an offset into the context for use in assembly. */
-#define I3_OFFSET    0x4C
+#define I3_OFFSET    0x34
 /** This macro defines an offset into the context for use in assembly. */
-#define I4_OFFSET    0x50
+#define I4_OFFSET    0x38
 /** This macro defines an offset into the context for use in assembly. */
-#define I5_OFFSET    0x54
+#define I5_OFFSET    0x3C
 /** This macro defines an offset into the context for use in assembly. */
-#define I6_FP_OFFSET 0x58
+#define I6_FP_OFFSET 0x40
 /** This macro defines an offset into the context for use in assembly. */
-#define I7_OFFSET    0x5C
+#define I7_OFFSET    0x44
 
 /** This macro defines an offset into the context for use in assembly. */
-#define O0_OFFSET    0x60
+#define O6_SP_OFFSET 0x48
 /** This macro defines an offset into the context for use in assembly. */
-#define O1_OFFSET    0x64
-/** This macro defines an offset into the context for use in assembly. */
-#define O2_OFFSET    0x68
-/** This macro defines an offset into the context for use in assembly. */
-#define O3_OFFSET    0x6C
-/** This macro defines an offset into the context for use in assembly. */
-#define O4_OFFSET    0x70
-/** This macro defines an offset into the context for use in assembly. */
-#define O5_OFFSET    0x74
-/** This macro defines an offset into the context for use in assembly. */
-#define O6_SP_OFFSET 0x78
-/** This macro defines an offset into the context for use in assembly. */
-#define O7_OFFSET    0x7C
+#define O7_OFFSET    0x4C
 
 /** This macro defines an offset into the context for use in assembly. */
-#define PSR_OFFSET   0x80
+#define PSR_OFFSET   0x50
 /** This macro defines an offset into the context for use in assembly. */
-#define ISR_DISPATCH_DISABLE_STACK_OFFSET 0x84
+#define ISR_DISPATCH_DISABLE_STACK_OFFSET 0x54
+
+#if defined(RTEMS_SMP)
+  #define SPARC_CONTEXT_CONTROL_IS_EXECUTING_OFFSET 0x58
+#endif
 
 /** This defines the size of the context area for use in assembly. */
-#define CONTEXT_CONTROL_SIZE 0x88
+#define CONTEXT_CONTROL_SIZE 0x68
 
 #ifndef ASM
 /**
@@ -693,8 +684,8 @@ typedef struct {
   uint32_t                 g4;
   /** This is the offset of the g5 register on an ISF. */
   uint32_t                 g5;
-  /** This is the offset of the g6 register on an ISF. */
-  uint32_t                 g6;
+  /** This is the offset is reserved for alignment on an ISF. */
+  uint32_t                 reserved_for_alignment;
   /** This is the offset of the g7 register on an ISF. */
   uint32_t                 g7;
   /** This is the offset of the i0 register on an ISF. */
@@ -743,8 +734,6 @@ typedef struct {
 #define ISF_G4_OFFSET          CPU_MINIMUM_STACK_FRAME_SIZE + 0x18
 /** This macro defines an offset into the ISF for use in assembly. */
 #define ISF_G5_OFFSET          CPU_MINIMUM_STACK_FRAME_SIZE + 0x1c
-/** This macro defines an offset into the ISF for use in assembly. */
-#define ISF_G6_OFFSET          CPU_MINIMUM_STACK_FRAME_SIZE + 0x20
 /** This macro defines an offset into the ISF for use in assembly. */
 #define ISF_G7_OFFSET          CPU_MINIMUM_STACK_FRAME_SIZE + 0x24
 /** This macro defines an offset into the ISF for use in assembly. */
@@ -1019,6 +1008,7 @@ uint32_t   _CPU_ISR_Get_level( void );
  * @param[in] new_level is the interrupt level for the task
  * @param[in] entry_point is the task's entry point
  * @param[in] is_fp is set to TRUE if the task is a floating point task
+ * @param[in] tls_area is the thread-local storage (TLS) area
  *
  * NOTE:  Implemented as a subroutine for the SPARC port.
  */
@@ -1028,7 +1018,8 @@ void _CPU_Context_Initialize(
   uint32_t          size,
   uint32_t          new_level,
   void             *entry_point,
-  bool              is_fp
+  bool              is_fp,
+  void             *tls_area
 );
 
 /**
@@ -1089,14 +1080,8 @@ void _CPU_Context_Initialize(
  * location or a register, optionally disables interrupts, and
  * halts/stops the CPU.
  */
-#define _CPU_Fatal_halt( _error ) \
-  do { \
-    uint32_t   level; \
-    \
-    level = sparc_disable_interrupts(); \
-    __asm__ volatile ( "mov  %0, %%g1 " : "=r" (level) : "0" (level) ); \
-    while (1); /* loop forever */ \
-  } while (0)
+extern void _CPU_Fatal_halt(uint32_t source, uint32_t error)
+  RTEMS_COMPILER_NO_RETURN_ATTRIBUTE;
 
 /* end of Fatal Error manager macros */
 
@@ -1186,24 +1171,37 @@ void _CPU_Context_restore(
   Context_Control *new_context
 ) RTEMS_COMPILER_NO_RETURN_ATTRIBUTE;
 
-#if defined(RTEMS_SMP)
-  /**
-   * @brief SPARC specific method to switch to first task.
-   *
-   * This routine is only used to switch to the first task on a
-   * secondary core in an SMP configuration.  We do not need to
-   * flush all the windows and, in fact, this can be dangerous
-   * as they may or may not be initialized properly.
-   *
-   * @param[in] new_context is the context to restore
-   */
-  void _CPU_Context_switch_to_first_task_smp(
-    Context_Control *new_context
-  );
+/**
+ * @brief The pointer to the current per-CPU control is available via register
+ * g6.
+ */
+register struct Per_CPU_Control *_SPARC_Per_CPU_current __asm__( "g6" );
 
-  RTEMS_COMPILER_PURE_ATTRIBUTE uint32_t _CPU_SMP_Get_current_processor( void );
+#define _CPU_Get_current_per_CPU_control() ( _SPARC_Per_CPU_current )
+
+#if defined(RTEMS_SMP)
+  uint32_t _CPU_SMP_Initialize( void );
+
+  bool _CPU_SMP_Start_processor( uint32_t cpu_index );
+
+  void _CPU_SMP_Finalize_initialization( uint32_t cpu_count );
+
+  #if defined(__leon__) && !defined(RTEMS_PARAVIRT)
+    static inline uint32_t _CPU_SMP_Get_current_processor( void )
+    {
+      return _LEON3_Get_current_processor();
+    }
+  #else
+    uint32_t _CPU_SMP_Get_current_processor( void );
+  #endif
 
   void _CPU_SMP_Send_interrupt( uint32_t target_processor_index );
+
+  #if defined(__leon__)
+  void _LEON3_Start_multitasking( Context_Control *heir )
+    RTEMS_COMPILER_NO_RETURN_ATTRIBUTE;
+  #define _CPU_Start_multitasking _LEON3_Start_multitasking
+  #endif
 
   static inline void _CPU_SMP_Processor_event_broadcast( void )
   {
@@ -1255,14 +1253,7 @@ typedef struct {
   CPU_Interrupt_frame *isf;
 } CPU_Exception_frame;
 
-void _BSP_Exception_frame_print( const CPU_Exception_frame *frame );
-
-static inline void _CPU_Exception_frame_print(
-  const CPU_Exception_frame *frame
-)
-{
-  _BSP_Exception_frame_print( frame );
-}
+void _CPU_Exception_frame_print( const CPU_Exception_frame *frame );
 
 /**
  * @brief SPARC specific method to endian swap an uint32_t.
@@ -1308,6 +1299,65 @@ static inline uint32_t CPU_swap_u32(
  */
 #define CPU_swap_u16( value ) \
   (((value&0xff) << 8) | ((value >> 8)&0xff))
+
+typedef uint32_t CPU_Counter_ticks;
+
+typedef CPU_Counter_ticks (*SPARC_Counter_difference)(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+);
+
+/*
+ * The SPARC processors supported by RTEMS have no built-in CPU counter
+ * support.  We have to use some hardware counter module for this purpose.  The
+ * BSP must provide a 32-bit register which contains the current CPU counter
+ * value and a function for the difference calculation.  It can use for example
+ * the GPTIMER instance used for the clock driver.
+ */
+typedef struct {
+  volatile const CPU_Counter_ticks *counter_register;
+  SPARC_Counter_difference counter_difference;
+} SPARC_Counter;
+
+extern SPARC_Counter _SPARC_Counter;
+
+/*
+ * Returns always a value of one regardless of the parameters.  This prevents
+ * an infinite loop in rtems_counter_delay_ticks().  Its only a reasonably safe
+ * default.
+ */
+CPU_Counter_ticks _SPARC_Counter_difference_default(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+);
+
+static inline bool _SPARC_Counter_is_default( void )
+{
+  return _SPARC_Counter.counter_difference
+    == _SPARC_Counter_difference_default;
+}
+
+static inline void _SPARC_Counter_initialize(
+  volatile const CPU_Counter_ticks *counter_register,
+  SPARC_Counter_difference counter_difference
+)
+{
+  _SPARC_Counter.counter_register = counter_register;
+  _SPARC_Counter.counter_difference = counter_difference;
+}
+
+static inline CPU_Counter_ticks _CPU_Counter_read( void )
+{
+  return *_SPARC_Counter.counter_register;
+}
+
+static inline CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  return (*_SPARC_Counter.counter_difference)( second, first );
+}
 
 #endif /* ASM */
 

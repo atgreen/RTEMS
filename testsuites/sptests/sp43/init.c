@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,6 +17,8 @@
 #include "system.h"
 
 #include <rtems/score/objectimpl.h>
+
+const char rtems_test_name[] = "SP 43";
 
 /* These functions have both macro and function incarnations */
 #undef rtems_build_id
@@ -126,7 +128,7 @@ rtems_task Init(
   int                                 part;
   rtems_object_api_class_information  info;
 
-  puts( "\n\n*** TEST 43 ***" );
+  TEST_BEGIN();
 
   printf( "RTEMS Version: %s\n", rtems_get_version_string() );
 
@@ -520,6 +522,6 @@ rtems_task Init(
     _Objects_Information_table[OBJECTS_POSIX_API] = tmp;
   }
 
-  puts( "*** END OF TEST 43 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

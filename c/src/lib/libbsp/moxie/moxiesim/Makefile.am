@@ -15,6 +15,7 @@ include_HEADERS += ../../shared/include/tm27.h
 
 nodist_include_HEADERS = include/bspopts.h
 nodist_include_bsp_HEADERS = ../../shared/include/bootcard.h
+nodist_include_bsp_HEADERS += ../../shared/include/console-polled.h
 DISTCLEANFILES = include/bspopts.h
 
 nodist_include_HEADERS += ../../shared/include/coverhd.h
@@ -32,9 +33,8 @@ libbsp_a_SOURCES =
 libbsp_a_SOURCES += ../../shared/bspclean.c ../../shared/bsplibc.c \
     ../../shared/bsppredriverhook.c ../../shared/bsppretaskinghook.c \
     ../../shared/bspgetworkarea.c ../../shared/bsppost.c \
-    ../../shared/bspstart.c startup/moxiebdinstallirq.c \
-    ../../shared/bootcard.c ../../shared/sbrk.c \
-    ../../shared/gnatinstallhandler.c startup/__main.c
+    ../../shared/bspstart.c ../../shared/bootcard.c ../../shared/sbrk.c \
+    ../../shared/gnatinstallhandler.c
 # clock
 libbsp_a_SOURCES += ../../shared/clock_driver_simidle.c
 # console
@@ -42,6 +42,11 @@ libbsp_a_SOURCES += ../../shared/console-polled.c console/console-io.c \
    console/syscalls.S
 # timer
 libbsp_a_SOURCES += ../../shared/timerstub.c
+
+# Cache
+libbsp_a_SOURCES += ../../../libcpu/shared/src/cache_manager.c
+libbsp_a_SOURCES += ../../shared/include/cache_.h
+libbsp_a_CPPFLAGS = -I$(srcdir)/../../shared/include
 
 EXTRA_DIST = times
 

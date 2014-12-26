@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_ISR_LEVEL_h
@@ -58,7 +58,7 @@ typedef uint32_t   ISR_Level;
 #define _ISR_Disable( _level ) \
   do { \
     _CPU_ISR_Disable( _level ); \
-    _Assert_Owner_of_giant(); \
+    _Assert( _Debug_Is_owner_of_giant() ); \
     RTEMS_COMPILER_MEMORY_BARRIER(); \
   } while (0)
 
@@ -76,7 +76,7 @@ typedef uint32_t   ISR_Level;
 #define _ISR_Enable( _level ) \
   do { \
     RTEMS_COMPILER_MEMORY_BARRIER(); \
-    _Assert_Owner_of_giant(); \
+    _Assert( _Debug_Is_owner_of_giant() ); \
     _CPU_ISR_Enable( _level ); \
   } while (0)
 
@@ -102,7 +102,7 @@ typedef uint32_t   ISR_Level;
 #define _ISR_Flash( _level ) \
   do { \
     RTEMS_COMPILER_MEMORY_BARRIER(); \
-    _Assert_Owner_of_giant(); \
+    _Assert( _Debug_Is_owner_of_giant() ); \
     _CPU_ISR_Flash( _level ); \
     RTEMS_COMPILER_MEMORY_BARRIER(); \
   } while (0)
@@ -136,8 +136,6 @@ typedef uint32_t   ISR_Level;
     RTEMS_COMPILER_MEMORY_BARRIER();  \
   } while (0)
 
-#if defined( RTEMS_SMP )
-
 #define _ISR_Disable_without_giant( _level ) \
   do { \
     _CPU_ISR_Disable( _level ); \
@@ -149,8 +147,6 @@ typedef uint32_t   ISR_Level;
     RTEMS_COMPILER_MEMORY_BARRIER(); \
     _CPU_ISR_Enable( _level ); \
   } while (0)
-
-#endif /* defined( RTEMS_SMP ) */
 
 /**@}*/
 

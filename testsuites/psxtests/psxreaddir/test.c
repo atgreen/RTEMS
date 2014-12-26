@@ -24,7 +24,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,6 +39,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <rtems/imfs.h>
+
+const char rtems_test_name[] = "PSXREADDIR";
 
 /* forward declarations to avoid warnings */
 int test_main(void);
@@ -253,7 +255,7 @@ int main(
   struct stat s;
 
 
-  printf( "\n\n*** READDIR TEST ***\n" );
+  TEST_BEGIN();
 
   printf( "\nchdir to the root directory\n" );
   status = chdir( "/" );
@@ -531,6 +533,6 @@ int main(
   rtems_test_assert ( status == 0 );
 
   test_across_mount();
-  printf( "\n\n*** END OF READDIR TEST ***\n" );
+  TEST_END();
   rtems_test_exit(0);
 }

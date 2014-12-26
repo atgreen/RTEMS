@@ -14,7 +14,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_USERENV_H
@@ -25,6 +25,7 @@
  * limits.h is supposed to provide _POSIX_LOGIN_NAME_MAX
  * XXX: We do not rely on this.
  */
+#include <sys/param.h>
 #include <limits.h>
 
 #include <rtems.h>
@@ -52,25 +53,77 @@ extern "C" {
   #endif
 #endif
 
+/**
+ * @brief User environment.
+ */
 typedef struct {
+  /**
+   * @brief The anchor directory for relative paths.
+   */
   rtems_filesystem_global_location_t *current_directory;
+
+  /**
+   * @brief The anchor directory for absolute paths.
+   */
   rtems_filesystem_global_location_t *root_directory;
-  /* Default mode for all files. */
-  mode_t                           umask;
-  /* _POSIX_types */
-  uid_t                            uid;
-  gid_t                            gid;
-  uid_t                            euid;
-  gid_t                            egid;
-  char      login_buffer[LOGIN_NAME_MAX];
-  pid_t                            pgrp; /* process group id */
-  /* User environment maintenance */
-  rtems_id                         task_id;
-  int                              reference_count;
+
+  /**
+   * @brief The file mode creation mask.
+   */
+  mode_t umask;
+
+  /**
+   * @brief The real user ID.
+   */
+  uid_t uid;
+
+  /**
+   * @brief The real group ID.
+   */
+  gid_t gid;
+
+  /**
+   * @brief The effective user ID.
+   */
+  uid_t euid;
+
+  /**
+   * @brief The effective group ID.
+   */
+  gid_t egid;
+
+  /**
+   * @brief The login buffer.
+   */
+  char login_buffer[LOGIN_NAME_MAX];
+
+  /**
+   * @brief The process group ID.
+   */
+  pid_t pgrp;
+
+  /**
+   * @brief The count of supplementary group IDs.
+   */
+  size_t ngroups;
+
+  /**
+   * @brief The list of supplementary group IDs.
+   */
+  gid_t groups[NGROUPS];
 } rtems_user_env_t;
 
-extern rtems_user_env_t * rtems_current_user_env;
-extern rtems_user_env_t   rtems_global_user_env;
+extern rtems_user_env_t rtems_global_user_env;
+
+/**
+ * @brief Fetch the pointer to the current user environment.
+ *
+ * If the task has a private user environment the pointer to it will be
+ * returned. Otherwise the pointer to rtems_global_user_env will be returned.
+ */
+rtems_user_env_t * rtems_current_user_env_get(void);
+
+#define rtems_current_user_env rtems_current_user_env_get()
 
 #define rtems_filesystem_current     (rtems_current_user_env->current_directory)
 #define rtems_filesystem_root        (rtems_current_user_env->root_directory)
@@ -89,29 +142,17 @@ extern rtems_user_env_t   rtems_global_user_env;
  * function must be called from normal thread context and may block on a mutex.
  * Thread dispatching is disabled to protect some critical sections.
  *
+ * The private environment internally uses a POSIX key. The key is added to the
+ * configuration implicitly. But for each thread that uses a private environment
+ * a key value pair has to be configured by the application. If only the global
+ * environment is used there is no need to configure a key value pair.
+ *
  * @retval RTEMS_SUCCESSFUL Successful operation.
  * @retval RTEMS_NO_MEMORY Not enough memory.
  * @retval RTEMS_UNSATISFIED Cloning of the current environment failed.
  * @retval RTEMS_TOO_MANY Cannot register the private environment.
  */
 rtems_status_code rtems_libio_set_private_env(void);
-
-/**
- * @brief Creates a private environment shared with another task.
- *
- * An attempt to share the environment with itself has no effect.  This
- * function must be called from normal thread context and may block on a mutex.
- * Thread dispatching is disabled to protect some critical sections.
- *
- * @param[in] task_id The private environment is shared with the task specified
- * by this identifier.
- *
- * @retval RTEMS_SUCCESSFUL Successful operation.
- * @retval RTEMS_UNSATISFIED No shared environment is available for this task
- * @retval RTEMS_TOO_MANY Cannot register the shared environment.
- * identifier.
- */
-rtems_status_code rtems_libio_share_private_env(rtems_id task_id) ;
 
 /**
  * @brief Use the global environment.
@@ -121,6 +162,15 @@ rtems_status_code rtems_libio_share_private_env(rtems_id task_id) ;
  * critical sections.
  */
 void rtems_libio_use_global_env(void);
+
+/**
+ * @brief Gets the supplementary group IDs using the current user ID and
+ * updates the table of supplementary group IDs in the current user
+ * environment.
+ *
+ * In case of an error, the count of supplementary group IDs is set to zero.
+ */
+void rtems_current_user_env_getgroups(void);
 
 /** @} */
 

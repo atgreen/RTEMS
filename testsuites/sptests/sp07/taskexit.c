@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -29,6 +29,6 @@ void Task_exit_extension(
     put_name( Task_name[ task_number( running_task->Object.id ) ], TRUE );
   }
 
-  puts("*** END OF TEST 7 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

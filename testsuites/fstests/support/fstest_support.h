@@ -4,11 +4,12 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 #ifndef __FSTEST_SUPPORT_H
 #define __FSTEST_SUPPORT_H
 
+#include <rtems.h>
 
 #ifdef __cplusplus
 extern "C" {

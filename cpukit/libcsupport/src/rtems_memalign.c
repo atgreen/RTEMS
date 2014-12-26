@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -23,8 +23,6 @@
 
 #include <stdlib.h>
 #include <errno.h>
-
-#include <rtems/score/sysstate.h>
 
 int rtems_memalign(
   void   **pointer,
@@ -45,8 +43,7 @@ int rtems_memalign(
   /*
    *  Do not attempt to allocate memory if not in correct system state.
    */
-  if ( _System_state_Is_up(_System_state_Get()) &&
-       !malloc_is_system_state_OK() )
+  if ( !malloc_is_system_state_OK() )
     return EINVAL;
 
   /*
@@ -64,12 +61,6 @@ int rtems_memalign(
   );
   if ( !return_this )
     return ENOMEM;
-
-  /*
-   *  If configured, update the more involved statistics
-   */
-  if ( rtems_malloc_statistics_helpers )
-    (*rtems_malloc_statistics_helpers->at_malloc)(pointer);
 
   *pointer = return_this;
   return 0;

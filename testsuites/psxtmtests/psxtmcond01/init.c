@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,7 +17,9 @@
 #include "test_support.h"
 #include <pthread.h>
 #include <sched.h>
-#include <rtems/timerdrv.h>
+#include <rtems/btimer.h>
+
+const char rtems_test_name[] = "PSXTMCOND 01";
 
 /* forward declarations to avoid warnings */
 void *POSIX_Init(void *argument);
@@ -28,8 +30,8 @@ pthread_cond_t mycondvar;
 
 void benchmark_create_cond_var(void)
 {
-  long end_time;
-  int  status;
+  uint32_t end_time;
+  int      status;
 
   benchmark_timer_initialize();
   status = pthread_cond_init(&mycondvar, NULL);
@@ -47,8 +49,8 @@ void benchmark_create_cond_var(void)
 
 void benchmark_destroy_cond_var(void)
 {
-  long end_time;
-  int  status;
+  uint32_t end_time;
+  int      status;
 
   benchmark_timer_initialize();
   status = pthread_cond_destroy(&mycondvar);
@@ -68,12 +70,12 @@ void *POSIX_Init(
   void *argument
 )
 {
-  puts( "\n\n*** POSIX TIME TEST PSXTMCOND01 ***" );
+  TEST_BEGIN();
 
   benchmark_create_cond_var();
   benchmark_destroy_cond_var();
 
-  puts( "*** END OF POSIX TIME TEST PSXTMCOND01 ***" );
+  TEST_END();
   rtems_test_exit(0);
 }
 

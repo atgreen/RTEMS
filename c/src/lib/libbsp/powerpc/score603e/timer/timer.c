@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <assert.h>
@@ -42,7 +42,7 @@ void benchmark_timer_initialize()
  *  benchmark_timer_read
  */
 
-uint32_t benchmark_timer_read()
+benchmark_timer_t benchmark_timer_read()
 {
   uint64_t          clicks;
   uint64_t          total64;

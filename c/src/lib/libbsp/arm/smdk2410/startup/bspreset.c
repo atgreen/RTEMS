@@ -3,10 +3,11 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
+#include <bsp/bootcard.h>
 
 void bsp_reset(void)
 {
@@ -17,6 +18,8 @@ void bsp_reset(void)
 #else
   /* XXX TODO this code is copied from gp32.. move it to a shared place */
   rtems_interrupt_level level;
+
+  (void) level;
   rtems_interrupt_disable(level);
   /* disable mmu, invalide i-cache and call swi #4 */
   __asm__ volatile(""

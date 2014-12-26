@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -102,7 +102,7 @@ extern "C" {
 #define CPU_STACK_GROWS_UP               FALSE
 #define CPU_STRUCTURE_ALIGNMENT          __attribute__ ((aligned (4)))
 
-#define CPU_TIMESTAMP_USE_INT64_INLINE TRUE
+#define CPU_TIMESTAMP_USE_STRUCT_TIMESPEC TRUE
 
 /*
  *  Define what is required to specify how the network to host conversion
@@ -448,30 +448,15 @@ uint32_t   _CPU_ISR_Get_level( void );
  *     + initialize an FP context area
  */
 
-#if (defined(__mcoldfire__) && ( M68K_HAS_FPU == 1 ))
-#define _CPU_Context_Initialize( _the_context, _stack_base, _size, \
-                                 _isr, _entry_point, _is_fp ) \
-   do { \
-     uint32_t   _stack; \
-     \
-     (_the_context)->sr      = 0x3000 | ((_isr) << 8); \
-     _stack                  = (uint32_t)(_stack_base) + (_size) - 4; \
-     (_the_context)->a7_msp  = (void *)_stack; \
-     *(void **)_stack        = (void *)(_entry_point); \
-     (_the_context)->fpu_dis = (_is_fp == TRUE) ? 0x00 : 0x10;          \
-   } while ( 0 )
-#else
-#define _CPU_Context_Initialize( _the_context, _stack_base, _size,      \
-                                 _isr, _entry_point, _is_fp )           \
-   do {                                                                 \
-     uint32_t   _stack;                                                 \
-                                                                        \
-     (_the_context)->sr      = 0x3000 | ((_isr) << 8);                  \
-     _stack                  = (uint32_t)(_stack_base) + (_size) - 4;   \
-     (_the_context)->a7_msp  = (void *)_stack;                          \
-     *(void **)_stack        = (void *)(_entry_point);                  \
-   } while ( 0 )
-#endif
+void _CPU_Context_Initialize(
+  Context_Control *the_context,
+  void *stack_area_begin,
+  size_t stack_area_size,
+  uint32_t new_level,
+  void (*entry_point)( void ),
+  bool is_fp,
+  void *tls_area
+);
 
 /* end of Context handler macros */
 
@@ -494,7 +479,7 @@ void *_CPU_Thread_Idle_body( uintptr_t ignored );
  */
 
 #if ( defined(__mcoldfire__) )
-#define _CPU_Fatal_halt( _error ) \
+#define _CPU_Fatal_halt( _source, _error ) \
   { __asm__ volatile( "move.w %%sr,%%d0\n\t" \
 		  "or.l %2,%%d0\n\t" \
 		  "move.w %%d0,%%sr\n\t" \
@@ -506,7 +491,7 @@ void *_CPU_Thread_Idle_body( uintptr_t ignored );
 		  : "d0", "d1" ); \
   }
 #else
-#define _CPU_Fatal_halt( _error ) \
+#define _CPU_Fatal_halt( _source, _error ) \
   { __asm__ volatile( "movl  %0,%%d0; " \
                   "orw   #0x0700,%%sr; " \
                   "stop  #0x2700" : "=d" ((_error)) : "0" ((_error)) ); \
@@ -695,7 +680,7 @@ void _CPU_Context_switch(
 
 void _CPU_Context_Restart_self(
   Context_Control  *the_context
-);
+) RTEMS_COMPILER_NO_RETURN_ATTRIBUTE;
 
 /*
  *  _CPU_Context_save_fp
@@ -737,6 +722,18 @@ static inline void _CPU_Context_validate( uintptr_t pattern )
 void _CPU_Exception_frame_print(
   const CPU_Exception_frame *frame
 );
+
+typedef uint32_t CPU_Counter_ticks;
+
+CPU_Counter_ticks _CPU_Counter_read( void );
+
+static inline CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  return second - first;
+}
 
 #if (M68K_HAS_FPSP_PACKAGE == 1)
 /*

@@ -11,19 +11,26 @@
  *  COPYRIGHT (c) 1989-2008.
  *  On-Line Applications Research Corporation (OAR).
  *
+ *  Copyright (c) 2014 embedded brains GmbH.
+ *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_THREADIMPL_H
 #define _RTEMS_SCORE_THREADIMPL_H
 
 #include <rtems/score/thread.h>
+#include <rtems/score/chainimpl.h>
+#include <rtems/score/interr.h>
 #include <rtems/score/isr.h>
 #include <rtems/score/objectimpl.h>
+#include <rtems/score/resourceimpl.h>
 #include <rtems/score/statesimpl.h>
+#include <rtems/score/sysstate.h>
 #include <rtems/score/todimpl.h>
+#include <rtems/config.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,27 +59,6 @@ SCORE_EXTERN void *rtems_ada_self;
 SCORE_EXTERN Objects_Information _Thread_Internal_information;
 
 /**
- *  The following context area contains the context of the "thread"
- *  which invoked the start multitasking routine.  This context is
- *  restored as the last action of the stop multitasking routine.  Thus
- *  control of the processor can be returned to the environment
- *  which initiated the system.
- */
-SCORE_EXTERN Context_Control _Thread_BSP_context;
-
-/**
- *  The following holds how many user extensions are in the system.  This
- *  is used to determine how many user extension data areas to allocate
- *  per thread.
- */
-SCORE_EXTERN uint32_t   _Thread_Maximum_extensions;
-
-/**
- *  The following is used to manage the length of a timeslice quantum.
- */
-SCORE_EXTERN uint32_t   _Thread_Ticks_per_timeslice;
-
-/**
  *  The following points to the thread whose floating point
  *  context is currently loaded.
  */
@@ -88,6 +74,14 @@ SCORE_EXTERN Thread_Control *_Thread_Allocated_fp;
  * holds a pointer to the task specific data.
  */
 SCORE_EXTERN struct _reent **_Thread_libc_reent;
+#endif
+
+#define THREAD_RBTREE_NODE_TO_THREAD( node ) \
+  RTEMS_CONTAINER_OF( node, Thread_Control, RBNode )
+
+#if defined(RTEMS_SMP)
+#define THREAD_RESOURCE_NODE_TO_THREAD( node ) \
+  RTEMS_CONTAINER_OF( node, Thread_Control, Resource_node )
 #endif
 
 /**
@@ -112,13 +106,8 @@ void _Thread_Create_idle(void);
  *  This routine initiates multitasking.  It is invoked only as
  *  part of initialization and its invocation is the last act of
  *  the non-multitasking part of the system initialization.
- *
- *
- *  - INTERRUPT LATENCY:
- *    + ready chain
- *    + select heir
  */
-void _Thread_Start_multitasking( Context_Control *context );
+void _Thread_Start_multitasking( void ) RTEMS_COMPILER_NO_RETURN_ATTRIBUTE;
 
 /**
  *  @brief Allocate the requested stack space for the thread.
@@ -161,6 +150,7 @@ void _Thread_Stack_Free(
 bool _Thread_Initialize(
   Objects_Information                  *information,
   Thread_Control                       *the_thread,
+  const struct Scheduler_Control       *scheduler,
   void                                 *stack_area,
   size_t                                stack_size,
   bool                                  is_fp,
@@ -184,7 +174,7 @@ bool _Thread_Initialize(
  *  @param entry_point
  *  @param pointer_argument
  *  @param numeric_argument
- *  @param[in,out] processor The processor if used to start an idle thread
+ *  @param[in,out] cpu The processor if used to start an idle thread
  *  during system initialization.  Must be set to @c NULL to start a normal
  *  thread.
  */
@@ -194,52 +184,46 @@ bool _Thread_Start(
   void                      *entry_point,
   void                      *pointer_argument,
   Thread_Entry_numeric_type  numeric_argument,
-  Per_CPU_Control           *processor
+  Per_CPU_Control           *cpu
 );
 
-/**
- *  @brief Restarts the specified thread.
- *
- *  This support routine restarts the specified task in a way that the
- *  next time this thread executes, it will begin execution at its
- *  original starting point.
- *
- *  TODO:  multiple task arg profiles
- */
 bool _Thread_Restart(
   Thread_Control            *the_thread,
+  Thread_Control            *executing,
   void                      *pointer_argument,
   Thread_Entry_numeric_type  numeric_argument
 );
 
-/**
- *  @brief Resets a thread to its initial state.
- *
- *  This routine resets a thread to its initial state but does
- *  not restart it. Some APIs do this in separate
- *  operations and this division helps support this.
- *
- *  @param[in] the_thread is the thread to resets
- *  @param[in] pointer_argument
- *  @param[in] numeric_argument
- */
-void _Thread_Reset(
-  Thread_Control            *the_thread,
-  void                      *pointer_argument,
-  Thread_Entry_numeric_type  numeric_argument
+void _Thread_Yield( Thread_Control *executing );
+
+bool _Thread_Set_life_protection( bool protect );
+
+void _Thread_Life_action_handler(
+  Thread_Control  *executing,
+  Thread_Action   *action,
+  Per_CPU_Control *cpu,
+  ISR_Level        level
 );
 
 /**
- *  @brief Frees all memory associated with the specified thread.
+ * @brief Kills all zombie threads in the system.
  *
- *  This routine frees all memory associated with the specified
- *  thread and removes it from the local object table so no further
- *  operations on this thread are allowed.
+ * Threads change into the zombie state as the last step in the thread
+ * termination sequence right before a context switch to the heir thread is
+ * initiated.  Since the thread stack is still in use during this phase we have
+ * to postpone the thread stack reclamation until this point.  On SMP
+ * configurations we may have to busy wait for context switch completion here.
  */
-void _Thread_Close(
-  Objects_Information  *information,
-  Thread_Control       *the_thread
-);
+void _Thread_Kill_zombies( void );
+
+/**
+ * @brief Closes the thread.
+ *
+ * Closes the thread object and starts the thread termination sequence.  In
+ * case the executing thread is not terminated, then this function waits until
+ * the terminating thread reached the zombie state.
+ */
+void _Thread_Close( Thread_Control *the_thread, Thread_Control *executing );
 
 /**
  *  @brief Removes any set states for @a the_thread.
@@ -292,22 +276,6 @@ void _Thread_Set_state(
 );
 
 /**
- *  @brief Sets the transient state for a thread.
- *
- *  This routine sets the Transient state for @a the_thread.  It performs
- *  any necessary scheduling operations including the selection of
- *  a new heir thread.
- *
- *  @param[in] the_thread is the thread to preform the action upon.
- *
- *  - INTERRUPT LATENCY:
- *    + single case
- */
-void _Thread_Set_transient(
-  Thread_Control *the_thread
-);
-
-/**
  *  @brief Initializes enviroment for a thread.
  *
  *  This routine initializes the context of @a the_thread to its
@@ -335,6 +303,16 @@ void _Thread_Load_environment(
  *  setting the initial isr level properly here is safe.
  */
 void _Thread_Handler( void );
+
+/**
+ * @brief Executes the global constructors and then restarts itself as the
+ * first initialization thread.
+ *
+ * The first initialization thread is the first RTEMS initialization task or
+ * the first POSIX initialization thread in case no RTEMS initialization tasks
+ * are present.
+ */
+void *_Thread_Global_construction( void );
 
 /**
  *  @brief Ended the delay of a thread.
@@ -444,33 +422,47 @@ void _Thread_blocking_operation_Cancel(
 );
 
 /**
- * This routine halts multitasking and returns control to
- * the "thread" (i.e. the BSP) which initially invoked the
- * routine which initialized the system.
+ *  @brief Finalize a blocking operation.
+ *
+ *  This method is used to finalize a blocking operation that was
+ *  satisfied. It may be used with thread queues or any other synchronization
+ *  object that uses the blocking states and watchdog times for timeout.
+ *
+ *  This method will restore the previous ISR disable level during the cancel
+ *  operation.  Thus it is an implicit _ISR_Enable().
+ *
+ *  @param[in] the_thread is the thread whose blocking is canceled
+ *  @param[in] level is the previous ISR disable level
  */
+void _Thread_blocking_operation_Finalize(
+  Thread_Control                   *the_thread,
+  ISR_Level                         level
+);
 
-RTEMS_INLINE_ROUTINE void _Thread_Stop_multitasking( void )
+RTEMS_INLINE_ROUTINE Per_CPU_Control *_Thread_Get_CPU(
+  const Thread_Control *thread
+)
 {
-#if defined(_CPU_Stop_multitasking)
-  _CPU_Stop_multitasking( &_Thread_BSP_context );
+#if defined(RTEMS_SMP)
+  return thread->Scheduler.cpu;
 #else
-  /*
-   *  This may look a bit of an odd but _Context_Restart_self is just
-   *  a very careful restore of a specific context which ensures that
-   *  if we were running within the same context, it would work.
-   *
-   *  And we will not return to this thread, so there is no point of
-   *  saving the context.
-   */
-  _Context_Restart_self( &_Thread_BSP_context );
-#endif
+  (void) thread;
 
-  /***************************************************************
-   ***************************************************************
-   *   SYSTEM SHUTS DOWN!!!  WE DO NOT RETURN TO THIS POINT!!!   *
-   ***************************************************************
-   ***************************************************************
-   */
+  return _Per_CPU_Get();
+#endif
+}
+
+RTEMS_INLINE_ROUTINE void _Thread_Set_CPU(
+  Thread_Control *thread,
+  Per_CPU_Control *cpu
+)
+{
+#if defined(RTEMS_SMP)
+  thread->Scheduler.cpu = cpu;
+#else
+  (void) thread;
+  (void) cpu;
+#endif
 }
 
 /**
@@ -484,6 +476,52 @@ RTEMS_INLINE_ROUTINE bool _Thread_Is_executing (
 {
   return ( the_thread == _Thread_Executing );
 }
+
+#if defined(RTEMS_SMP)
+/**
+ * @brief Returns @true in case the thread executes currently on some processor
+ * in the system, otherwise @a false.
+ *
+ * Do not confuse this with _Thread_Is_executing() which checks only the
+ * current processor.
+ */
+RTEMS_INLINE_ROUTINE bool _Thread_Is_executing_on_a_processor(
+  const Thread_Control *the_thread
+)
+{
+  return _CPU_Context_Get_is_executing( &the_thread->Registers );
+}
+#endif
+
+/**
+ * @brief Returns @true and sets time_of_context_switch to the the
+ * time of the last context switch when the thread is currently executing
+ * in the system, otherwise @a false.
+ */
+RTEMS_INLINE_ROUTINE bool _Thread_Get_time_of_last_context_switch(
+  Thread_Control    *the_thread,
+  Timestamp_Control *time_of_context_switch
+)
+{
+  bool retval = false;
+
+  _Thread_Disable_dispatch();
+  #ifndef RTEMS_SMP
+    if ( _Thread_Executing->Object.id == the_thread->Object.id ) {
+      *time_of_context_switch = _Thread_Time_of_last_context_switch;
+      retval = true;
+    }
+  #else
+    if ( _Thread_Is_executing_on_a_processor( the_thread ) ) {
+      *time_of_context_switch =
+        _Thread_Get_CPU( the_thread )->time_of_last_context_switch;
+      retval = true;
+    }
+  #endif
+  _Thread_Enable_dispatch();
+  return retval;
+}
+
 
 /**
  * This function returns true if the_thread is the heir
@@ -515,21 +553,23 @@ RTEMS_INLINE_ROUTINE void _Thread_Unblock (
  * to that of its initial state.
  */
 
-RTEMS_INLINE_ROUTINE void _Thread_Restart_self( void )
+RTEMS_INLINE_ROUTINE void _Thread_Restart_self( Thread_Control *executing )
 {
 #if defined(RTEMS_SMP)
   ISR_Level level;
 
-  _Per_CPU_ISR_disable_and_acquire( _Per_CPU_Get(), level );
+  _Giant_Release();
+
+  _ISR_Disable_without_giant( level );
   ( void ) level;
 #endif
 
 #if ( CPU_HARDWARE_FP == TRUE ) || ( CPU_SOFTWARE_FP == TRUE )
-  if ( _Thread_Executing->fp_context != NULL )
-    _Context_Restore_fp( &_Thread_Executing->fp_context );
+  if ( executing->fp_context != NULL )
+    _Context_Restore_fp( &executing->fp_context );
 #endif
 
-  _CPU_Context_Restart_self( &_Thread_Executing->Registers );
+  _CPU_Context_Restart_self( &executing->Registers );
 }
 
 /**
@@ -592,42 +632,46 @@ RTEMS_INLINE_ROUTINE bool _Thread_Is_proxy_blocking (
   return (code == THREAD_STATUS_PROXY_BLOCKING);
 }
 
-/**
- * This routine allocates an internal thread.
- */
+RTEMS_INLINE_ROUTINE uint32_t _Thread_Get_maximum_internal_threads(void)
+{
+  /* Idle threads */
+  uint32_t maximum_internal_threads =
+    rtems_configuration_get_maximum_processors();
+
+  /* MPCI thread */
+#if defined(RTEMS_MULTIPROCESSING)
+  if ( _System_state_Is_multiprocessing ) {
+    ++maximum_internal_threads;
+  }
+#endif
+
+  return maximum_internal_threads;
+}
 
 RTEMS_INLINE_ROUTINE Thread_Control *_Thread_Internal_allocate( void )
 {
-  return (Thread_Control *) _Objects_Allocate( &_Thread_Internal_information );
+  return (Thread_Control *)
+    _Objects_Allocate_unprotected( &_Thread_Internal_information );
 }
 
-/**
- * This routine frees an internal thread.
- */
-
-RTEMS_INLINE_ROUTINE void _Thread_Internal_free (
-  Thread_Control *the_task
+RTEMS_INLINE_ROUTINE void _Thread_Request_dispatch_if_executing(
+  Thread_Control *thread
 )
 {
-  _Objects_Free( &_Thread_Internal_information, &the_task->Object );
-}
+#if defined(RTEMS_SMP)
+  if ( _Thread_Is_executing_on_a_processor( thread ) ) {
+    const Per_CPU_Control *cpu_of_executing = _Per_CPU_Get();
+    Per_CPU_Control *cpu_of_thread = _Thread_Get_CPU( thread );
 
-RTEMS_INLINE_ROUTINE void _Thread_Set_global_exit_status(
-  uint32_t exit_status
-)
-{
-  Thread_Control *idle = (Thread_Control *)
-    _Thread_Internal_information.local_table[ 1 ];
+    cpu_of_thread->dispatch_necessary = true;
 
-  idle->Wait.return_code = exit_status;
-}
-
-RTEMS_INLINE_ROUTINE uint32_t _Thread_Get_global_exit_status( void )
-{
-  const Thread_Control *idle = (const Thread_Control *)
-    _Thread_Internal_information.local_table[ 1 ];
-
-  return idle->Wait.return_code;
+    if ( cpu_of_executing != cpu_of_thread ) {
+      _Per_CPU_Send_interrupt( cpu_of_thread );
+    }
+  }
+#else
+  (void) thread;
+#endif
 }
 
 RTEMS_INLINE_ROUTINE void _Thread_Signal_notification( Thread_Control *thread )
@@ -636,9 +680,9 @@ RTEMS_INLINE_ROUTINE void _Thread_Signal_notification( Thread_Control *thread )
     _Thread_Dispatch_necessary = true;
   } else {
 #if defined(RTEMS_SMP)
-    if ( thread->is_executing ) {
+    if ( _Thread_Is_executing_on_a_processor( thread ) ) {
       const Per_CPU_Control *cpu_of_executing = _Per_CPU_Get();
-      Per_CPU_Control *cpu_of_thread = thread->cpu;
+      Per_CPU_Control *cpu_of_thread = _Thread_Get_CPU( thread );
 
       if ( cpu_of_executing != cpu_of_thread ) {
         cpu_of_thread->dispatch_necessary = true;
@@ -648,6 +692,69 @@ RTEMS_INLINE_ROUTINE void _Thread_Signal_notification( Thread_Control *thread )
 #endif
   }
 }
+
+/**
+ * @brief Gets the heir of the processor and makes it executing.
+ *
+ * The thread dispatch necessary indicator is cleared as a side-effect.
+ *
+ * @return The heir thread.
+ *
+ * @see _Thread_Dispatch(), _Thread_Start_multitasking() and
+ * _Thread_Dispatch_update_heir().
+ */
+RTEMS_INLINE_ROUTINE Thread_Control *_Thread_Get_heir_and_make_it_executing(
+  Per_CPU_Control *cpu_self
+)
+{
+  Thread_Control *heir;
+
+  cpu_self->dispatch_necessary = false;
+
+#if defined( RTEMS_SMP )
+  /*
+   * It is critical that we first update the dispatch necessary and then the
+   * read the heir so that we don't miss an update by
+   * _Thread_Dispatch_update_heir().
+   */
+  _Atomic_Fence( ATOMIC_ORDER_SEQ_CST );
+#endif
+
+  heir = cpu_self->heir;
+  cpu_self->executing = heir;
+
+  return heir;
+}
+
+#if defined( RTEMS_SMP )
+RTEMS_INLINE_ROUTINE void _Thread_Dispatch_update_heir(
+  Per_CPU_Control *cpu_self,
+  Per_CPU_Control *cpu_for_heir,
+  Thread_Control  *heir
+)
+{
+  cpu_for_heir->heir = heir;
+
+  /*
+   * It is critical that we first update the heir and then the dispatch
+   * necessary so that _Thread_Get_heir_and_make_it_executing() cannot miss an
+   * update.
+   */
+  _Atomic_Fence( ATOMIC_ORDER_SEQ_CST );
+
+  /*
+   * Only update the dispatch necessary indicator if not already set to
+   * avoid superfluous inter-processor interrupts.
+   */
+  if ( !cpu_for_heir->dispatch_necessary ) {
+    cpu_for_heir->dispatch_necessary = true;
+
+    if ( cpu_for_heir != cpu_self ) {
+      _Per_CPU_Send_interrupt( cpu_for_heir );
+    }
+  }
+}
+#endif
 
 RTEMS_INLINE_ROUTINE void _Thread_Update_cpu_time_used(
   Thread_Control *executing,
@@ -665,6 +772,139 @@ RTEMS_INLINE_ROUTINE void _Thread_Update_cpu_time_used(
   );
   *time_of_last_context_switch = uptime;
   _Timestamp_Add_to( &executing->cpu_time_used, &ran );
+}
+
+RTEMS_INLINE_ROUTINE void _Thread_Action_control_initialize(
+  Thread_Action_control *action_control
+)
+{
+  _Chain_Initialize_empty( &action_control->Chain );
+}
+
+RTEMS_INLINE_ROUTINE void _Thread_Action_initialize(
+  Thread_Action         *action,
+  Thread_Action_handler  handler
+)
+{
+  action->handler = handler;
+  _Chain_Set_off_chain( &action->Node );
+}
+
+RTEMS_INLINE_ROUTINE Per_CPU_Control *
+  _Thread_Action_ISR_disable_and_acquire_for_executing( ISR_Level *level )
+{
+  Per_CPU_Control *cpu;
+
+  _ISR_Disable_without_giant( *level );
+  cpu = _Per_CPU_Get();
+  _Per_CPU_Acquire( cpu );
+
+  return cpu;
+}
+
+RTEMS_INLINE_ROUTINE Per_CPU_Control *_Thread_Action_ISR_disable_and_acquire(
+  Thread_Control *thread,
+  ISR_Level      *level
+)
+{
+  Per_CPU_Control *cpu;
+
+  _ISR_Disable_without_giant( *level );
+  cpu = _Thread_Get_CPU( thread );
+  _Per_CPU_Acquire( cpu );
+
+  return cpu;
+}
+
+RTEMS_INLINE_ROUTINE void _Thread_Action_release_and_ISR_enable(
+  Per_CPU_Control *cpu,
+  ISR_Level level
+)
+{
+  _Per_CPU_Release_and_ISR_enable( cpu, level );
+}
+
+RTEMS_INLINE_ROUTINE void _Thread_Add_post_switch_action(
+  Thread_Control *thread,
+  Thread_Action  *action
+)
+{
+  Per_CPU_Control *cpu;
+  ISR_Level        level;
+
+  cpu = _Thread_Action_ISR_disable_and_acquire( thread, &level );
+  _Chain_Append_if_is_off_chain_unprotected(
+    &thread->Post_switch_actions.Chain,
+    &action->Node
+  );
+  _Thread_Action_release_and_ISR_enable( cpu, level );
+}
+
+RTEMS_INLINE_ROUTINE bool _Thread_Is_life_restarting(
+  Thread_Life_state life_state
+)
+{
+  return ( life_state & THREAD_LIFE_RESTARTING ) != 0;
+}
+
+RTEMS_INLINE_ROUTINE bool _Thread_Is_life_terminating(
+  Thread_Life_state life_state
+)
+{
+  return ( life_state & THREAD_LIFE_TERMINATING ) != 0;
+}
+
+RTEMS_INLINE_ROUTINE bool _Thread_Is_life_protected(
+  Thread_Life_state life_state
+)
+{
+  return ( life_state & THREAD_LIFE_PROTECTED ) != 0;
+}
+
+RTEMS_INLINE_ROUTINE bool _Thread_Is_life_changing(
+  Thread_Life_state life_state
+)
+{
+  return ( life_state & THREAD_LIFE_RESTARTING_TERMINATING ) != 0;
+}
+
+/**
+ * @brief Returns true if the thread owns resources, and false otherwise.
+ *
+ * Resources are accounted with the Thread_Control::resource_count resource
+ * counter.  This counter is used by semaphore objects for example.
+ *
+ * In addition to the resource counter there is a resource dependency tree
+ * available on SMP configurations.  In case this tree is non-empty, then the
+ * thread owns resources.
+ *
+ * @param[in] the_thread The thread.
+ */
+RTEMS_INLINE_ROUTINE bool _Thread_Owns_resources(
+  const Thread_Control *the_thread
+)
+{
+  bool owns_resources = the_thread->resource_count != 0;
+
+#if defined(RTEMS_SMP)
+  owns_resources = owns_resources
+    || _Resource_Node_owns_resources( &the_thread->Resource_node );
+#endif
+
+  return owns_resources;
+}
+
+RTEMS_INLINE_ROUTINE void _Thread_Debug_set_real_processor(
+  Thread_Control  *the_thread,
+  Per_CPU_Control *cpu
+)
+{
+#if defined(RTEMS_SMP) && defined(RTEMS_DEBUG)
+  the_thread->Scheduler.debug_real_cpu = cpu;
+#else
+  (void) the_thread;
+  (void) cpu;
+#endif
 }
 
 #if !defined(__DYNAMIC_REENT__)

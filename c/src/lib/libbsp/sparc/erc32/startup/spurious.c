@@ -16,7 +16,7 @@
 #include <bsp.h>
 #include <rtems/bspIo.h>
 
-void _BSP_Exception_frame_print( const CPU_Exception_frame *frame )
+void _CPU_Exception_frame_print( const CPU_Exception_frame *frame )
 {
   uint32_t                   trap;
   uint32_t                   real_trap;
@@ -118,7 +118,7 @@ void _BSP_Exception_frame_print( const CPU_Exception_frame *frame )
   }
 }
 
-rtems_isr bsp_spurious_handler(
+static rtems_isr bsp_spurious_handler(
    rtems_vector_number trap,
    CPU_Interrupt_frame *isf
 )
@@ -155,14 +155,16 @@ void bsp_spurious_initialize()
 
     /*
      *  Skip window overflow, underflow, and flush as well as software
-     *  trap 0 which we will use as a shutdown. Also avoid trap 0x70 - 0x7f
-     *  which cannot happen and where some of the space is used to pass
-     *  paramaters to the program.
+     *  trap 0,9,10 which we will use as a shutdown, IRQ disable, IRQ enable.
+     *  Also avoid trap 0x70 - 0x7f which cannot happen and where some of the
+     *  space is used to pass parameters to the program.
      */
 
-     if (( trap == 5 || trap == 6 ) ||
-     	(( trap >= 0x11 ) && ( trap <= 0x1f )) ||
-     	(( trap >= 0x70 ) && ( trap <= 0x83 )))
+    if (( trap == 5 || trap == 6 ) ||
+        (( trap >= 0x11 ) && ( trap <= 0x1f )) ||
+        (( trap >= 0x70 ) && ( trap <= 0x83 )) ||
+        ( trap == 0x80 + SPARC_SWTRAP_IRQDIS ) ||
+        ( trap == 0x80 + SPARC_SWTRAP_IRQEN ))
       continue;
 
     set_vector( (rtems_isr_entry) bsp_spurious_handler,

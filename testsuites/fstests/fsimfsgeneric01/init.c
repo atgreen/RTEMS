@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -28,6 +28,8 @@
 #include <rtems/imfs.h>
 #include <rtems/malloc.h>
 #include <rtems/libcsupport.h>
+
+const char rtems_test_name[] = "FSIMFSGENERIC 1";
 
 typedef enum {
   TEST_NEW,
@@ -470,17 +472,27 @@ static void test_imfs_make_generic_node_errors(void)
   rtems_test_assert(rv == -1);
   rtems_test_assert(errno == EIO);
   rtems_test_assert(rtems_resource_snapshot_check(&before));
+
+  errno = 0;
+  rv = IMFS_make_generic_node(
+    "/nil/nada",
+    S_IFCHR | S_IRWXU | S_IRWXG | S_IRWXO,
+    &node_control,
+    NULL
+  );
+  rtems_test_assert(rv == -1);
+  rtems_test_assert(errno == ENOENT);
+  rtems_test_assert(rtems_resource_snapshot_check(&before));
 }
 
 static void Init(rtems_task_argument arg)
 {
-  printf("\n\n*** TEST FSIMFSGENERIC 1 ***\n");
+  TEST_BEGIN();
 
   test_imfs_make_generic_node();
   test_imfs_make_generic_node_errors();
 
-  printf("*** END OF TEST FSIMFSGENERIC 1 ***\n");
-
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -489,9 +501,9 @@ static void Init(rtems_task_argument arg)
 
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 4
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 #define CONFIGURE_MAXIMUM_TASKS 1
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

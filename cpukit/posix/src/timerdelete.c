@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -47,6 +47,7 @@ int timer_delete(
   POSIX_Timer_Control *ptimer;
   Objects_Locations    location;
 
+  _Objects_Allocator_lock();
   ptimer = _POSIX_Timer_Get( timerid, &location );
   switch ( location ) {
 
@@ -54,8 +55,10 @@ int timer_delete(
       _Objects_Close( &_POSIX_Timer_Information, &ptimer->Object );
       ptimer->state = POSIX_TIMER_STATE_FREE;
       (void) _Watchdog_Remove( &ptimer->Timer );
-      _POSIX_Timer_Free( ptimer );
       _Objects_Put( &ptimer->Object );
+      _POSIX_Timer_Free( ptimer );
+      _Objects_Allocator_unlock();
+
       return 0;
 
 #if defined(RTEMS_MULTIPROCESSING)
@@ -64,6 +67,8 @@ int timer_delete(
     case OBJECTS_ERROR:
       break;
   }
+
+  _Objects_Allocator_unlock();
 
   rtems_set_errno_and_return_minus_one( EINVAL );
 }

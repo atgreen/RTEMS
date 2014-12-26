@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -26,6 +26,8 @@
 #include <rtems/ide_part_table.h>
 #include <rtems/ramdisk.h>
 #include <rtems/libcsupport.h>
+
+const char rtems_test_name[] = "FSBDPART 1";
 
 #define ASSERT_SC(sc) rtems_test_assert((sc) == RTEMS_SUCCESSFUL)
 
@@ -206,13 +208,12 @@ static void test_ide_part_table(void)
 
 static void Init(rtems_task_argument arg)
 {
-  printf("\n\n*** TEST FSBDPART 1 ***\n");
+  TEST_BEGIN();
 
   test_bdpart();
   test_ide_part_table();
 
-  printf("*** END OF TEST FSBDPART 1 ***\n");
-
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -229,11 +230,11 @@ size_t rtems_ramdisk_configuration_size = 1;
 
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 13
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 #define CONFIGURE_MAXIMUM_TASKS 2
 
 #define CONFIGURE_INIT_TASK_STACK_SIZE (32 * 1024)
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

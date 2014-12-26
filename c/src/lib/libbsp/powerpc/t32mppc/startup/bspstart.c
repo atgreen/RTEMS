@@ -1,18 +1,19 @@
 /*
- * Copyright (c) 2012 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2012-2014 embedded brains GmbH.  All rights reserved.
  *
  *  embedded brains GmbH
- *  Obere Lagerstr. 30
+ *  Dornierstr. 4
  *  82178 Puchheim
  *  Germany
  *  <rtems@embedded-brains.de>
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems/config.h>
+#include <rtems/counter.h>
 
 #include <bsp.h>
 #include <bsp/vectors.h>
@@ -37,6 +38,7 @@ void BSP_panic(char *s)
   rtems_interrupt_level level;
 
   rtems_interrupt_disable(level);
+  (void) level;
 
   printk("%s PANIC %s\n", rtems_get_version_string(), s);
 
@@ -50,6 +52,7 @@ void _BSP_Fatal_error(unsigned n)
   rtems_interrupt_level level;
 
   rtems_interrupt_disable(level);
+  (void) level;
 
   printk("%s PANIC ERROR %u\n", rtems_get_version_string(), n);
 
@@ -63,9 +66,10 @@ void bsp_start(void)
   get_ppc_cpu_type();
   get_ppc_cpu_revision();
 
+  rtems_counter_initialize_converter(bsp_time_base_frequency);
+
   /* Initialize exception handler */
   ppc_exc_initialize_with_vector_base(
-    PPC_INTERRUPT_DISABLE_MASK_DEFAULT,
     (uintptr_t) bsp_section_work_begin,
     rtems_configuration_get_interrupt_stack_size(),
     bsp_exc_vector_base

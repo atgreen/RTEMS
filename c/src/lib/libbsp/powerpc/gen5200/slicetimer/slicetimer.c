@@ -14,7 +14,7 @@
 | The license and distribution terms for this file may be         |
 | found in the file LICENSE in this distribution or at            |
 |                                                                 |
-| http://www.rtems.com/license/LICENSE.                           |
+| http://www.rtems.org/license/LICENSE.                           |
 |                                                                 |
 +-----------------------------------------------------------------+
 | this file contains functions to implement a slice timer         |
@@ -72,7 +72,7 @@
 /*                                                                     */
 /*   The license and distribution terms for this file may be           */
 /*   found in the file LICENSE in this distribution or at              */
-/*   http://www.rtems.com/license/LICENSE.                        */
+/*   http://www.rtems.org/license/LICENSE.                        */
 /*                                                                     */
 /*   Modifications for PPC405GP by Dennis Ehlin                        */
 /*---------------------------------------------------------------------*/
@@ -99,6 +99,7 @@
 
 #include <bsp.h>
 #include <rtems/bspIo.h>
+#include <bsp/fatal.h>
 #include <bsp/irq.h>
 
 #include <rtems.h>
@@ -229,7 +230,7 @@ uint32_t mpc5200_check_slt_status(uint32_t slt_no)
 /*
  *  switch MPC5x00 slt on
  */
-void sltOn(const rtems_irq_connect_data* irq)
+static void sltOn(const rtems_irq_connect_data* irq)
   {
   uint32_t slt_no = 0;
 
@@ -247,7 +248,7 @@ void sltOn(const rtems_irq_connect_data* irq)
 /*
  *  switch MPC5x00 slt off
  */
-void sltOff(const rtems_irq_connect_data* irq)
+static void sltOff(const rtems_irq_connect_data* irq)
   {
   uint32_t slt_no = 0;
 
@@ -264,7 +265,7 @@ void sltOff(const rtems_irq_connect_data* irq)
 /*
  *  get status of MPC5x00 slt
  */
-int sltIsOn(const rtems_irq_connect_data* irq)
+static int sltIsOn(const rtems_irq_connect_data* irq)
   {
   uint32_t slt_no = 0;
 
@@ -338,7 +339,7 @@ rtems_device_driver slt_initialize
       {
 
       printk("Unable to connect PSC Irq handler\n");
-      mpc5200_fatal(MPC5200_FATAL_SLICETIMER_0_IRQ_INSTALL);
+      bsp_fatal(MPC5200_FATAL_SLICETIMER_0_IRQ_INSTALL);
 
       }
 
@@ -353,7 +354,7 @@ rtems_device_driver slt_initialize
       {
 
       printk("Unable to connect PSC Irq handler\n");
-      mpc5200_fatal(MPC5200_FATAL_SLICETIMER_1_IRQ_INSTALL);
+      bsp_fatal(MPC5200_FATAL_SLICETIMER_1_IRQ_INSTALL);
 
       }
 

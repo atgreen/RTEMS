@@ -1,7 +1,7 @@
 ## Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([rtems-c-src-tests-libtests],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-c-src-tests-libtests],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([cpuuse])
 AC_CONFIG_HEADER([config.h])
 RTEMS_TOP([../..],[..])
@@ -41,8 +41,40 @@ AM_CONDITIONAL([HAS_COMPLEX],[test "$ac_cv_header_complex_h" = yes])
 AM_CONDITIONAL(NETTESTS,test "$rtems_cv_RTEMS_NETWORKING" = "yes")
 AM_CONDITIONAL(HAS_POSIX,test x"${rtems_cv_RTEMS_POSIX_API}" = x"yes")
 
+# Must match the list in cpukit.
+AC_MSG_CHECKING([whether CPU supports libdl])
+case $RTEMS_CPU in
+  arm | bfin | h8300 | i386 | lm32 | m32r | m68k | mips | \
+  moxie | powerpc | sparc | v850)
+   TEST_LIBDL=yes ;;
+  *)
+   TEST_LIBDL=no ;;
+esac
+AC_MSG_RESULT([$TEST_LIBDL])
+
+AS_IF([test x"$TEST_LIBDL" = x"yes"],[
+  AC_CHECK_PROG(RTEMS_LD_CHECK,rtems-ld,yes)
+  if test x"$RTEMS_LD_CHECK" != x"yes" ; then
+    TEST_LIBDL=no
+  fi
+  AC_CHECK_PROG(RTEMS_SYMS_CHECK,rtems-syms,yes)
+  if test x"$RTEMS_SYMS_CHECK" != x"yes" ; then
+    TEST_LIBDL=no
+  fi
+])
+
+AM_CONDITIONAL(DLTESTS,[test x"$TEST_LIBDL" = x"yes"])
+
 # Explicitly list all Makefiles here
 AC_CONFIG_FILES([Makefile
+defaultconfig01/Makefile
+pwdgrp02/Makefile
+shell01/Makefile
+pwdgrp01/Makefile
+crypt01/Makefile
+sha/Makefile
+i2c01/Makefile
+newlib01/Makefile
 block17/Makefile
 exit02/Makefile
 exit01/Makefile
@@ -77,6 +109,8 @@ devfs03/Makefile
 devfs04/Makefile
 deviceio01/Makefile
 devnullfatal01/Makefile
+dl01/Makefile
+dl02/Makefile
 dumpbuf01/Makefile
 ftp01/Makefile
 gxx01/Makefile
@@ -85,7 +119,6 @@ malloctest/Makefile
 malloc02/Makefile
 malloc03/Makefile
 malloc04/Makefile
-malloc05/Makefile
 monitor/Makefile
 monitor02/Makefile
 mouse01/Makefile
@@ -108,7 +141,9 @@ termios05/Makefile
 termios06/Makefile
 termios07/Makefile
 termios08/Makefile
+top/Makefile
 tztest/Makefile
+capture01/Makefile
 POSIX/Makefile
 math/Makefile
 mathf/Makefile

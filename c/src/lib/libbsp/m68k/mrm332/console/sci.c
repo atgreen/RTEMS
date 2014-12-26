@@ -86,8 +86,8 @@
 #include <libchip/serial.h>
 #include <libchip/sersupp.h>
 #include "sci.h"
+#include <rtems/m68k/qsm.h>
 /*#include "../misc/include/cpu332.h" */
-
 
 /*****************************************************************************
   Section B - Manifest Constants
@@ -151,6 +151,8 @@ rtems_device_driver SciControl(                        /* device driver api */
     rtems_device_major_number, rtems_device_minor_number, void *);
 rtems_device_driver SciRead (
     rtems_device_major_number, rtems_device_minor_number, void *);
+
+rtems_isr SciIsr( rtems_vector_number vector );
 
 int     SciInterruptOpen(int, int, void *);               /* termios api */
 int     SciInterruptClose(int, int, void *);              /* termios api */
@@ -351,8 +353,8 @@ rtems_isr SciIsr( rtems_vector_number vector )
     if ( (*SCSR) & SCI_ERROR_OVERRUN )   SciErrorsOverrun ++;
 
     /* see if it was a transmit interrupt */
-
-    if ( (*SCSR) & SCI_XMTR_AVAILABLE )         /* data reg empty, xmt complete */
+    /* data reg empty, xmt complete */
+    if ( ( *SCCR1 & SCI_ENABLE_INT_TX ) && ( (*SCSR) & SCI_XMTR_AVAILABLE ) )
     {
         SciDisableTransmitInterrupts();
 
@@ -554,12 +556,17 @@ int   SciInterruptOpen(
 
     SciSetDataBits(SCI_8_DATA_BITS);            /* set data bits to 8 */
 
-    /* Install our interrupt handler into RTEMS, where does 66 come from? */
+    /* Install our interrupt handler into RTEMS. */
+    /* 68 is an unused user-defined vector.  Note that the vector must be */
+    /* even - it sets the low bit for SPI interrupts, and clears it for */
+    /* SCI interrupts.  Also note that vector 66 is used by CPU32bug on */
+    /* the mrm332. */
 
-    rtems_interrupt_catch( SciIsr, 66, &old_vector );
+    rtems_interrupt_catch( SciIsr, 68, &old_vector );
 
-    *QIVR  = 66;
-    *QIVR &= 0xf8;
+    *QSMCR = (*QSMCR & ~IARB) | 1; // Is 1 a good value for qsm iarb?
+    *QIVR  = 68;
+    *QILR &= 0xf8;
     *QILR |= 0x06 & 0x07;
 
     SciEnableTransmitter();                     /* enable the transmitter */
@@ -1031,7 +1038,6 @@ rtems_device_driver SciRead (
 {
     rtems_libio_rw_args_t *rw_args;             /* ptr to argument struct */
     char      *buffer;
-    uint16_t   length;
 
     rw_args = (rtems_libio_rw_args_t *) arg;    /* arguments to read() */
 
@@ -1046,8 +1052,6 @@ rtems_device_driver SciRead (
     }
 
     buffer = rw_args->buffer;                   /* points to user's buffer */
-
-    length = rw_args->count;                    /* how many bytes they want */
 
 /*  *buffer = SciReadCharWait();                   wait for a character */
 
@@ -1091,7 +1095,7 @@ rtems_device_driver SciWrite (
 {
     rtems_libio_rw_args_t *rw_args;             /* ptr to argument struct */
     uint8_t   *buffer;
-    uint16_t   length;
+    size_t     length;
 
     rw_args = (rtems_libio_rw_args_t *) arg;
 
@@ -1140,8 +1144,6 @@ rtems_device_driver SciControl (
 {
     rtems_libio_ioctl_args_t *args = arg;       /* rtems arg struct */
     uint16_t   command;                         /* the cmd to execute */
-    uint16_t   unused;                          /* maybe later */
-    uint16_t   *ptr;                            /* ptr to user data */
 
 /*printk("%s major=%d minor=%d\r\n", __FUNCTION__,major,minor); */
 
@@ -1165,8 +1167,6 @@ rtems_device_driver SciControl (
     args->ioctl_return = -1;                    /* assume an error */
 
     command = args->command;                    /* get the command */
-    ptr     = args->buffer;                     /* this is an address */
-    unused  = *ptr;                             /* brightness */
 
     if (command == SCI_SEND_BREAK)              /* process the command */
     {
@@ -1382,7 +1382,7 @@ void SciWriteCharWait(uint8_t   c)
 {
     /* poll the fifo, waiting for room for another character */
 
-    while ( ( *SCSR & SCI_XMTR_AVAILABLE ) == 0 )
+    while ( ( *SCSR & SCI_XMTR_AVAILABLE ) != SCI_XMTR_AVAILABLE )
     {
         /* Either we are writing to the fifo faster than
          * the uart can clock bytes out onto the cable,

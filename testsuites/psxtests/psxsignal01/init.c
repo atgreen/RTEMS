@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -16,6 +16,8 @@
 #include <signal.h>
 #include <errno.h>
 #include <reent.h>
+
+const char rtems_test_name[] = "PSXSIGNAL 1";
 
 /* forward declarations to avoid warnings */
 int test_main(void);
@@ -104,7 +106,7 @@ void *POSIX_Init(
   sighandler_t      newHandler;
   rtems_interval start, end;
 
-  puts( "\n\n*** POSIX TEST SIGNAL ***" );
+  TEST_BEGIN();
 
   /* set the time of day, and print our buffer in multiple ways */
 
@@ -233,7 +235,7 @@ void *POSIX_Init(
   Signal_occurred = 0;
 
   puts("*** Validate unexpected program termination ***");
-  puts( "*** END OF POSIX TEST SIGNAL ***" );
+  TEST_END();
   _POSIX_signals_Abnormal_termination_handler( SIGUSR1 );
   status = sleep( 1 );
 

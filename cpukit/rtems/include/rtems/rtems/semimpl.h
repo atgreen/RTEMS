@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_SEMIMPL_H
@@ -20,6 +20,7 @@
 #include <rtems/rtems/sem.h>
 #include <rtems/score/coremuteximpl.h>
 #include <rtems/score/coresemimpl.h>
+#include <rtems/score/mrspimpl.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -91,6 +92,14 @@ _Semaphore_Translate_core_mutex_return_code(
   #endif
   return _Semaphore_Translate_core_mutex_return_code_[status];
 }
+
+#if defined(RTEMS_SMP)
+RTEMS_INLINE_ROUTINE rtems_status_code
+_Semaphore_Translate_MRSP_status_code( MRSP_Status mrsp_status )
+{
+  return (rtems_status_code) mrsp_status;
+}
+#endif
 
 /**
  * @brief Semaphore Translate Core Semaphore Return Code

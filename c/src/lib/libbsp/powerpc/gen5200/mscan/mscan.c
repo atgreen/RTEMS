@@ -11,7 +11,7 @@
 | The license and distribution terms for this file may be         |
 | found in the file LICENSE in this distribution or at            |
 |                                                                 |
-| http://www.rtems.com/license/LICENSE.                           |
+| http://www.rtems.org/license/LICENSE.                           |
 |                                                                 |
 +-----------------------------------------------------------------+
 | this file contains the MSCAN driver                             |
@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "../include/bsp.h"
+#include <bsp/fatal.h>
 #include <bsp/irq.h>
 #include "../mscan/mscan_int.h"
 
@@ -351,7 +352,7 @@ static void mscan_interrupts_enable(mscan *m)
 /*
  * Unmask MPC5x00 MSCAN_A interrupts
  */
-void mpc5200_mscan_a_on(const rtems_irq_connect_data * ptr)
+static void mpc5200_mscan_a_on(const rtems_irq_connect_data * ptr)
 {
   mscan *m = (&chan_info[MSCAN_A])->regs;
 
@@ -364,7 +365,7 @@ void mpc5200_mscan_a_on(const rtems_irq_connect_data * ptr)
 /*
  * Mask MPC5x00 MSCAN_A interrupts
  */
-void mpc5200_mscan_a_off(const rtems_irq_connect_data * ptr)
+static void mpc5200_mscan_a_off(const rtems_irq_connect_data * ptr)
 {
   mscan *m = (&chan_info[MSCAN_A])->regs;
 
@@ -377,7 +378,7 @@ void mpc5200_mscan_a_off(const rtems_irq_connect_data * ptr)
 /*
  *  Get MSCAN_A interrupt mask setting
  */
-int mpc5200_mscan_a_isOn(const rtems_irq_connect_data * ptr)
+static int mpc5200_mscan_a_isOn(const rtems_irq_connect_data * ptr)
 {
   mscan *m = (&chan_info[MSCAN_A])->regs;
 
@@ -393,7 +394,7 @@ int mpc5200_mscan_a_isOn(const rtems_irq_connect_data * ptr)
 /*
  * Unmask MPC5x00 MSCAN_B interrupts
  */
-void mpc5200_mscan_b_on(const rtems_irq_connect_data * ptr)
+static void mpc5200_mscan_b_on(const rtems_irq_connect_data * ptr)
 {
   mscan *m = (&chan_info[MSCAN_B])->regs;
 
@@ -406,7 +407,7 @@ void mpc5200_mscan_b_on(const rtems_irq_connect_data * ptr)
 /*
  * Mask MPC5x00 MSCAN_B interrupts
  */
-void mpc5200_mscan_b_off(const rtems_irq_connect_data * ptr)
+static void mpc5200_mscan_b_off(const rtems_irq_connect_data * ptr)
 {
   mscan *m = (&chan_info[MSCAN_B])->regs;
 
@@ -419,7 +420,7 @@ void mpc5200_mscan_b_off(const rtems_irq_connect_data * ptr)
 /*
  *  Get MSCAN_B interrupt mask setting
  */
-int mpc5200_mscan_b_isOn(const rtems_irq_connect_data * ptr)
+static int mpc5200_mscan_b_isOn(const rtems_irq_connect_data * ptr)
 {
   mscan *m = (&chan_info[MSCAN_B])->regs;
 
@@ -490,7 +491,7 @@ void mpc5200_mscan_wait_sync(mscan *m)
 /*
  * MPC5x00 MSCAN perform settings in init mode
  */
-void mpc5200_mscan_perform_initialization_mode_settings(mscan *m)
+static void mpc5200_mscan_perform_initialization_mode_settings(mscan *m)
 {
   mscan_context context;
 
@@ -770,20 +771,20 @@ rtems_device_driver mscan_initialize(rtems_device_major_number major,
 
   /* Initialization requested via RTEMS */
   if ((status = mscan_channel_initialize(major, MSCAN_A)) != RTEMS_SUCCESSFUL)
-    mpc5200_fatal(MPC5200_FATAL_MSCAN_A_INIT);
+    bsp_fatal(MPC5200_FATAL_MSCAN_A_INIT);
 
   if ((status = mscan_channel_initialize(major, MSCAN_B)) != RTEMS_SUCCESSFUL)
-    mpc5200_fatal(MPC5200_FATAL_MSCAN_B_INIT);
+    bsp_fatal(MPC5200_FATAL_MSCAN_B_INIT);
 
   if ((status =
        mpc5200_mscan_set_mode(MSCAN_A,
                               MSCAN_INIT_NORMAL_MODE)) != RTEMS_SUCCESSFUL)
-    mpc5200_fatal(MPC5200_FATAL_MSCAN_A_SET_MODE);
+    bsp_fatal(MPC5200_FATAL_MSCAN_A_SET_MODE);
 
   if ((status =
        mpc5200_mscan_set_mode(MSCAN_B,
                               MSCAN_INIT_NORMAL_MODE)) != RTEMS_SUCCESSFUL)
-    mpc5200_fatal(MPC5200_FATAL_MSCAN_B_SET_MODE);
+    bsp_fatal(MPC5200_FATAL_MSCAN_B_SET_MODE);
 
   return status;
 
@@ -828,13 +829,11 @@ rtems_device_driver mscan_close(rtems_device_major_number major,
                                 rtems_device_minor_number minor, void *arg)
 {
   rtems_status_code status;
-  struct mscan_channel_info *chan = NULL;
 
   switch (minor) {
 
     case MSCAN_A:
     case MSCAN_B:
-      chan = &chan_info[minor];
       break;
 
     default:
@@ -911,14 +910,12 @@ rtems_device_driver mscan_write(rtems_device_major_number major,
   struct mscan_tx_parms *tx_parms = (struct mscan_tx_parms *) (parms->buffer);
   struct can_message *tx_mess = (struct can_message *) (tx_parms->tx_mess);
   struct mscan_channel_info *chan = NULL;
-  mscan_handle *mscan_hdl = NULL;
   mscan *m = NULL;
 
   switch (minor) {
     case MSCAN_A:
     case MSCAN_B:
       chan = &chan_info[minor];
-      mscan_hdl = mpc5200_mscan_irq_data[minor].handle;
       m = chan->regs;
       break;
 

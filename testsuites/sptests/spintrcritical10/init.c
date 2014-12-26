@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,6 +17,8 @@
 #include <intrcritical.h>
 
 #include <rtems/rtems/eventimpl.h>
+
+const char rtems_test_name[] = "SPINTRCRITICAL 10";
 
 #define GREEN RTEMS_EVENT_0
 
@@ -84,10 +86,28 @@ static void any_satisfy_before_timeout(rtems_id timer, void *arg)
   rtems_test_assert(sc == RTEMS_SUCCESSFUL);
 }
 
+static bool test_body_any_satisfy_before_timeout(void *arg)
+{
+  test_context *ctx = arg;
+  rtems_status_code sc;
+  rtems_event_set out;
+
+  out = DEADBEEF;
+  sc = rtems_event_receive(EVENTS, RTEMS_EVENT_ANY | RTEMS_WAIT, 1, &out);
+  rtems_test_assert(sc == RTEMS_SUCCESSFUL);
+  rtems_test_assert(out == GREEN);
+
+  out = DEADBEEF;
+  sc = rtems_event_receive(EVENTS, RTEMS_EVENT_ANY | RTEMS_NO_WAIT, 0, &out);
+  rtems_test_assert(sc == RTEMS_SUCCESSFUL);
+  rtems_test_assert(out == RED);
+
+  return ctx->hit;
+}
+
 static void test_any_satisfy_before_timeout(test_context *ctx)
 {
   rtems_status_code sc;
-  int resets = 0;
 
   puts(
     "Init - Trying to generate any satisfied before timeout "
@@ -95,28 +115,16 @@ static void test_any_satisfy_before_timeout(test_context *ctx)
   );
 
   ctx->hit = false;
-
-  interrupt_critical_section_test_support_initialize(NULL);
+  ctx->thread->Wait.count = 0;
 
   sc = rtems_timer_fire_after(ctx->timer, 1, any_satisfy_before_timeout, ctx);
   rtems_test_assert(sc == RTEMS_SUCCESSFUL);
 
-  while (!ctx->hit && resets < 2) {
-    rtems_event_set out;
-
-    if (interrupt_critical_section_test_support_delay())
-      resets++;
-
-    out = DEADBEEF;
-    sc = rtems_event_receive(EVENTS, RTEMS_EVENT_ANY | RTEMS_WAIT, 1, &out);
-    rtems_test_assert(sc == RTEMS_SUCCESSFUL);
-    rtems_test_assert(out == GREEN);
-
-    out = DEADBEEF;
-    sc = rtems_event_receive(EVENTS, RTEMS_EVENT_ANY | RTEMS_NO_WAIT, 0, &out);
-    rtems_test_assert(sc == RTEMS_SUCCESSFUL);
-    rtems_test_assert(out == RED);
-  }
+  interrupt_critical_section_test(
+    test_body_any_satisfy_before_timeout,
+    ctx,
+    NULL
+  );
 
   sc = rtems_timer_cancel(ctx->timer);
   rtems_test_assert(sc == RTEMS_SUCCESSFUL);
@@ -176,10 +184,23 @@ static void all_satisfy_before_timeout(rtems_id timer, void *arg)
   rtems_test_assert(sc == RTEMS_SUCCESSFUL);
 }
 
+static bool test_body_all_satisfy_before_timeout(void *arg)
+{
+  test_context *ctx = arg;
+  rtems_status_code sc;
+  rtems_event_set out;
+
+  out = DEADBEEF;
+  sc = rtems_event_receive(EVENTS, RTEMS_EVENT_ALL | RTEMS_WAIT, 1, &out);
+  rtems_test_assert(sc == RTEMS_SUCCESSFUL);
+  rtems_test_assert(out == EVENTS);
+
+  return ctx->hit;
+}
+
 static void test_all_satisfy_before_timeout(test_context *ctx)
 {
   rtems_status_code sc;
-  int resets = 0;
 
   puts(
     "Init - Trying to generate all satisfied before timeout "
@@ -187,23 +208,16 @@ static void test_all_satisfy_before_timeout(test_context *ctx)
   );
 
   ctx->hit = false;
-
-  interrupt_critical_section_test_support_initialize(NULL);
+  ctx->thread->Wait.count = 0;
 
   sc = rtems_timer_fire_after(ctx->timer, 1, all_satisfy_before_timeout, ctx);
   rtems_test_assert(sc == RTEMS_SUCCESSFUL);
 
-  while (!ctx->hit && resets < 2) {
-    rtems_event_set out;
-
-    if (interrupt_critical_section_test_support_delay())
-      resets++;
-
-    out = DEADBEEF;
-    sc = rtems_event_receive(EVENTS, RTEMS_EVENT_ALL | RTEMS_WAIT, 1, &out);
-    rtems_test_assert(sc == RTEMS_SUCCESSFUL);
-    rtems_test_assert(out == EVENTS);
-  }
+  interrupt_critical_section_test(
+    test_body_all_satisfy_before_timeout,
+    ctx,
+    NULL
+  );
 
   sc = rtems_timer_cancel(ctx->timer);
   rtems_test_assert(sc == RTEMS_SUCCESSFUL);
@@ -255,10 +269,28 @@ static void timeout_before_satisfied(rtems_id timer, void *arg)
   rtems_test_assert(sc == RTEMS_SUCCESSFUL);
 }
 
+static bool test_body_timeout_before_all_satisfy(void *arg)
+{
+  test_context *ctx = arg;
+  rtems_event_set out;
+  rtems_status_code sc;
+
+  out = DEADBEEF;
+  sc = rtems_event_receive(EVENTS, RTEMS_EVENT_ALL | RTEMS_WAIT, 1, &out);
+  rtems_test_assert(sc == RTEMS_TIMEOUT);
+  rtems_test_assert(out == DEADBEEF);
+
+  out = DEADBEEF;
+  sc = rtems_event_receive(EVENTS, RTEMS_EVENT_ALL | RTEMS_NO_WAIT, 0, &out);
+  rtems_test_assert(sc == RTEMS_SUCCESSFUL);
+  rtems_test_assert(out == EVENTS);
+
+  return ctx->hit;
+}
+
 static void test_timeout_before_all_satisfy(test_context *ctx)
 {
   rtems_status_code sc;
-  int resets = 0;
 
   puts(
     "Init - Trying to generate timeout before all satisfied "
@@ -266,28 +298,16 @@ static void test_timeout_before_all_satisfy(test_context *ctx)
   );
 
   ctx->hit = false;
-
-  interrupt_critical_section_test_support_initialize(NULL);
+  ctx->thread->Wait.count = 0;
 
   sc = rtems_timer_fire_after(ctx->timer, 1, timeout_before_satisfied, ctx);
   rtems_test_assert(sc == RTEMS_SUCCESSFUL);
 
-  while (!ctx->hit && resets < 2) {
-    rtems_event_set out;
-
-    if (interrupt_critical_section_test_support_delay())
-      resets++;
-
-    out = DEADBEEF;
-    sc = rtems_event_receive(EVENTS, RTEMS_EVENT_ALL | RTEMS_WAIT, 1, &out);
-    rtems_test_assert(sc == RTEMS_TIMEOUT);
-    rtems_test_assert(out == DEADBEEF);
-
-    out = DEADBEEF;
-    sc = rtems_event_receive(EVENTS, RTEMS_EVENT_ALL | RTEMS_NO_WAIT, 0, &out);
-    rtems_test_assert(sc == RTEMS_SUCCESSFUL);
-    rtems_test_assert(out == EVENTS);
-  }
+  interrupt_critical_section_test(
+    test_body_timeout_before_all_satisfy,
+    ctx,
+    NULL
+  );
 
   sc = rtems_timer_cancel(ctx->timer);
   rtems_test_assert(sc == RTEMS_SUCCESSFUL);
@@ -304,7 +324,7 @@ static rtems_task Init(
     .thread = _Thread_Get_executing()
   };
 
-  puts( "\n\n*** TEST INTERRUPT CRITICAL SECTION 10 ***" );
+  TEST_BEGIN();
 
   sc = rtems_timer_create(rtems_build_name('T', 'I', 'M', 'R'), &ctx.timer);
   rtems_test_assert(sc == RTEMS_SUCCESSFUL);
@@ -313,7 +333,7 @@ static rtems_task Init(
   test_all_satisfy_before_timeout(&ctx);
   test_timeout_before_all_satisfy(&ctx);
 
-  puts( "*** END OF TEST INTERRUPT CRITICAL SECTION 10 ***" );
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -324,6 +344,9 @@ static rtems_task Init(
 
 #define CONFIGURE_MAXIMUM_TASKS       1
 #define CONFIGURE_MAXIMUM_TIMERS      1
+#define CONFIGURE_MAXIMUM_USER_EXTENSIONS 1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 #define CONFIGURE_MICROSECONDS_PER_TICK  1000
 

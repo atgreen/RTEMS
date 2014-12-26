@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -21,26 +21,28 @@
 
 #include <rtems/score/scheduleredfimpl.h>
 
-void _Scheduler_EDF_Yield( Thread_Control *thread )
+Scheduler_Void_or_thread _Scheduler_EDF_Yield(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
+)
 {
-  ISR_Level                 level;
-
-  Scheduler_EDF_Per_thread *thread_info =
-    (Scheduler_EDF_Per_thread *) thread->scheduler_info;
-  RBTree_Node *thread_node = &(thread_info->Node);
-
-  _ISR_Disable( level );
+  Scheduler_EDF_Context *context =
+    _Scheduler_EDF_Get_context( scheduler );
+  Scheduler_EDF_Node    *node = _Scheduler_EDF_Thread_get_node( the_thread );
 
   /*
    * The RBTree has more than one node, enqueue behind the tasks
    * with the same priority in case there are such ones.
    */
-  _RBTree_Extract( &_Scheduler_EDF_Ready_queue, thread_node );
-  _RBTree_Insert( &_Scheduler_EDF_Ready_queue, thread_node );
+  _RBTree_Extract( &context->Ready, &node->Node );
+  _RBTree_Insert(
+    &context->Ready,
+    &node->Node,
+    _Scheduler_EDF_Compare,
+    false
+  );
 
-  _ISR_Flash( level );
+  _Scheduler_EDF_Schedule_body( scheduler, the_thread, false );
 
-  _Scheduler_EDF_Schedule_body( thread, false );
-
-  _ISR_Enable( level );
+  SCHEDULER_RETURN_VOID_OR_NULL;
 }

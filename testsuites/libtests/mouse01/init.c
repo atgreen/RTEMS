@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -24,6 +24,8 @@
 #include <rtems/mw_uid.h>
 #include "termios_testdriver_intr.h"
 #include "tmacros.h"
+
+const char rtems_test_name[] = "MOUSE 1";
 
 #define UID_MESSAGE_COUNT 10
 
@@ -130,7 +132,7 @@ rtems_task Init(
 {
   bool more_data;
 
-  printf( "\n\n*** %s TEST ***\n", Mouse_Type_Long );
+  TEST_BEGIN();
 
   open_it();
   register_it(); 
@@ -143,7 +145,7 @@ rtems_task Init(
     receive_uid_message();
   } while (more_data);
   close_it(); 
-  printf( "*** END OF %s TEST ***\n", Mouse_Type_Long );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -173,6 +175,8 @@ rtems_task Init(
     UID_MESSAGE_COUNT, \
     sizeof(struct MW_UID_MESSAGE) \
   )
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 #define CONFIGURE_INIT

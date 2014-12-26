@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -28,6 +28,12 @@
 void *_exception_stack_frame;
 
 register unsigned long  *stack_ptr __asm__ ("sp");
+
+/*
+ *  Prototypes for routines called from assembly that we don't want in
+ *  the public name space.
+ */
+void __ISR_Handler(uint32_t vector, CPU_Interrupt_frame *ifr);
 
 void __ISR_Handler(uint32_t vector, CPU_Interrupt_frame *ifr)
 {

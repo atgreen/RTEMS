@@ -3,7 +3,7 @@
  *
  * @brief Simple SMP Scheduler API
  *
- * @ingroup ScoreSchedulerSMP
+ * @ingroup ScoreSchedulerSMPSimple
  */
 
 /*
@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_SCHEDULERSIMPLE_SMP_H
@@ -28,16 +28,16 @@ extern "C" {
 #include <rtems/score/schedulersmp.h>
 
 /**
- * @defgroup ScoreSchedulerSMP Simple SMP Scheduler
+ * @defgroup ScoreSchedulerSMPSimple Simple Priority SMP Scheduler
  *
- * @ingroup ScoreScheduler
+ * @ingroup ScoreSchedulerSMP
  *
- * The Simple SMP Scheduler allocates a processor for the processor count
- * highest priority ready threads.  The thread priority and position in the
- * ready chain are the only information to determine the scheduling decision.
- * Threads with an allocated processor are in the scheduled chain.  After
- * initialization the scheduled chain has exactly processor count nodes.  Each
- * processor has exactly one allocated thread after initialization.  All
+ * The Simple Priority SMP Scheduler allocates a processor for the processor
+ * count highest priority ready threads.  The thread priority and position in
+ * the ready chain are the only information to determine the scheduling
+ * decision.  Threads with an allocated processor are in the scheduled chain.
+ * After initialization the scheduled chain has exactly processor count nodes.
+ * Each processor has exactly one allocated thread after initialization.  All
  * enqueue and extract operations may exchange threads with the scheduled
  * chain.  One thread will be added and another will be removed.  The scheduled
  * and ready chain is ordered according to the thread priority order.  The
@@ -49,41 +49,73 @@ extern "C" {
  * @{
  */
 
+typedef struct {
+  Scheduler_SMP_Context Base;
+  Chain_Control         Ready;
+} Scheduler_simple_SMP_Context;
+
 /**
  * @brief Entry points for the Simple SMP Scheduler.
  */
 #define SCHEDULER_SIMPLE_SMP_ENTRY_POINTS \
   { \
-    _Scheduler_simple_smp_Initialize, \
-    _Scheduler_simple_smp_Schedule, \
-    _Scheduler_simple_smp_Yield, \
-    _Scheduler_simple_smp_Block, \
-    _Scheduler_simple_smp_Enqueue_priority_fifo, \
-    _Scheduler_default_Allocate, \
-    _Scheduler_default_Free, \
-    _Scheduler_default_Update, \
-    _Scheduler_simple_smp_Enqueue_priority_fifo, \
-    _Scheduler_simple_smp_Enqueue_priority_lifo, \
-    _Scheduler_simple_smp_Extract, \
+    _Scheduler_simple_SMP_Initialize, \
+    _Scheduler_default_Schedule, \
+    _Scheduler_simple_SMP_Yield, \
+    _Scheduler_simple_SMP_Block, \
+    _Scheduler_simple_SMP_Unblock, \
+    _Scheduler_simple_SMP_Change_priority, \
+    _Scheduler_simple_SMP_Ask_for_help, \
+    _Scheduler_simple_SMP_Node_initialize, \
+    _Scheduler_default_Node_destroy, \
+    _Scheduler_simple_SMP_Update_priority, \
     _Scheduler_priority_Priority_compare, \
     _Scheduler_default_Release_job, \
     _Scheduler_default_Tick, \
     _Scheduler_SMP_Start_idle \
+    SCHEDULER_OPERATION_DEFAULT_GET_SET_AFFINITY \
   }
 
-void _Scheduler_simple_smp_Initialize( void );
+void _Scheduler_simple_SMP_Initialize( const Scheduler_Control *scheduler );
 
-void _Scheduler_simple_smp_Block( Thread_Control *thread );
+void _Scheduler_simple_SMP_Node_initialize(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
+);
 
-void _Scheduler_simple_smp_Enqueue_priority_fifo( Thread_Control *thread );
+void _Scheduler_simple_SMP_Block(
+  const Scheduler_Control *scheduler,
+  Thread_Control *thread
+);
 
-void _Scheduler_simple_smp_Enqueue_priority_lifo( Thread_Control *thread );
+Thread_Control *_Scheduler_simple_SMP_Unblock(
+  const Scheduler_Control *scheduler,
+  Thread_Control *thread
+);
 
-void _Scheduler_simple_smp_Extract( Thread_Control *thread );
+Thread_Control *_Scheduler_simple_SMP_Change_priority(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread,
+  Priority_Control         new_priority,
+  bool                     prepend_it
+);
 
-void _Scheduler_simple_smp_Yield( Thread_Control *thread );
+Thread_Control *_Scheduler_simple_SMP_Ask_for_help(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *offers_help,
+  Thread_Control          *needs_help
+);
 
-void _Scheduler_simple_smp_Schedule( Thread_Control *thread );
+void _Scheduler_simple_SMP_Update_priority(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *thread,
+  Priority_Control         new_priority
+);
+
+Thread_Control *_Scheduler_simple_SMP_Yield(
+  const Scheduler_Control *scheduler,
+  Thread_Control *thread
+);
 
 /** @} */
 

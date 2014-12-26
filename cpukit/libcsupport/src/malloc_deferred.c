@@ -14,7 +14,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -27,16 +27,15 @@
 
 #include "malloc_p.h"
 
+#include <rtems/score/sysstate.h>
 #include <rtems/score/threaddispatch.h>
 
 RTEMS_CHAIN_DEFINE_EMPTY(RTEMS_Malloc_GC_list);
 
 bool malloc_is_system_state_OK(void)
 {
-  if ( !_Thread_Dispatch_is_enabled() )
-    return false;
-
-  return true;
+  return !_System_state_Is_up( _System_state_Get() )
+    || _Thread_Dispatch_is_enabled();
 }
 
 void malloc_deferred_frees_process(void)

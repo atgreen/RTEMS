@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_HEAPIMPL_H
@@ -346,6 +346,29 @@ Heap_Block *_Heap_Block_allocate(
     _Heap_Free( heap, p );
   }
 #endif
+
+/**
+ * @brief Sets the fraction of delayed free blocks that is actually freed
+ * during memory shortage.
+ *
+ * The default is to free half the delayed free blocks.  This is equal to a
+ * fraction value of two.
+ *
+ * @param[in] heap The heap control.
+ * @param[in] fraction The fraction is one divided by this fraction value.
+ */
+RTEMS_INLINE_ROUTINE void _Heap_Protection_set_delayed_free_fraction(
+  Heap_Control *heap,
+  uintptr_t fraction
+)
+{
+#ifdef HEAP_PROTECTION
+  heap->Protection.delayed_free_fraction = fraction;
+#else
+  (void) heap;
+  (void) fraction;
+#endif
+}
 
 RTEMS_INLINE_ROUTINE Heap_Block *_Heap_Free_list_head( Heap_Control *heap )
 {

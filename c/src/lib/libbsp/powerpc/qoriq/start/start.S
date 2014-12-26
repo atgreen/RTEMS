@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems/asm.h>
@@ -208,7 +208,7 @@ _start_core_1:
 	LA	r2, _SDA2_BASE_
 	LA	r13, _SDA_BASE_
 
-	b	qoriq_secondary_cpu_initialize
+	b	bsp_start_on_secondary_processor
 
 	b	twiddle
 #endif /* RTEMS_SMP */

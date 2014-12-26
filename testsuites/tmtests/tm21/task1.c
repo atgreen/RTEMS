@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,6 +13,8 @@
 
 #define CONFIGURE_INIT
 #include "system.h"
+
+const char rtems_test_name[] = "TIME TEST 21";
 
 uint8_t   Region_area[ 2048 ] CPU_STRUCTURE_ALIGNMENT;
 uint8_t   Partition_area[ 2048 ] CPU_STRUCTURE_ALIGNMENT;
@@ -30,7 +32,7 @@ rtems_task Init(
 
   Print_Warning();
 
-  puts( "\n\n*** TIME TEST 21 ***" );
+  TEST_BEGIN();
 
   status = rtems_task_create(
     rtems_build_name( 'T', 'I', 'M', 'E' ),
@@ -48,8 +50,6 @@ rtems_task Init(
   status = rtems_task_delete( RTEMS_SELF );
   directive_failed( status, "rtems_task_delete of RTEMS_SELF" );
 }
-
-#define MESSAGE_SIZE (sizeof(long) * 4)
 
 rtems_task Task_1(
   rtems_task_argument argument
@@ -233,6 +233,6 @@ rtems_task Task_1(
     CALLING_OVERHEAD_RATE_MONOTONIC_IDENT
   );
 
-  puts( "*** END OF TEST 21 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

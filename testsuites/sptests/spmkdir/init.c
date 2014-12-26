@@ -16,7 +16,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -30,6 +30,8 @@
 #include <rtems/libio.h>
 
 #include "tmacros.h"
+
+const char rtems_test_name[] = "SPMKDIR";
 
 static void test_mkdir(const char *path, mode_t omode, int expected_rv)
 {
@@ -54,7 +56,7 @@ static rtems_task Init(rtems_task_argument argument)
   mode_t omode = S_IRWXU | S_IRWXG | S_IRWXO;
   int rv = 0;
 
-  puts("\n\n*** TEST SPMKDIR ***");
+  TEST_BEGIN();
 
   puts( "rtems_mkdir a - OK" );
   test_mkdir("a", omode, 0);
@@ -97,7 +99,7 @@ static rtems_task Init(rtems_task_argument argument)
   test_mkdir("b", omode, -1);
   rtems_test_assert(errno == EEXIST);
 
-  puts("*** END OF TEST SPMKDIR ***");
+  TEST_END();
 
   exit(0);
 }
@@ -107,12 +109,12 @@ static rtems_task Init(rtems_task_argument argument)
 #define CONFIGURE_APPLICATION_DOES_NOT_NEED_CLOCK_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 4
 
 #define CONFIGURE_MAXIMUM_TASKS 1
 #define CONFIGURE_MAXIMUM_DRIVERS 1
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

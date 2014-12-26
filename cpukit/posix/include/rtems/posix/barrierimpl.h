@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_POSIX_BARRIERIMPL_H
@@ -104,25 +104,6 @@ RTEMS_INLINE_ROUTINE POSIX_Barrier_Control *_POSIX_Barrier_Get (
       (Objects_Id) *barrier,
       location
   );
-}
-
-/**
- * @brief Check if a barrier control block is NULL.
- *
- * This function returns @c TRUE if the_barrier is @c NULL and @c FALSE
- * otherwise.
- * 
- * @param[in] the_barrier is the pointer to the barrier control block
- * to be checked.
- * 
- * @retval TRUE The barrier control block is @c NULL.
- * @retval FALSE The barrier control block is not @c NULL.
- */
-RTEMS_INLINE_ROUTINE bool _POSIX_Barrier_Is_null (
-  POSIX_Barrier_Control *the_barrier
-)
-{
-  return ( the_barrier == NULL );
 }
 
 #ifdef __cplusplus

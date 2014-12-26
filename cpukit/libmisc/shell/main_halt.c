@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -19,20 +19,21 @@
 #include <rtems/shell.h>
 #include "internal.h"
 
-static int rtems_shell_main_halt(
+static int rtems_shell_main_shutdown(
   int   argc __attribute__((unused)),
   char *argv[] __attribute__((unused))
 )
 {
+  fprintf(stdout, "System shutting down at user request\n");
   exit(0);
   return 0;
 }
 
-rtems_shell_cmd_t rtems_shell_HALT_Command = {
-  "halt",                                    /* name */
-  "halt",                                    /* usage */
+rtems_shell_cmd_t rtems_shell_SHUTDOWN_Command = {
+  "shutdown",                                /* name */
+  "shutdown",                                /* usage */
   "rtems",                                   /* topic */
-  rtems_shell_main_halt,                     /* command */
+  rtems_shell_main_shutdown,                 /* command */
   NULL,                                      /* alias */
   NULL                                       /* next */
 };

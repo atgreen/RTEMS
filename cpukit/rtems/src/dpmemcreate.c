@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-1999.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -33,7 +33,7 @@ rtems_status_code rtems_port_create(
   rtems_id     *id
 )
 {
-  register Dual_ported_memory_Control *the_port;
+  Dual_ported_memory_Control *the_port;
 
   if ( !rtems_is_name_valid( name ) )
     return RTEMS_INVALID_NAME;
@@ -45,12 +45,10 @@ rtems_status_code rtems_port_create(
        !_Addresses_Is_aligned( external_start ) )
     return RTEMS_INVALID_ADDRESS;
 
-  _Thread_Disable_dispatch();             /* to prevent deletion */
-
   the_port = _Dual_ported_memory_Allocate();
 
   if ( !the_port ) {
-    _Thread_Enable_dispatch();
+    _Objects_Allocator_unlock();
     return RTEMS_TOO_MANY;
   }
 
@@ -65,6 +63,6 @@ rtems_status_code rtems_port_create(
   );
 
   *id = the_port->Object.id;
-  _Thread_Enable_dispatch();
+  _Objects_Allocator_unlock();
   return RTEMS_SUCCESSFUL;
 }

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -14,15 +14,15 @@
 #include <tmacros.h>
 #include <intrcritical.h>
 
+const char rtems_test_name[] = "SPINTRCRITICAL 15";
+
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
 rtems_task Secondary_task(rtems_task_argument ignored);
 
-#define TEST_NAME          "15"
 #define INIT_PRIORITY      2
 #define BLOCKER_PRIORITY   1
 
-rtems_id Main_task;
 rtems_id Secondary_task_id;
 rtems_id Semaphore;
 
@@ -38,15 +38,29 @@ rtems_task Secondary_task(
   }
 }
 
+static bool test_body( void *arg )
+{
+  rtems_status_code sc;
+
+  (void) arg;
+
+  sc = rtems_task_restart( Secondary_task_id, 1 );
+  rtems_test_assert( sc == RTEMS_SUCCESSFUL );
+
+  sc = rtems_semaphore_obtain( Semaphore, RTEMS_DEFAULT_OPTIONS, 1 );
+  rtems_test_assert( sc == RTEMS_TIMEOUT );
+
+  return false;
+}
+
 rtems_task Init(
   rtems_task_argument ignored
 )
 {
   rtems_status_code     sc;
-  int                   resets;
 
+  TEST_BEGIN();
   puts(
-    "\n\n*** TEST INTERRUPT CRITICAL SECTION " TEST_NAME " ***\n"
     "Init - Trying to generate timeout of a thread while another is blocking\n"
     "Init -   on the same thread queue\n"
     "Init - There is no way for the test to know if it hits the case"
@@ -76,22 +90,9 @@ rtems_task Init(
   sc = rtems_task_start( Secondary_task_id, Secondary_task, 0 );
   directive_failed( sc, "rtems_task_start" );
 
-  Main_task = rtems_task_self();
+  interrupt_critical_section_test( test_body, NULL, NULL );
 
-  interrupt_critical_section_test_support_initialize( NULL );
-
-  for (resets=0 ; resets<10 ;) {
-    if ( interrupt_critical_section_test_support_delay() )
-      resets++;
-
-    sc = rtems_task_restart( Secondary_task_id, 1 );
-    directive_failed( sc, "rtems_task_restart" );
-
-    sc = rtems_semaphore_obtain( Semaphore, RTEMS_DEFAULT_OPTIONS, 1 );
-    fatal_directive_status( sc, RTEMS_TIMEOUT, "rtems_semaphore_obtain" );
-  }
-
-  puts( "*** END OF TEST INTERRUPT CRITICAL SECTION " TEST_NAME " ***" );
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -102,9 +103,12 @@ rtems_task Init(
 
 #define CONFIGURE_MAXIMUM_TASKS          2
 #define CONFIGURE_MAXIMUM_SEMAPHORES     1
+#define CONFIGURE_MAXIMUM_USER_EXTENSIONS 1
 #define CONFIGURE_MICROSECONDS_PER_TICK  1000
 #define CONFIGURE_INIT_TASK_PRIORITY  INIT_PRIORITY
 #define CONFIGURE_INIT_TASK_INITIAL_MODES RTEMS_PREEMPT
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

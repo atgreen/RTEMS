@@ -4,16 +4,11 @@
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
  *
- * http://www.rtems.com/license/LICENSE
+ * http://www.rtems.org/license/LICENSE
  */
 
 #ifndef __BSP_H_
 #define __BSP_H_
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
@@ -23,10 +18,13 @@ extern "C"
 #include <rtems/console.h>
 #include <rtems/clockdrv.h>
 
-  struct rtems_bsdnet_ifconfig;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-  int
-    rtems_wifi_driver_attach (struct rtems_bsdnet_ifconfig *config,
+struct rtems_bsdnet_ifconfig;
+
+int rtems_wifi_driver_attach (struct rtems_bsdnet_ifconfig *config,
                               int attach);
 
 #define RTEMS_BSP_NETWORK_DRIVER_NAME	"dswifi0"
@@ -34,9 +32,9 @@ extern "C"
 
 #define RTC_DRIVER_TABLE_ENTRY \
     { rtc_initialize, NULL, NULL, NULL, NULL, NULL }
-  extern rtems_device_driver rtc_initialize (rtems_device_major_number major,
-                                             rtems_device_minor_number minor,
-                                             void *arg);
+extern rtems_device_driver rtc_initialize (rtems_device_major_number major,
+                                           rtems_device_minor_number minor,
+                                           void *arg);
 
 #ifdef __cplusplus
 }

@@ -1,22 +1,31 @@
 ACLOCAL_AMFLAGS = -I ../aclocal
 
-SUBDIRS = POSIX
-SUBDIRS += block17
-SUBDIRS += exit02
-SUBDIRS += exit01
-SUBDIRS += utf8proc01
-SUBDIRS += md501
-SUBDIRS += sparsedisk01
-SUBDIRS += block16
-SUBDIRS += block15
-SUBDIRS += block14
-SUBDIRS += block13
-SUBDIRS += rbheap01
-SUBDIRS += flashdisk01
+_SUBDIRS = POSIX
+_SUBDIRS += defaultconfig01
+_SUBDIRS += pwdgrp02
+_SUBDIRS += shell01
+_SUBDIRS += pwdgrp01
+_SUBDIRS += crypt01
+_SUBDIRS += sha
+_SUBDIRS += i2c01
+_SUBDIRS += newlib01
+_SUBDIRS += block17
+_SUBDIRS += exit02
+_SUBDIRS += exit01
+_SUBDIRS += utf8proc01
+_SUBDIRS += md501
+_SUBDIRS += sparsedisk01
+_SUBDIRS += block16
+_SUBDIRS += block15
+_SUBDIRS += block14
+_SUBDIRS += block13
+_SUBDIRS += rbheap01
+_SUBDIRS += flashdisk01
+_SUBDIRS += capture01
 
-SUBDIRS += bspcmdline01 cpuuse devfs01 devfs02 devfs03 devfs04 \
-    deviceio01 devnullfatal01 dumpbuf01 gxx01 \
-    malloctest malloc02 malloc03 malloc04 malloc05 heapwalk \
+_SUBDIRS += bspcmdline01 cpuuse devfs01 devfs02 devfs03 devfs04 \
+    deviceio01 devnullfatal01 dumpbuf01 gxx01 top\
+    malloctest malloc02 malloc03 malloc04 heapwalk \
     putenvtest monitor monitor02 rtmonuse stackchk stackchk01 \
     termios termios01 termios02 termios03 termios04 termios05 \
     termios06 termios07 termios08 \
@@ -28,11 +37,15 @@ SUBDIRS += bspcmdline01 cpuuse devfs01 devfs02 devfs03 devfs04 \
 
 if NETTESTS
 if HAS_POSIX
-SUBDIRS += mghttpd01
+_SUBDIRS += mghttpd01
 endif
-SUBDIRS += ftp01
-SUBDIRS += syscall01
+_SUBDIRS += ftp01
+_SUBDIRS += syscall01
 endif
 
-include $(top_srcdir)/../automake/subdirs.am
+if DLTESTS
+_SUBDIRS += dl01 dl02
+endif
+
+include $(top_srcdir)/../automake/test-subdirs.am
 include $(top_srcdir)/../automake/local.am

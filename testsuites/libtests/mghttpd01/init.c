@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -23,6 +23,7 @@
 #include <rtems/rtems_bsdnet.h>
 
 #include <stdio.h>
+#include <string.h>
 #include <mghttpd/mongoose.h>
 
 #include <rtems/imfs.h>
@@ -30,6 +31,8 @@
 #include "init_fs.h"
 
 #include "test-http-client.h"
+
+const char rtems_test_name[] = "MGHTTPD 1";
 
 #define TARFILE_START init_fs_tar
 #define TARFILE_SIZE  init_fs_tar_size
@@ -40,6 +43,9 @@
                         "Content-Length: 47\r\n" \
                         "\r\n" \
                         "This is a message from the callback function.\r\n"
+
+#define WSTEST_REQ      "Test request"
+#define WSTEST_RESP     "This is a message from the WebSocket callback function."
 
 #define INDEX_HTML      "HTTP/1.1 200 OK\r\n" \
                         "Date: xxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n" \
@@ -88,6 +94,22 @@ static int callback(struct mg_connection *conn)
     mg_write(conn, CBACKTEST_TXT, sizeof(CBACKTEST_TXT));
 
     /* Mark as processed */
+    return 1;
+  }
+
+  return 0;
+}
+
+static int callback_websocket(struct mg_connection *connection,
+                              int                  bits,
+                              char                 *data,
+                              size_t               data_len)
+{
+  if (data_len == strlen(WSTEST_REQ) && strncmp(data, WSTEST_REQ, data_len) == 0)
+  {
+    mg_websocket_write(connection, WEBSOCKET_OPCODE_TEXT, WSTEST_RESP, strlen(WSTEST_RESP));
+
+    /* Don't close the WebSocket */
     return 1;
   }
 
@@ -162,10 +184,41 @@ static void test_mg_callback(void)
   free(buffer);
 }
 
+static void test_mg_websocket(void)
+{
+  httpc_context httpc_ctx;
+  char *buffer = malloc(BUFFERSIZE);
+  bool brv = false;
+  int rv = 0;
+
+  rtems_test_assert(buffer != NULL);
+
+  puts("=== Get a WebSocket response generated from a callback function" \
+      " from first Mongoose instance:");
+
+  httpc_init_context(&httpc_ctx);
+  brv = httpc_open_connection(&httpc_ctx, "127.0.0.1", 80);
+  rtems_test_assert(brv);
+  brv = httpc_ws_open_connection(&httpc_ctx);
+  rtems_test_assert(brv);
+  brv = httpc_ws_send_request(&httpc_ctx, WSTEST_REQ, buffer, BUFFERSIZE);
+  rtems_test_assert(brv);
+  brv = httpc_close_connection(&httpc_ctx);
+  rtems_test_assert(brv);
+  puts(buffer);
+  rv = strcmp(buffer, WSTEST_RESP);
+  rtems_test_assert(rv == 0);
+
+  puts("=== OK");
+
+  free(buffer);
+}
+
 static void test_mongoose(void)
 {
   const struct mg_callbacks callbacks = {
-    .begin_request = callback
+    .begin_request = callback,
+    .websocket_data = callback_websocket
   };
   const char *options[] = {
     "listening_ports", "80",
@@ -190,6 +243,7 @@ static void test_mongoose(void)
 
   test_mg_index_html();
   test_mg_callback();
+  test_mg_websocket();
 
   mg_stop(mg1);
   mg_stop(mg2);
@@ -199,7 +253,7 @@ static void Init(rtems_task_argument arg)
 {
   int rv = 0;
 
-  puts("\n\n*** TEST MGHTTPD 01 ***");
+  TEST_BEGIN();
 
   rv = rtems_bsdnet_initialize_network();
   rtems_test_assert(rv == 0);
@@ -208,15 +262,13 @@ static void Init(rtems_task_argument arg)
 
   test_mongoose();
 
-  puts("*** END OF TEST MGHTTPD 01 ***");
+  TEST_END();
 
   rtems_test_exit(0); 
 }
 
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
-
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 
 #define CONFIGURE_FILESYSTEM_IMFS
 
@@ -225,6 +277,8 @@ static void Init(rtems_task_argument arg)
 #define CONFIGURE_UNLIMITED_OBJECTS
 
 #define CONFIGURE_UNIFIED_WORK_AREAS
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

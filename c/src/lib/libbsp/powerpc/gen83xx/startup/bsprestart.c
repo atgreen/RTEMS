@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
@@ -31,6 +31,7 @@ void bsp_restart(void *addr)
   uint32_t hid0;
 
   rtems_interrupt_disable(level);
+  (void) level; /* avoid set but not used warning */
 
   hid0 = PPC_SPECIAL_PURPOSE_REGISTER(HID0);
 

@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -24,9 +24,8 @@
 #include <sched.h>
 #include <errno.h>
 
-#include <rtems/system.h>
-#include <rtems/score/threadimpl.h>
 #include <rtems/score/timespec.h>
+#include <rtems/config.h>
 #include <rtems/seterr.h>
 
 int sched_rr_get_interval(
@@ -44,6 +43,10 @@ int sched_rr_get_interval(
   if ( !interval )
     rtems_set_errno_and_return_minus_one( EINVAL );
 
-  _Timespec_From_ticks( _Thread_Ticks_per_timeslice, interval );
+  _Timespec_From_ticks(
+    rtems_configuration_get_ticks_per_timeslice(),
+    interval
+  );
+
   return 0;
 }

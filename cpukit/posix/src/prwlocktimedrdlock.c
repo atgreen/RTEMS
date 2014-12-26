@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -49,9 +49,6 @@ int pthread_rwlock_timedrdlock(
   bool                                         do_wait = true;
   POSIX_Absolute_timeout_conversion_results_t  status;
   Thread_Control                              *executing;
-
-  if ( !rwlock )
-    return EINVAL;
 
   /*
    *  POSIX requires that blocking calls with timeouts that take

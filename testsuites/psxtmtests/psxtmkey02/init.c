@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http:www.rtems.com/license/LICENSE.
+ *  http:www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -12,10 +12,12 @@
 #endif
 
 #include <timesys.h>
-#include <rtems/timerdrv.h>
+#include <rtems/btimer.h>
 #include <errno.h>
 #include <pthread.h>
 #include "test_support.h"
+
+const char rtems_test_name[] = "PSXTMKEY 02";
 
 /* forward declarations to avoid warnings */
 void *POSIX_Init(void *argument);
@@ -70,7 +72,7 @@ void *POSIX_Init(
 {
   int  status;
 
-  puts( "\n\n*** POSIX TIME TEST PSXTMKEY02 ***" );
+  TEST_BEGIN();
 
   /* create the key */
   status = pthread_key_create( &Key, NULL );
@@ -84,7 +86,7 @@ void *POSIX_Init(
   status = pthread_key_delete( Key );
   rtems_test_assert( status == 0 );
 
-  puts( "*** END OF POSIX TIME TEST PSXTMKEY02 ***" );
+  TEST_END();
   rtems_test_exit(0);
 }
 

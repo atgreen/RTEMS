@@ -1,10 +1,8 @@
-/*  bsp.h
- *
- *  This include file contains all board IO definitions.
- *
+/*
  *  This file includes definitions for the Intec SS555.
- *
- *
+ */
+
+/*
  *  SS555 port sponsored by Defence Research and Development Canada - Suffield
  *  Copyright (C) 2004, Real-Time Systems Inc. (querbach@realtime.bc.ca)
  *
@@ -15,15 +13,13 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _BSP_H
 #define _BSP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef ASM
 
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
@@ -35,6 +31,10 @@ extern "C" {
 #include <mpc5xx/console.h>
 #include <libcpu/vectors.h>
 #include <bsp/irq.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Clock definitions
@@ -79,8 +79,15 @@ extern int BSP_disconnect_clock_handler (void);
 
 extern int BSP_connect_clock_handler (rtems_irq_hdl hdl);
 
+/*
+ *  Prototypes for methods called from .S to support dependency tracking.
+ */
+void _InitSS555(void);
+
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* !ASM */
 
 #endif

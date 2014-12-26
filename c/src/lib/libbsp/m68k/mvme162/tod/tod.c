@@ -8,7 +8,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  This material is a part of the MVME162 Board Support Package
  *  for the RTEMS executive. Its licensing policies are those of the
@@ -16,7 +16,7 @@
  */
 
 #include <rtems.h>
-#include <tod.h>
+#include <rtems/tod.h>
 
 #define	tod	((volatile unsigned char *)0xfffc1ff8)
 

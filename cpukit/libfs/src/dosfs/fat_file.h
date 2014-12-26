@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef __DOSFS_FAT_FILE_H__
@@ -88,14 +88,24 @@ typedef struct fat_file_fd_s
     fat_dir_pos_t    dir_pos;
     uint8_t          flags;
     fat_file_map_t   map;
+    time_t           ctime;
     time_t           mtime;
 
 } fat_file_fd_t;
 
-#define FAT_FILE_REMOVED  0x01
+#define FAT_FILE_REMOVED 0x01
 
-#define FAT_FILE_IS_REMOVED(p)\
-    (((p)->flags & FAT_FILE_REMOVED) ? 1 : 0)
+#define FAT_FILE_META_DATA_CHANGED 0x02
+
+static inline bool FAT_FILE_IS_REMOVED(const fat_file_fd_t *fat_fd)
+{
+     return (fat_fd->flags & FAT_FILE_REMOVED) != 0;
+}
+
+static inline bool FAT_FILE_HAS_META_DATA_CHANGED(const fat_file_fd_t *fat_fd)
+{
+     return (fat_fd->flags & FAT_FILE_META_DATA_CHANGED) != 0;
+}
 
 /* ioctl macros */
 #define F_CLU_NUM  0x01
@@ -137,6 +147,38 @@ fat_construct_key(
     return ( ((fat_cluster_num_to_sector512_num(fs_info, pos->cln) +
               (pos->ofs >> FAT_SECTOR512_BITS)) << 4)              +
               ((pos->ofs >> 5) & (FAT_DIRENTRIES_PER_SEC512 - 1)) );
+}
+
+static inline void
+fat_file_set_first_cluster_num(fat_file_fd_t *fat_fd, uint32_t cln)
+{
+    fat_fd->cln = cln;
+    fat_fd->flags |= FAT_FILE_META_DATA_CHANGED;
+}
+
+static inline void fat_file_set_file_size(fat_file_fd_t *fat_fd, uint32_t s)
+{
+    fat_fd->fat_file_size = s;
+    fat_fd->flags |= FAT_FILE_META_DATA_CHANGED;
+}
+
+static inline void fat_file_set_ctime(fat_file_fd_t *fat_fd, time_t t)
+{
+    fat_fd->ctime = t;
+    fat_fd->flags |= FAT_FILE_META_DATA_CHANGED;
+}
+
+static inline void fat_file_set_mtime(fat_file_fd_t *fat_fd, time_t t)
+{
+    fat_fd->mtime = t;
+    fat_fd->flags |= FAT_FILE_META_DATA_CHANGED;
+}
+
+static inline void fat_file_set_ctime_mtime(fat_file_fd_t *fat_fd, time_t t)
+{
+    fat_fd->ctime = t;
+    fat_fd->mtime = t;
+    fat_fd->flags |= FAT_FILE_META_DATA_CHANGED;
 }
 
 /* Prototypes for "fat-file" operations */
@@ -191,6 +233,26 @@ fat_file_size(fat_fs_info_t                        *fs_info,
 void
 fat_file_mark_removed(fat_fs_info_t                        *fs_info,
                       fat_file_fd_t                        *fat_fd);
+
+int
+fat_file_size(fat_fs_info_t                        *fs_info,
+              fat_file_fd_t                        *fat_fd);
+
+int
+fat_file_write_first_cluster_num(fat_fs_info_t *fs_info,
+                                 fat_file_fd_t *fat_fd);
+
+int
+fat_file_write_file_size(fat_fs_info_t *fs_info,
+                         fat_file_fd_t *fat_fd);
+
+int
+fat_file_write_time_and_date(fat_fs_info_t *fs_info,
+                             fat_file_fd_t *fat_fd);
+
+int
+fat_file_update(fat_fs_info_t *fs_info,
+                fat_file_fd_t *fat_fd);
 
 #ifdef __cplusplus
 }

@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  */
 
@@ -71,6 +71,7 @@ typedef struct {
 #define APBUART_STATUS_OV 0x10
 #define APBUART_STATUS_PE 0x20
 #define APBUART_STATUS_FE 0x40
+#define APBUART_STATUS_ERR 0x78
 #define APBUART_STATUS_TH 0x80
 #define APBUART_STATUS_RH 0x100
 #define APBUART_STATUS_TF 0x200

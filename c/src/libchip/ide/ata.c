@@ -10,7 +10,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  *
  */
 #include <errno.h>
@@ -491,7 +491,7 @@ ata_request_done(ata_req_t *areq, rtems_device_minor_number ctrl_minor,
 #endif
 
     ATA_EXEC_CALLBACK(areq, status);
-    rtems_chain_explicit_extract(&ata_ide_ctrls[ctrl_minor].reqs, &areq->link);
+    rtems_chain_extract(&areq->link);
 
     if (!rtems_chain_is_empty(&ata_ide_ctrls[ctrl_minor].reqs))
     {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2013-2014 embedded brains GmbH.  All rights reserved.
  *
  *  embedded brains GmbH
  *  Dornierstr. 4
@@ -9,75 +9,21 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
   #include "config.h"
 #endif
 
+#include <rtems/score/smplock.h>
+#include <rtems/score/smpbarrier.h>
+#include <rtems/score/atomic.h>
 #include <rtems.h>
 
 #include "tmacros.h"
 
-/* FIXME: Use C11 for atomic operations */
-
-static void atomic_store(int *addr, int value)
-{
-  *addr = value;
-
-  RTEMS_COMPILER_MEMORY_BARRIER();
-}
-
-static unsigned int atomic_load(const int *addr)
-{
-  RTEMS_COMPILER_MEMORY_BARRIER();
-
-  return *addr;
-}
-
-/* FIXME: Add barrier to Score */
-
-typedef struct {
-	int value;
-	int sense;
-  SMP_lock_Control lock;
-} barrier_control;
-
-typedef struct {
-	int sense;
-} barrier_state;
-
-#define BARRIER_CONTROL_INITIALIZER { 0, 0, SMP_LOCK_INITIALIZER }
-
-#define BARRIER_STATE_INITIALIZER { 0 }
-
-static void barrier_wait(
-  barrier_control *control,
-  barrier_state *state,
-  int cpu_count
-)
-{
-  int sense = ~state->sense;
-  int value;
-
-  state->sense = sense;
-
-  _SMP_lock_Acquire(&control->lock);
-  value = control->value;
-  ++value;
-  control->value = value;
-  _SMP_lock_Release(&control->lock);
-
-  if (value == cpu_count) {
-    atomic_store(&control->value, 0);
-    atomic_store(&control->sense, sense);
-  }
-
-  while (atomic_load(&control->sense) != sense) {
-    /* Wait */
-  }
-}
+const char rtems_test_name[] = "SMPLOCK 1";
 
 #define TASK_PRIORITY 1
 
@@ -92,8 +38,8 @@ typedef enum {
 } states;
 
 typedef struct {
-  int state;
-  barrier_control barrier;
+  Atomic_Uint state;
+  SMP_barrier_Control barrier;
   rtems_id timer_id;
   rtems_interval timeout;
   unsigned long counter[TEST_COUNT];
@@ -102,9 +48,9 @@ typedef struct {
 } global_context;
 
 static global_context context = {
-  .state = INITIAL,
-  .barrier = BARRIER_CONTROL_INITIALIZER,
-  .lock = SMP_LOCK_INITIALIZER
+  .state = ATOMIC_INITIALIZER_UINT(INITIAL),
+  .barrier = SMP_BARRIER_CONTROL_INITIALIZER,
+  .lock = SMP_LOCK_INITIALIZER("global")
 };
 
 static const char *test_names[TEST_COUNT] = {
@@ -119,42 +65,45 @@ static void stop_test_timer(rtems_id timer_id, void *arg)
 {
   global_context *ctx = arg;
 
-  atomic_store(&ctx->state, STOP_TEST);
+  _Atomic_Store_uint(&ctx->state, STOP_TEST, ATOMIC_ORDER_RELEASE);
 }
 
 static void wait_for_state(global_context *ctx, int desired_state)
 {
-  while (atomic_load(&ctx->state) != desired_state) {
+  while (
+    _Atomic_Load_uint(&ctx->state, ATOMIC_ORDER_ACQUIRE) != desired_state
+  ) {
     /* Wait */
   }
 }
 
 static bool assert_state(global_context *ctx, int desired_state)
 {
-  return atomic_load(&ctx->state) == desired_state;
+  return _Atomic_Load_uint(&ctx->state, ATOMIC_ORDER_RELAXED) == desired_state;
 }
 
 typedef void (*test_body)(
   int test,
   global_context *ctx,
-  barrier_state *bs,
-  int cpu_count,
-  int cpu_self
+  SMP_barrier_State *bs,
+  unsigned int cpu_count,
+  unsigned int cpu_self
 );
 
 static void test_0_body(
   int test,
   global_context *ctx,
-  barrier_state *bs,
-  int cpu_count,
-  int cpu_self
+  SMP_barrier_State *bs,
+  unsigned int cpu_count,
+  unsigned int cpu_self
 )
 {
   unsigned long counter = 0;
+  SMP_lock_Context lock_context;
 
   while (assert_state(ctx, START_TEST)) {
-    _SMP_lock_Acquire(&ctx->lock);
-    _SMP_lock_Release(&ctx->lock);
+    _SMP_lock_Acquire(&ctx->lock, &lock_context);
+    _SMP_lock_Release(&ctx->lock, &lock_context);
     ++counter;
   }
 
@@ -164,17 +113,18 @@ static void test_0_body(
 static void test_1_body(
   int test,
   global_context *ctx,
-  barrier_state *bs,
-  int cpu_count,
-  int cpu_self
+  SMP_barrier_State *bs,
+  unsigned int cpu_count,
+  unsigned int cpu_self
 )
 {
   unsigned long counter = 0;
+  SMP_lock_Context lock_context;
 
   while (assert_state(ctx, START_TEST)) {
-    _SMP_lock_Acquire(&ctx->lock);
+    _SMP_lock_Acquire(&ctx->lock, &lock_context);
     ++ctx->counter[test];
-    _SMP_lock_Release(&ctx->lock);
+    _SMP_lock_Release(&ctx->lock, &lock_context);
     ++counter;
   }
 
@@ -184,19 +134,24 @@ static void test_1_body(
 static void test_2_body(
   int test,
   global_context *ctx,
-  barrier_state *bs,
-  int cpu_count,
-  int cpu_self
+  SMP_barrier_State *bs,
+  unsigned int cpu_count,
+  unsigned int cpu_self
 )
 {
   unsigned long counter = 0;
-  SMP_lock_Control lock = SMP_LOCK_INITIALIZER;
+  SMP_lock_Control lock;
+  SMP_lock_Context lock_context;
+
+  _SMP_lock_Initialize(&lock, "local");
 
   while (assert_state(ctx, START_TEST)) {
-    _SMP_lock_Acquire(&lock);
-    _SMP_lock_Release(&lock);
+    _SMP_lock_Acquire(&lock, &lock_context);
+    _SMP_lock_Release(&lock, &lock_context);
     ++counter;
   }
+
+  _SMP_lock_Destroy(&lock);
 
   ctx->test_counter[test][cpu_self] = counter;
 }
@@ -204,23 +159,28 @@ static void test_2_body(
 static void test_3_body(
   int test,
   global_context *ctx,
-  barrier_state *bs,
-  int cpu_count,
-  int cpu_self
+  SMP_barrier_State *bs,
+  unsigned int cpu_count,
+  unsigned int cpu_self
 )
 {
   unsigned long counter = 0;
-  SMP_lock_Control lock = SMP_LOCK_INITIALIZER;
+  SMP_lock_Control lock;
+  SMP_lock_Context lock_context;
+
+  _SMP_lock_Initialize(&lock, "local");
 
   while (assert_state(ctx, START_TEST)) {
-    _SMP_lock_Acquire(&lock);
+    _SMP_lock_Acquire(&lock, &lock_context);
 
     /* The counter value is not interesting, only the access to it */
     ++ctx->counter[test];
 
-    _SMP_lock_Release(&lock);
+    _SMP_lock_Release(&lock, &lock_context);
     ++counter;
   }
+
+  _SMP_lock_Destroy(&lock);
 
   ctx->test_counter[test][cpu_self] = counter;
 }
@@ -237,17 +197,18 @@ static void busy_section(void)
 static void test_4_body(
   int test,
   global_context *ctx,
-  barrier_state *bs,
-  int cpu_count,
-  int cpu_self
+  SMP_barrier_State *bs,
+  unsigned int cpu_count,
+  unsigned int cpu_self
 )
 {
   unsigned long counter = 0;
+  SMP_lock_Context lock_context;
 
   while (assert_state(ctx, START_TEST)) {
-    _SMP_lock_Acquire(&ctx->lock);
+    _SMP_lock_Acquire(&ctx->lock, &lock_context);
     busy_section();
-    _SMP_lock_Release(&ctx->lock);
+    _SMP_lock_Release(&ctx->lock, &lock_context);
     ++counter;
   }
 
@@ -264,16 +225,16 @@ static const test_body test_bodies[TEST_COUNT] = {
 
 static void run_tests(
   global_context *ctx,
-  barrier_state *bs,
-  int cpu_count,
-  int cpu_self,
+  SMP_barrier_State *bs,
+  unsigned int cpu_count,
+  unsigned int cpu_self,
   bool master
 )
 {
   int test;
 
   for (test = 0; test < TEST_COUNT; ++test) {
-    barrier_wait(&ctx->barrier, bs, cpu_count);
+    _SMP_barrier_Wait(&ctx->barrier, bs, cpu_count);
 
     if (master) {
       rtems_status_code sc = rtems_timer_fire_after(
@@ -284,7 +245,7 @@ static void run_tests(
       );
       rtems_test_assert(sc == RTEMS_SUCCESSFUL);
 
-      atomic_store(&ctx->state, START_TEST);
+      _Atomic_Store_uint(&ctx->state, START_TEST, ATOMIC_ORDER_RELEASE);
     }
 
     wait_for_state(ctx, START_TEST);
@@ -292,16 +253,16 @@ static void run_tests(
     (*test_bodies[test])(test, ctx, bs, cpu_count, cpu_self);
   }
 
-  barrier_wait(&ctx->barrier, bs, cpu_count);
+  _SMP_barrier_Wait(&ctx->barrier, bs, cpu_count);
 }
 
 static void task(rtems_task_argument arg)
 {
   global_context *ctx = (global_context *) arg;
-  uint32_t cpu_count = rtems_smp_get_processor_count();
-  uint32_t cpu_self = rtems_smp_get_current_processor();
+  uint32_t cpu_count = rtems_get_processor_count();
+  uint32_t cpu_self = rtems_get_current_processor();
   rtems_status_code sc;
-  barrier_state bs = BARRIER_STATE_INITIALIZER;
+  SMP_barrier_State bs = SMP_BARRIER_STATE_INITIALIZER;
 
   run_tests(ctx, &bs, cpu_count, cpu_self, false);
 
@@ -312,12 +273,12 @@ static void task(rtems_task_argument arg)
 static void test(void)
 {
   global_context *ctx = &context;
-  uint32_t cpu_count = rtems_smp_get_processor_count();
-  uint32_t cpu_self = rtems_smp_get_current_processor();
+  uint32_t cpu_count = rtems_get_processor_count();
+  uint32_t cpu_self = rtems_get_current_processor();
   uint32_t cpu;
   int test;
   rtems_status_code sc;
-  barrier_state bs = BARRIER_STATE_INITIALIZER;
+  SMP_barrier_State bs = SMP_BARRIER_STATE_INITIALIZER;
 
   for (cpu = 0; cpu < cpu_count; ++cpu) {
     if (cpu != cpu_self) {
@@ -372,12 +333,11 @@ static void test(void)
 
 static void Init(rtems_task_argument arg)
 {
-  puts("\n\n*** TEST SMPLOCK 1 ***");
+  TEST_BEGIN();
 
   test();
 
-  puts("*** END OF TEST SMPLOCK 1 ***");
-
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -397,6 +357,8 @@ static void Init(rtems_task_argument arg)
 #define CONFIGURE_INIT_TASK_PRIORITY TASK_PRIORITY
 #define CONFIGURE_INIT_TASK_INITIAL_MODES RTEMS_DEFAULT_MODES
 #define CONFIGURE_INIT_TASK_ATTRIBUTES RTEMS_DEFAULT_ATTRIBUTES
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

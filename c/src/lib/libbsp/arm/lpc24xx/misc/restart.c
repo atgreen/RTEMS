@@ -7,17 +7,17 @@
  */
 
 /*
- * Copyright (c) 2011-2012 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2011-2014 embedded brains GmbH.  All rights reserved.
  *
  *  embedded brains GmbH
- *  Obere Lagerstr. 30
+ *  Dornierstr. 4
  *  82178 Puchheim
  *  Germany
  *  <rtems@embedded-brains.de>
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
@@ -31,6 +31,7 @@ void bsp_restart(void *addr)
     rtems_interrupt_level level;
 
     rtems_interrupt_disable(level);
+    (void) level;
 
     asm volatile (
       ARM_SWITCH_TO_ARM
@@ -44,6 +45,8 @@ void bsp_restart(void *addr)
     void (*start)(void) = addr;
 
     rtems_interrupt_disable(level);
+    (void) level;
+
     (*start)();
   #endif
 }

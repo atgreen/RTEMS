@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -21,9 +21,12 @@
 #include <unistd.h>
 
 #include "fstest.h"
+#include "fs_config.h"
 #include "pmacros.h"
 
 #define BUF_SIZE 100
+
+const char rtems_test_name[] = "FSPATHEVAL " FILESYSTEM;
 
 static void make_multiple_files (char **files,int is_directory)
 {
@@ -184,8 +187,6 @@ static void path_eval_test02(void )
 
 void test (void )
 {
-  puts( "\n\n*** PATH EVALUATION TEST ***" );
   path_eval_test01();
   path_eval_test02();
-  puts( "*** END OF PATH EVALUATION TEST ***" );
 }

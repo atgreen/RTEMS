@@ -8,7 +8,7 @@
  *
  *  The license and distribution terms for this file may in
  *  the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
@@ -24,7 +24,7 @@ rtems_task test_task(
 );
 
 void
-destory_all_tasks(
+destroy_all_tasks(
   const char *who
 );
 

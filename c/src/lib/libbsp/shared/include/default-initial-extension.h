@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef LIBBSP_SHARED_DEFAULT_INITIAL_EXTENSION_H
@@ -44,7 +44,7 @@ void bsp_fatal_extension(
 );
 
 #define BSP_INITIAL_EXTENSION \
-  { NULL, NULL, NULL, NULL, NULL, NULL, NULL, bsp_fatal_extension }
+  { NULL, NULL, NULL, NULL, NULL, NULL, NULL, bsp_fatal_extension, NULL }
 
 #ifdef __cplusplus
 }

@@ -1,13 +1,14 @@
-/*  bsp.h
- *
+/*
  *  This include file contains all MVME162fx board IO definitions.
- *
- *  COPYRIGHT (c) 1989-1999.
+ */
+
+/*
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  Modifications of respective RTEMS file: COPYRIGHT (c) 1994.
  *  EISCAT Scientific Association. M.Savitski
@@ -20,10 +21,6 @@
 #ifndef _BSP_H
 #define _BSP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
 
@@ -33,6 +30,10 @@ extern "C" {
 #include <rtems/iosupp.h>
 
 #include <mvme16x_hw.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*----------------------------------------------------------------*/
 
@@ -162,7 +163,6 @@ typedef volatile struct {
 #define EXTERN extern
 #endif
 
-
 /*
  *  This value is the default address location of the 162Bug vector table
  *  and is also the default start address of the boards DRAM.  This value
@@ -193,6 +193,12 @@ rtems_isr_entry set_vector(
   rtems_vector_number vector,
   int                 type
 );
+
+/*
+ * Prototypes for methods in the BSP that cross file boundaries.
+ */
+bool char_ready(int port, char *ch);
+
 
 #ifdef __cplusplus
 }

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,7 +17,9 @@
 #include <tmacros.h>
 #include <timesys.h>
 #include "test_support.h"
-#include <rtems/timerdrv.h>
+#include <rtems/btimer.h>
+
+const char rtems_test_name[] = "PSXTMRWLOCK 06";
 
 /* forward declarations to avoid warnings */
 void *POSIX_Init(void *argument);
@@ -45,7 +47,7 @@ void *POSIX_Init(
   benchmark_timer_t end_time;
   pthread_rwlockattr_t  attr;
 
-  puts( "\n\n*** POSIX TIME TEST PSXTMRWLOCK 06 ***" );
+  TEST_BEGIN();
 
   status = pthread_create( &threadId, NULL, Blocker, NULL );
   rtems_test_assert( status == 0 );
@@ -87,7 +89,7 @@ void *POSIX_Init(
     0
   );
 
-  puts( "*** END OF POSIX TIME TEST PSXTMRWLOCK 06 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 
   return NULL;

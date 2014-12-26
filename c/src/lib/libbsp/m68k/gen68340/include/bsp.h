@@ -20,15 +20,13 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _BSP_H
 #define _BSP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef ASM
 
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
@@ -38,6 +36,10 @@ extern "C" {
 #include <rtems/iosupp.h>
 #include <rtems/clockdrv.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @defgroup m68k_gen68340 Motorola MC68340 Support
  *
@@ -45,22 +47,6 @@ extern "C" {
  *
  * @brief Motorola MC68340 support.
  */
-
-/*
- *  Simple spin delay in microsecond units for device drivers.
- *  This is very dependent on the clock speed of the target.
- */
-
-#define rtems_bsp_delay( microseconds ) \
-  { register uint32_t         _delay=(microseconds); \
-    register uint32_t         _tmp=123; \
-    __asm__ volatile( "0: \
-                     nbcd      %0 ; \
-                     nbcd      %0 ; \
-                     dbf       %1,0b" \
-                  : "=d" (_tmp), "=d" (_delay) \
-                  : "0"  (_tmp), "1"  (_delay) ); \
-  }
 
 /* Constants */
 
@@ -76,8 +62,23 @@ rtems_isr_entry set_vector(
   int                 type
 );
 
+/*
+ *  Methods used across files inside the BSP
+ */
+int dbug_in_char( int minor );
+void dbug_out_char( int minor, int ch );
+int dbug_char_present( int minor );
+void _dbug_dumpanic(void);
+
+/*
+ *  Only called from .S but prototyped here to capture the dependecy.
+ */
+void _Init68340 (void);
+
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* !ASM */
 
 #endif

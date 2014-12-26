@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -25,7 +25,10 @@
 #include <rtems/libcsupport.h>
 
 #include "fstest.h"
+#include "fs_config.h"
 #include "tmacros.h"
+
+const char rtems_test_name[] = "FSFPATHCONF " FILESYSTEM;
 
 static void fpathconf_test(void){
 
@@ -84,9 +87,7 @@ static void fpathconf_test(void){
 
 void test(void){
 
-  puts("\n\n*** FPATHCONF TEST ***" );
   fpathconf_test();
-  puts( "\n*** END OF FPATHCONF TEST ***" );
 }
 
 /* end of file */

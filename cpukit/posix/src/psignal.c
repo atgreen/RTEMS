@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -25,6 +25,7 @@
 
 #include <rtems/score/isrlevel.h>
 #include <rtems/score/statesimpl.h>
+#include <rtems/score/threadimpl.h>
 #include <rtems/score/threadqimpl.h>
 #include <rtems/score/watchdogimpl.h>
 #include <rtems/score/wkspace.h>
@@ -45,7 +46,7 @@ RTEMS_STATIC_ASSERT(
 
 /*** PROCESS WIDE STUFF ****/
 
-ISR_lock_Control _POSIX_signals_Lock = ISR_LOCK_INITIALIZER;
+ISR_lock_Control _POSIX_signals_Lock = ISR_LOCK_INITIALIZER("POSIX signals");
 
 sigset_t  _POSIX_signals_Pending;
 
@@ -108,22 +109,22 @@ Chain_Control _POSIX_signals_Siginfo[ SIG_ARRAY_MAX ];
     (STATES_WAITING_FOR_SIGNAL|STATES_INTERRUPTIBLE_BY_SIGNAL)) == \
       (STATES_WAITING_FOR_SIGNAL|STATES_INTERRUPTIBLE_BY_SIGNAL))
 
-/*
- *  _POSIX_signals_Post_switch_extension
- */
-
-static void _POSIX_signals_Post_switch_hook(
-  Thread_Control  *the_thread
+void _POSIX_signals_Action_handler(
+  Thread_Control  *executing,
+  Thread_Action   *action,
+  Per_CPU_Control *cpu,
+  ISR_Level        level
 )
 {
   POSIX_API_Control  *api;
   int                 signo;
-  ISR_Level           level;
+  ISR_lock_Context    lock_context;
   int                 hold_errno;
-  Thread_Control     *executing;
 
-  executing = _Thread_Get_executing();
-  api = the_thread->API_Extensions[ THREAD_API_POSIX ];
+  (void) action;
+  _Thread_Action_release_and_ISR_enable( cpu, level );
+
+  api = executing->API_Extensions[ THREAD_API_POSIX ];
 
   /*
    *  We need to ensure that if the signal handler executes a call
@@ -146,13 +147,13 @@ static void _POSIX_signals_Post_switch_hook(
    *  processed at all.  No point in doing this loop otherwise.
    */
   while (1) {
-    _POSIX_signals_Acquire( level );
+    _POSIX_signals_Acquire( &lock_context );
       if ( !(~api->signals_blocked &
             (api->signals_pending | _POSIX_signals_Pending)) ) {
-       _POSIX_signals_Release( level );
+       _POSIX_signals_Release( &lock_context );
        break;
      }
-    _POSIX_signals_Release( level );
+    _POSIX_signals_Release( &lock_context );
 
     for ( signo = SIGRTMIN ; signo <= SIGRTMAX ; signo++ ) {
       _POSIX_signals_Check_signal( api, signo, false );
@@ -168,10 +169,6 @@ static void _POSIX_signals_Post_switch_hook(
 
   executing->Wait.return_code = hold_errno;
 }
-
-API_extensions_Post_switch_control _POSIX_signals_Post_switch = {
-  .hook = _POSIX_signals_Post_switch_hook
-};
 
 void _POSIX_signals_Manager_Initialization(void)
 {

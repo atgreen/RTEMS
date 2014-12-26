@@ -8,15 +8,15 @@ endif
 PREINSTALL_DIRS =
 DISTCLEANFILES += $(PREINSTALL_DIRS)
 
-all-local: $(TMPINSTALL_FILES)
-
-TMPINSTALL_FILES =
-CLEANFILES = $(TMPINSTALL_FILES)
-
 all-am: $(PREINSTALL_FILES)
 
 PREINSTALL_FILES =
-CLEANFILES += $(PREINSTALL_FILES)
+CLEANFILES = $(PREINSTALL_FILES)
+
+all-local: $(TMPINSTALL_FILES)
+
+TMPINSTALL_FILES =
+CLEANFILES += $(TMPINSTALL_FILES)
 
 $(PROJECT_LIB)/$(dirstamp):
 	@$(MKDIR_P) $(PROJECT_LIB)
@@ -73,13 +73,17 @@ $(PROJECT_INCLUDE)/bsp/uart-output-char.h: ../../shared/include/uart-output-char
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/uart-output-char.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/uart-output-char.h
 
-$(PROJECT_INCLUDE)/bsp/tod.h: ../../shared/tod.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/tod.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/tod.h
-
 $(PROJECT_INCLUDE)/bsp/start.h: ../shared/include/start.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/start.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/start.h
+
+$(PROJECT_INCLUDE)/bsp/arm-pl111-fb.h: ../shared/include/arm-pl111-fb.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/arm-pl111-fb.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/arm-pl111-fb.h
+
+$(PROJECT_INCLUDE)/bsp/arm-pl111-regs.h: ../shared/include/arm-pl111-regs.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/arm-pl111-regs.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/arm-pl111-regs.h
 
 $(PROJECT_INCLUDE)/bsp/lpc-timer.h: ../shared/lpc/include/lpc-timer.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/lpc-timer.h
@@ -164,4 +168,60 @@ TMPINSTALL_FILES += $(PROJECT_LIB)/start.$(OBJEXT)
 $(PROJECT_LIB)/linkcmds: startup/linkcmds $(PROJECT_LIB)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds
 TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds
+
+$(PROJECT_LIB)/linkcmds.lpc17xx_ea_ram: startup/linkcmds.lpc17xx_ea_ram $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc17xx_ea_ram
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc17xx_ea_ram
+
+$(PROJECT_LIB)/linkcmds.lpc17xx_ea_rom_int: startup/linkcmds.lpc17xx_ea_rom_int $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc17xx_ea_rom_int
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc17xx_ea_rom_int
+
+$(PROJECT_LIB)/linkcmds.lpc17xx_plx800_ram: startup/linkcmds.lpc17xx_plx800_ram $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc17xx_plx800_ram
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc17xx_plx800_ram
+
+$(PROJECT_LIB)/linkcmds.lpc17xx_plx800_rom_int: startup/linkcmds.lpc17xx_plx800_rom_int $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc17xx_plx800_rom_int
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc17xx_plx800_rom_int
+
+$(PROJECT_LIB)/linkcmds.lpc2362: startup/linkcmds.lpc2362 $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc2362
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc2362
+
+$(PROJECT_LIB)/linkcmds.lpc23xx_tli800: startup/linkcmds.lpc23xx_tli800 $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc23xx_tli800
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc23xx_tli800
+
+$(PROJECT_LIB)/linkcmds.lpc24xx_ea: startup/linkcmds.lpc24xx_ea $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc24xx_ea
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc24xx_ea
+
+$(PROJECT_LIB)/linkcmds.lpc24xx_ncs_ram: startup/linkcmds.lpc24xx_ncs_ram $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc24xx_ncs_ram
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc24xx_ncs_ram
+
+$(PROJECT_LIB)/linkcmds.lpc24xx_ncs_rom_ext: startup/linkcmds.lpc24xx_ncs_rom_ext $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc24xx_ncs_rom_ext
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc24xx_ncs_rom_ext
+
+$(PROJECT_LIB)/linkcmds.lpc24xx_ncs_rom_int: startup/linkcmds.lpc24xx_ncs_rom_int $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc24xx_ncs_rom_int
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc24xx_ncs_rom_int
+
+$(PROJECT_LIB)/linkcmds.lpc24xx_plx800_ram: startup/linkcmds.lpc24xx_plx800_ram $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc24xx_plx800_ram
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc24xx_plx800_ram
+
+$(PROJECT_LIB)/linkcmds.lpc24xx_plx800_rom_int: startup/linkcmds.lpc24xx_plx800_rom_int $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc24xx_plx800_rom_int
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc24xx_plx800_rom_int
+
+$(PROJECT_LIB)/linkcmds.lpc40xx_ea_ram: startup/linkcmds.lpc40xx_ea_ram $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc40xx_ea_ram
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc40xx_ea_ram
+
+$(PROJECT_LIB)/linkcmds.lpc40xx_ea_rom_int: startup/linkcmds.lpc40xx_ea_rom_int $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.lpc40xx_ea_rom_int
+TMPINSTALL_FILES += $(PROJECT_LIB)/linkcmds.lpc40xx_ea_rom_int
 

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -14,9 +14,20 @@
 #include <tmacros.h>
 #include "test_support.h"
 
+const char rtems_test_name[] = "SMP 5";
+
+rtems_task Init(
+  rtems_task_argument argument
+);
+
+rtems_task Test_task(
+  rtems_task_argument argument
+);
+
+
 static void success(void)
 {
-  locked_printf( "*** END OF TEST SMP05 ***\n" );
+  rtems_test_end_with_plugin(locked_printf_plugin, NULL);
   rtems_test_exit( 0 );
 }
 
@@ -24,7 +35,7 @@ rtems_task Test_task(
   rtems_task_argument argument
 )
 {
-  locked_printf( "Shut down from CPU %" PRIu32 "\n", rtems_smp_get_current_processor() );
+  locked_printf( "Shut down from CPU %" PRIu32 "\n", rtems_get_current_processor() );
   success();
 }
 
@@ -39,13 +50,13 @@ rtems_task Init(
   rtems_status_code  status;
 
   locked_print_initialize();
-  locked_printf( "\n\n*** TEST SMP05 ***\n" );
+  rtems_test_begin_with_plugin(locked_printf_plugin, NULL);
 
-  if ( rtems_smp_get_processor_count() == 1 ) {
+  if ( rtems_get_processor_count() == 1 ) {
     success();
   }
 
-  for ( i=0; i<rtems_smp_get_processor_count() ; i++ ) {
+  for ( i=0; i<rtems_get_processor_count() ; i++ ) {
     ch = '1' + i;
 
     status = rtems_task_create(
@@ -58,7 +69,7 @@ rtems_task Init(
     );
     directive_failed( status, "task create" );
 
-    cpu_num = rtems_smp_get_current_processor();
+    cpu_num = rtems_get_current_processor();
     locked_printf(" CPU %" PRIu32 " start task TA%c\n", cpu_num, ch);
 
     status = rtems_task_start( id, Test_task, i+1 );
@@ -79,6 +90,8 @@ rtems_task Init(
 
 #define CONFIGURE_MAXIMUM_TASKS            \
     (1 + CONFIGURE_SMP_MAXIMUM_PROCESSORS)
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_MAXIMUM_SEMAPHORES 1

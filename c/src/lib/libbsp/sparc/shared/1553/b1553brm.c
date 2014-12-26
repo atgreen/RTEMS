@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  */
 
@@ -30,6 +30,8 @@
 
 #ifndef B1553BRM_PREFIX
  #define B1553BRM_PREFIX(name) b1553brm##name
+#else
+ #define B1553BRM_REGISTER_STATIC
 #endif
 
 /* default to no translation */
@@ -340,6 +342,9 @@ int brm_register_leon3_ramon_asic(void){
 #endif
 #endif
 
+#ifdef B1553BRM_REGISTER_STATIC
+static
+#endif
 int B1553BRM_PREFIX(_register)(struct ambapp_bus *bus, unsigned int clksel, unsigned int clkdiv, unsigned int brm_freq)
 {
     rtems_status_code r;

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -22,6 +22,8 @@
 
 #include <rtems.h>
 #include <rtems/libio.h>
+
+const char rtems_test_name[] = "SPFIFO 3";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -112,7 +114,7 @@ void test_main(void) /* Also acts as the write task */
 
   rtems_test_assert( status == RTEMS_SUCCESSFUL );
 
-  puts("\n\n*** FIFO / PIPE OPEN TEST - 6 ***");
+  TEST_BEGIN();
 
   puts("\nCreating a task name and a task");
   readTaskName = rtems_build_name('T','A','r',' ');
@@ -189,7 +191,7 @@ void test_main(void) /* Also acts as the write task */
   status = rmdir("/tmp");
   rtems_test_assert(status == 0);
   
-  puts("\n*** END OF FIFO / PIPE OPEN TEST - 6 ***");
+  TEST_END();
 }
 
 rtems_task Init(
@@ -203,10 +205,11 @@ rtems_task Init(
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 6
 
 #define CONFIGURE_MAXIMUM_TASKS 3
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

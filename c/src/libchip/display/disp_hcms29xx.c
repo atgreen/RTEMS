@@ -12,7 +12,7 @@
 +-----------------------------------------------------------------+
 | The license and distribution terms for this file may be         |
 | found in the file LICENSE in this distribution or at            |
-| http://www.rtems.com/license/LICENSE.                           |
+| http://www.rtems.org/license/LICENSE.                           |
 +-----------------------------------------------------------------+
 | this file contains the SPI based driver for a HCMS29xx 4 digit  |
 | alphanumeric LED display                                        |
@@ -514,14 +514,9 @@ static rtems_timer_service_routine disp_hcms29xx_timer_sr
 |    <none used>                                                            |
 \*=========================================================================*/
 {
-  rtems_status_code rc = RTEMS_SUCCESSFUL;
   disp_hcms29xx_drv_t *softc_ptr = arg;
 
-
-  if (rc == RTEMS_SUCCESSFUL) {
-    rc = rtems_event_send(softc_ptr->disp_param.task_id,
-			  DISP_HCMS29XX_EVENT_TIMER);
-  }
+  rtems_event_send(softc_ptr->disp_param.task_id, DISP_HCMS29XX_EVENT_TIMER);
 }
 
 /*=========================================================================*\

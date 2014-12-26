@@ -16,7 +16,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -29,7 +29,7 @@
 #include <rtems/score/threaddispatch.h>
 
 rtems_interrupt_lock rtems_filesystem_mt_entry_lock_control =
-  RTEMS_INTERRUPT_LOCK_INITIALIZER;
+  RTEMS_INTERRUPT_LOCK_INITIALIZER("mount table entry");
 
 static rtems_filesystem_global_location_t *deferred_released_global_locations;
 

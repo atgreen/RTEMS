@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -30,7 +30,7 @@ bool _Thread_Start(
   void                      *entry_point,
   void                      *pointer_argument,
   Thread_Entry_numeric_type  numeric_argument,
-  Per_CPU_Control           *processor
+  Per_CPU_Control           *cpu
 )
 {
   if ( _States_Is_dormant( the_thread->current_state ) ) {
@@ -43,11 +43,15 @@ bool _Thread_Start(
 
     _Thread_Load_environment( the_thread );
 
-    if ( processor == NULL ) {
+    if ( cpu == NULL ) {
       _Thread_Ready( the_thread );
     } else {
-      the_thread->current_state = STATES_READY;
-      _Scheduler_Start_idle( the_thread, processor );
+      const Scheduler_Control *scheduler = _Scheduler_Get_by_CPU( cpu );
+
+      if ( scheduler != NULL ) {
+        the_thread->current_state = STATES_READY;
+        _Scheduler_Start_idle( scheduler, the_thread, cpu );
+      }
     }
 
     _User_extensions_Thread_start( the_thread );

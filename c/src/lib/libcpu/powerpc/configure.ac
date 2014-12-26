@@ -1,7 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([rtems-c-src-lib-libcpu-powerpc],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-c-src-lib-libcpu-powerpc],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([mpc6xx])
 RTEMS_TOP([../../../../..],[../../..])
 
@@ -72,7 +72,13 @@ AM_CONDITIONAL(ppc440, test "$RTEMS_CPU_MODEL" = "ppc440")
 AM_CONDITIONAL(ppc4xx, test "$RTEMS_CPU_MODEL" = "ppc403" \
 || test "$RTEMS_CPU_MODEL" = "ppc405")
 
-AM_CONDITIONAL(e500, test "$RTEMS_CPU_MODEL" = "e500" \
+AM_CONDITIONAL(e500_clock, test "$RTEMS_CPU_MODEL" = "e500" \
+|| test "$RTEMS_CPU_MODEL" = "ppc440")
+
+AM_CONDITIONAL(e500_timer, test "$RTEMS_CPU_MODEL" = "e500" \
+|| test "$RTEMS_CPU_MODEL" = "ppc440")
+
+AM_CONDITIONAL(e500_mmu, test "$RTEMS_CPU_MODEL" = "e500" \
 || test "$RTEMS_CPU_MODEL" = "ppc440" \
 || test "$RTEMS_CPU_MODEL" = "qoriq" )
 

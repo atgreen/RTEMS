@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_IMFS_H
@@ -980,9 +980,7 @@ static inline void *IMFS_generic_get_context_by_location(
   const rtems_filesystem_location_info_t *loc
 )
 {
-  const IMFS_jnode_t *node = (const IMFS_jnode_t *) loc->node_access;
-
-  return IMFS_generic_get_context_by_node( node );
+  return loc->node_access_2;
 }
 
 static inline void *IMFS_generic_get_context_by_iop(

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -15,6 +15,8 @@
 #include "system.h"
 
 #include <inttypes.h>
+
+const char rtems_test_name[] = "SMP 1";
 
 void Loop() {
   volatile int i;
@@ -33,25 +35,25 @@ rtems_task Init(
   rtems_status_code  status;
   bool               allDone;
 
-  cpu_self = rtems_smp_get_current_processor();
+  cpu_self = rtems_get_current_processor();
 
   /* XXX - Delay a bit to allow debug messages from
    * startup to print.  This may need to go away when
    * debug messages go away.
    */ 
   Loop();
+
+  TEST_BEGIN();
+
   locked_print_initialize();
 
-  /* Put start of test message */
-  locked_printf( "\n\n***  SMP01 TEST ***\n" );
-
   /* Initialize the TaskRan array */
-  for ( i=0; i<rtems_smp_get_processor_count() ; i++ ) {
+  for ( i=0; i<rtems_get_processor_count() ; i++ ) {
     TaskRan[i] = false;
   }
 
   /* Create and start tasks for each processor */
-  for ( i=0; i< rtems_smp_get_processor_count() ; i++ ) {
+  for ( i=0; i< rtems_get_processor_count() ; i++ ) {
     if ( i != cpu_self ) {
       ch = '0' + i;
 
@@ -76,12 +78,12 @@ rtems_task Init(
   /* Wait on the all tasks to run */
   while (1) {
     allDone = true;
-    for ( i=0; i<rtems_smp_get_processor_count() ; i++ ) {
+    for ( i=0; i<rtems_get_processor_count() ; i++ ) {
       if ( i != cpu_self && TaskRan[i] == false)
         allDone = false;
     }
     if (allDone) {
-      locked_printf( "*** END OF TEST SMP01 ***\n" );
+      TEST_END();
       rtems_test_exit( 0 );
     }
   }

@@ -15,7 +15,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_COREMUTEX_H
@@ -155,22 +155,15 @@ typedef struct {
    *  behavior.
    */
   CORE_mutex_Attributes   Attributes;
-  /** This element contains the current state of the mutex.
-   */
-  uint32_t                lock;
   /** This element contains the number of times the mutex has been acquired
    *  nested.  This must be zero (0) before the mutex is actually unlocked.
    */
   uint32_t                nest_count;
-  /** This is the number of waiting threads. */
-  uint32_t                blocked_count;
   /** This element points to the thread which is currently holding this mutex.
    *  The holder is the last thread to successfully lock the mutex and which
    *  has not unlocked it.  If the thread is not locked, there is no holder.
    */
   Thread_Control         *holder;
-  /** This element contains the object Id of the holding thread.  */
-  Objects_Id              holder_id;
 #ifdef __RTEMS_STRICT_ORDER_MUTEX__
   /** This field is used to manipulate the priority inheritance mutex queue*/
   CORE_mutex_order_list   queue;

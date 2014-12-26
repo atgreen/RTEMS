@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may in
  *  the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #define CONFIGURE_INIT
@@ -24,13 +24,12 @@
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
-#if !BSP_SMALL_MEMORY
-  static void notification(int fd, int seconds_remaining, void *arg);
-#endif
+static void notification(int fd, int seconds_remaining, void *arg);
+
+const char rtems_test_name[] = "CAPTURE ENGINE";
 
 volatile int can_proceed = 1;
 
-#if !BSP_SMALL_MEMORY
 static void notification(int fd, int seconds_remaining, void *arg)
 {
   printf(
@@ -38,20 +37,16 @@ static void notification(int fd, int seconds_remaining, void *arg)
     seconds_remaining
   );
 }
-#endif
 
 rtems_task Init(
   rtems_task_argument ignored
 )
 {
-#if BSP_SMALL_MEMORY
-  printf("NO Capture Engine. MEMORY TOO SMALL");
-#else
   rtems_status_code   status;
   rtems_task_priority old_priority;
   rtems_mode          old_mode;
 
-  puts( "\n\n*** TEST CAPTURE ENGINE ***" );
+  rtems_test_begin();
 
   status = rtems_shell_wait_for_input(
     STDIN_FILENO,
@@ -78,9 +73,8 @@ rtems_task Init(
 
     rtems_task_delete (RTEMS_SELF);
   } else {
-    puts( "*** END OF TEST CAPTURE ENGINE ***" );
+    rtems_test_end();
 
     exit( 0 );
   }
-#endif
 }

@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2007.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -41,7 +41,7 @@ int _POSIX_Mutex_Lock_support(
   Watchdog_Interval          timeout
 )
 {
-  register POSIX_Mutex_Control *the_mutex;
+  POSIX_Mutex_Control          *the_mutex;
   Objects_Locations             location;
   ISR_Level                     level;
   Thread_Control               *executing;

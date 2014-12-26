@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -20,6 +20,8 @@
 
 #include <string.h>
 #include <utf8proc/utf8proc.h>
+
+const char rtems_test_name[] = "UTF8PROC 1";
 
 static void
 test_utf8proc_errmsg ( void )
@@ -248,11 +250,11 @@ static void test ( void )
 
 static void Init ( rtems_task_argument arg )
 {
-  puts ( "\n\n*** TEST utf8proc01 ***" );
+  TEST_BEGIN();
 
   test ( );
 
-  puts ( "*** END OF TEST utf8proc01 ***" );
+  TEST_END();
 
   rtems_test_exit ( 0 );
 }
@@ -260,9 +262,9 @@ static void Init ( rtems_task_argument arg )
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 #define CONFIGURE_MAXIMUM_TASKS 1
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

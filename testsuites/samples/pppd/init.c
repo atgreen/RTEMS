@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -18,21 +18,41 @@
 #define CONFIGURE_INIT
 #include "system.h"
 
-#if !BSP_SMALL_MEMORY
 #include <rtems/rtems_bsdnet.h>
 #include <rtems/rtemspppd.h>
+#include <rtems/shell.h>
 #include "netconfig.h"
-#endif
+
+const char rtems_test_name[] = "PPPD";
+
+static void notification(int fd, int seconds_remaining, void *arg)
+{
+  printf(
+    "Press any key to start pppd (%is remaining)\n",
+    seconds_remaining
+  );
+}
 
 rtems_task Init(rtems_task_argument argument)
 {
-#if BSP_SMALL_MEMORY
-  printf("NO NETWORKING. MEMORY TOO SMALL");
-#else
+  rtems_status_code status;
+
+  rtems_test_begin();
+
+  status = rtems_shell_wait_for_input(
+    STDIN_FILENO,
+    10,
+    notification,
+    NULL
+  );
+  if (status != RTEMS_SUCCESSFUL) {
+    rtems_test_end();
+    exit( 0 );
+  }
+
   /* initialize network */
   rtems_bsdnet_initialize_network();
   rtems_pppd_initialize();
   pppdapp_initialize();
-#endif
   rtems_task_delete(RTEMS_SELF);
 }

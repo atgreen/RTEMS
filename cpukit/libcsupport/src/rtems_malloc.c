@@ -16,7 +16,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -26,18 +26,13 @@
 #ifdef RTEMS_NEWLIB
 #include "malloc_p.h"
 
-#include <rtems/score/sysstate.h>
-
 void *rtems_heap_allocate_aligned_with_boundary(
   size_t size,
   uintptr_t alignment,
   uintptr_t boundary
 )
 {
-  if (
-    _System_state_Is_up( _System_state_Get() )
-      && !malloc_is_system_state_OK()
-  ) {
+  if ( !malloc_is_system_state_OK() ) {
     return NULL;
   }
 

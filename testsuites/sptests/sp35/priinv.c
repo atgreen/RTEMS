@@ -9,7 +9,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 /********************************************************************
@@ -57,6 +57,8 @@
 #include <bsp.h>
 #include <stdio.h>
 #include "tmacros.h"
+
+const char rtems_test_name[] = "SP 35";
 
 #if defined(TEST_EXIT_AFTER_ITERATIONS)
 volatile uint32_t Iterations = 0;
@@ -297,7 +299,7 @@ void AccessLocalHw(void)
   printf("  AccessLocalHw returns to %s\n", CallerName());
   #if defined(TEST_EXIT_AFTER_ITERATIONS)
     if ( ++Iterations == 10 ) {
-      puts( "*** END OF TEST 35 ***" );
+      TEST_END();
       exit(0);
     }
   #endif
@@ -375,7 +377,7 @@ rtems_task Init(rtems_task_argument ignored)
 #endif
   int i;
 
-  puts( "\n\n*** TEST 35 ***" );
+  TEST_BEGIN();
 
   /* Create synchronisation semaphore for LocalHwIsr -> Test Tasks */
   status = rtems_semaphore_create(
@@ -505,6 +507,8 @@ rtems_task Init(rtems_task_argument ignored)
 
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

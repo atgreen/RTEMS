@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -46,6 +46,8 @@ bool _POSIX_signals_Unblock_thread(
   siginfo_t          *the_info = NULL;
 
   api = the_thread->API_Extensions[ THREAD_API_POSIX ];
+
+  _Thread_Add_post_switch_action( the_thread, &api->Signal_action );
 
   mask = signo_to_mask( signo );
 

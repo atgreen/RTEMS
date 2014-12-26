@@ -1,15 +1,14 @@
 /*
- *  This routine starts the application.  It includes application,
- *  board, and monitor specific initialization and configuration.
- *  The generic CPU dependent initialization has been performed
- *  before this routine is invoked.
- *
+ *  This routine does the bulk of the system initialization.
+ */
+
+/*
  *  COPYRIGHT (c) 1989-2007.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  Modified to support the MCP750.
  *  Modifications Copyright (C) 1999 Eric Valette. valette@crf.canon.fr
@@ -31,6 +30,7 @@
 
 #include <libcpu/spr.h>   /* registers.h is included here */
 #include <bsp.h>
+#include <bsp/bootcard.h>
 #include <bsp/uart.h>
 #include <bsp/pci.h>
 #include <libcpu/bat.h>
@@ -40,6 +40,7 @@
 #include <bsp/bspException.h>
 
 #include <rtems/bspIo.h>
+#include <rtems/counter.h>
 #include <rtems/sptables.h>
 
 /*
@@ -179,12 +180,6 @@ save_boot_params(
   return cmdline_buf;
 }
 
-/*
- *  bsp_start
- *
- *  This routine does the bulk of the system initialization.
- */
-
 void bsp_start( void )
 {
 #ifdef CONF_VPD
@@ -201,8 +196,6 @@ void bsp_start( void )
 #endif
   uintptr_t intrStackStart;
   uintptr_t intrStackSize;
-  ppc_cpu_id_t myCpu;
-  ppc_cpu_revision_t myCpuRevision;
   Triv121PgTbl  pt=0;
 
   /* Till Straumann: 4/2005
@@ -224,11 +217,11 @@ void bsp_start( void )
 
 
   /*
-   * Get CPU identification dynamically. Note that the get_ppc_cpu_type() function
-   * store the result in global variables so that it can be used latter...
+   * Get CPU identification dynamically. Note that the get_ppc_cpu_type()
+   * function store the result in global variables so that it can be used later.
    */
-  myCpu   = get_ppc_cpu_type();
-  myCpuRevision = get_ppc_cpu_revision();
+  get_ppc_cpu_type();
+  get_ppc_cpu_revision();
 
 #ifdef SHOW_LCR1_REGISTER
   l1cr = get_L1CR();
@@ -244,11 +237,7 @@ void bsp_start( void )
   /*
    * Initialize default raw exception handlers.
    */
-  ppc_exc_initialize(
-    PPC_INTERRUPT_DISABLE_MASK_DEFAULT,
-    intrStackStart,
-    intrStackSize
-  );
+  ppc_exc_initialize(intrStackStart, intrStackSize);
 
   /*
    * Init MMU block address translation to enable hardware
@@ -287,6 +276,9 @@ void bsp_start( void )
   /* P94 : 7455 TB/DECR is clocked by the system bus clock frequency */
 
   bsp_clicks_per_usec    = BSP_bus_frequency/(BSP_time_base_divisor * 1000);
+  rtems_counter_initialize_converter(
+    BSP_bus_frequency / (BSP_time_base_divisor / 1000)
+  );
 
   /*
    * Initalize RTEMS IRQ system

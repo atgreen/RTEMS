@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -121,6 +121,20 @@ void _User_extensions_Fatal_visitor(
     const User_extensions_Fatal_context *ctx = arg;
 
     (*callout)( ctx->source, ctx->is_internal, ctx->error );
+  }
+}
+
+void _User_extensions_Thread_terminate_visitor(
+  Thread_Control              *executing,
+  void                        *arg,
+  const User_extensions_Table *callouts
+)
+{
+  User_extensions_thread_terminate_extension callout =
+    callouts->thread_terminate;
+
+  if ( callout != NULL ) {
+    (*callout)( executing );
   }
 }
 

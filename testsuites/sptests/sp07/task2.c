@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,9 +42,11 @@ rtems_task Task_2(
 
       status = rtems_task_delete( Task_id[ 1 ] );          /* TA1 is blocked */
       directive_failed( status, "rtems_task_delete of TA1" );
+      assert_extension_counts( &Task_deleted[ 0 ], 0x0 );
 
       status = rtems_task_delete( Task_id[ 3 ] );          /* TA3 is ready   */
       directive_failed( status, "rtems_task_delete of TA3" );
+      assert_extension_counts( &Task_deleted[ 0 ], 0x0 );
 
       status = rtems_task_delete( RTEMS_SELF );
       directive_failed( status, "rtems_task_delete of SELD" );

@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_SCHEDULERSIMPLEIMPL_H
@@ -28,26 +28,14 @@ extern "C" {
 #endif
 
 /**
- * @addtogroup ScoreScheduler
+ * @addtogroup ScoreSchedulerSimple
  */
 /**@{**/
 
-/**
- * This routine puts @a the_thread on to the ready queue.
- *
- * @param[in] the_ready_queue is a pointer to the ready queue head
- * @param[in] the_thread is the thread to be blocked
- */
-RTEMS_INLINE_ROUTINE void _Scheduler_simple_Ready_queue_requeue(
-  Scheduler_Control *the_ready_queue,
-  Thread_Control    *the_thread
-)
+RTEMS_INLINE_ROUTINE Scheduler_simple_Context *
+  _Scheduler_simple_Get_context( const Scheduler_Control *scheduler )
 {
-  /* extract */
-  _Chain_Extract_unprotected( &the_thread->Object.Node );
-
-  /* enqueue */
-  _Scheduler_simple_Ready_queue_enqueue( the_thread );
+  return (Scheduler_simple_Context *) _Scheduler_Get_context( scheduler );
 }
 
 RTEMS_INLINE_ROUTINE bool _Scheduler_simple_Insert_priority_lifo_order(
@@ -96,16 +84,27 @@ RTEMS_INLINE_ROUTINE void _Scheduler_simple_Insert_priority_fifo(
   );
 }
 
-RTEMS_INLINE_ROUTINE void _Scheduler_simple_Schedule_body(
-  Thread_Control *thread,
-  bool force_dispatch
+RTEMS_INLINE_ROUTINE void _Scheduler_simple_Extract(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
 )
 {
-  Thread_Control *heir = (Thread_Control *) _Chain_First(
-    (Chain_Control *) _Scheduler.information
-  );
+  (void) scheduler;
 
-  ( void ) thread;
+  _Chain_Extract_unprotected( &the_thread->Object.Node );
+}
+
+RTEMS_INLINE_ROUTINE void _Scheduler_simple_Schedule_body(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread,
+  bool                     force_dispatch
+)
+{
+  Scheduler_simple_Context *context =
+    _Scheduler_simple_Get_context( scheduler );
+  Thread_Control *heir = (Thread_Control *) _Chain_First( &context->Ready );
+
+  ( void ) the_thread;
 
   _Scheduler_Update_heir( heir, force_dispatch );
 }

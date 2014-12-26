@@ -8,7 +8,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -20,6 +20,8 @@
 
 #include <rtems/monitor.h>
 #include <rtems/shell.h>
+
+const char rtems_test_name[] = "MONITOR";
 
 rtems_task_priority Priorities[6] = { 0,   1,   1,   3,   4,   5 };
 
@@ -50,7 +52,7 @@ rtems_task Init(
   uint32_t    index;
   rtems_status_code status;
 
-  puts( "\n\n*** TEST MONITOR ***" );
+  TEST_BEGIN();
 
   Task_name[ 1 ] =  rtems_build_name( 'T', 'A', '1', ' ' );
   Task_name[ 2 ] =  rtems_build_name( 'T', 'A', '2', ' ' );
@@ -87,7 +89,7 @@ rtems_task Init(
     status = rtems_task_delete( RTEMS_SELF );
     directive_failed( status, "rtems_task_delete of RTEMS_SELF" );
   } else {
-    puts( "*** END OF TEST MONITOR ***" );
+    TEST_END();
 
     rtems_test_exit( 0 );
   }

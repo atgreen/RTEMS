@@ -8,13 +8,14 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 /*
  *  Some of the fatal error cases require the ability to peek inside RTEMS
  */
 #include <rtems.h>
+#include <rtems/test.h>
 #include <tmacros.h>
 
 /* functions */
@@ -65,7 +66,8 @@ extern rtems_extensions_table initial_extensions;
     NULL,                    /* begin   */ \
     NULL,                    /* exitted */ \
     Fatal_extension          /* fatal   */ \
-  }
+  }, \
+  RTEMS_TEST_INITIAL_EXTENSION
 
 /* extra parameters may be in testcase.h */
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER

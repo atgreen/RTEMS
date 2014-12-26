@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,11 +34,11 @@ rtems_task Test_task(
   for ( ; ; ) {
 
     /* Get the CPU Number */
-    cpu_num = rtems_smp_get_current_processor();
+    cpu_num = rtems_get_current_processor();
 
     status = rtems_clock_get_tod( &time );
     if ( time.second >= 35 ) {
-      locked_printf( "*** END OF SMP08 TEST ***\n" );
+      TEST_END();
       rtems_test_exit( 0 );
     }
 

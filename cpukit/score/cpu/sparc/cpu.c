@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -20,6 +20,7 @@
 #include <rtems/system.h>
 #include <rtems/score/isr.h>
 #include <rtems/score/percpu.h>
+#include <rtems/score/tls.h>
 #include <rtems/rtems/cache.h>
 
 RTEMS_STATIC_ASSERT(
@@ -28,22 +29,47 @@ RTEMS_STATIC_ASSERT(
   SPARC_PER_CPU_ISR_DISPATCH_DISABLE
 );
 
-/*
- *  This initializes the set of opcodes placed in each trap
- *  table entry.  The routine which installs a handler is responsible
- *  for filling in the fields for the _handler address and the _vector
- *  trap type.
- *
- *  The constants following this structure are masks for the fields which
- *  must be filled in when the handler is installed.
- */
+#define SPARC_ASSERT_OFFSET(field, off) \
+  RTEMS_STATIC_ASSERT( \
+    offsetof(Context_Control, field) == off ## _OFFSET, \
+    Context_Control_offset_ ## field \
+  )
 
-const CPU_Trap_table_entry _CPU_Trap_slot_template = {
-  0xa1480000,      /* mov   %psr, %l0           */
-  0x29000000,      /* sethi %hi(_handler), %l4  */
-  0x81c52000,      /* jmp   %l4 + %lo(_handler) */
-  0xa6102000       /* mov   _vector, %l3        */
-};
+SPARC_ASSERT_OFFSET(g5, G5);
+SPARC_ASSERT_OFFSET(g7, G7);
+
+RTEMS_STATIC_ASSERT(
+  offsetof(Context_Control, l0_and_l1) == L0_OFFSET,
+  Context_Control_offset_L0
+);
+
+RTEMS_STATIC_ASSERT(
+  offsetof(Context_Control, l0_and_l1) + 4 == L1_OFFSET,
+  Context_Control_offset_L1
+);
+
+SPARC_ASSERT_OFFSET(l2, L2);
+SPARC_ASSERT_OFFSET(l3, L3);
+SPARC_ASSERT_OFFSET(l4, L4);
+SPARC_ASSERT_OFFSET(l5, L5);
+SPARC_ASSERT_OFFSET(l6, L6);
+SPARC_ASSERT_OFFSET(l7, L7);
+SPARC_ASSERT_OFFSET(i0, I0);
+SPARC_ASSERT_OFFSET(i1, I1);
+SPARC_ASSERT_OFFSET(i2, I2);
+SPARC_ASSERT_OFFSET(i3, I3);
+SPARC_ASSERT_OFFSET(i4, I4);
+SPARC_ASSERT_OFFSET(i5, I5);
+SPARC_ASSERT_OFFSET(i6_fp, I6_FP);
+SPARC_ASSERT_OFFSET(i7, I7);
+SPARC_ASSERT_OFFSET(o6_sp, O6_SP);
+SPARC_ASSERT_OFFSET(o7, O7);
+SPARC_ASSERT_OFFSET(psr, PSR);
+SPARC_ASSERT_OFFSET(isr_dispatch_disable, ISR_DISPATCH_DISABLE_STACK);
+
+#if defined(RTEMS_SMP)
+SPARC_ASSERT_OFFSET(is_executing, SPARC_CONTEXT_CONTROL_IS_EXECUTING);
+#endif
 
 /*
  *  _CPU_Initialize
@@ -184,10 +210,21 @@ void _CPU_ISR_install_raw_handler(
     (u32_handler & HIGH_BITS_MASK) >> HIGH_BITS_SHIFT;
   slot->jmp_to_low_of_handler_plus_l4 |= (u32_handler & LOW_BITS_MASK);
 
-  /* need to flush icache after this !!! */
-
+  /*
+   * There is no instruction cache snooping, so we need to invalidate
+   * the instruction cache to make sure that the processor sees the
+   * changes to the trap table. This step is required on both single-
+   * and multiprocessor systems.
+   *
+   * In a SMP configuration a change to the trap table might be
+   * missed by other cores. If the system state is up, the other
+   * cores can be notified using SMP messages that they need to
+   * flush their icache. If the up state has not been reached
+   * there is no need to notify other cores. They will do an
+   * automatic flush of the icache just after entering the up
+   * state, but before enabling interrupts.
+   */
   rtems_cache_invalidate_entire_instruction();
-
 }
 
 void _CPU_ISR_install_vector(
@@ -232,7 +269,8 @@ void _CPU_Context_Initialize(
   uint32_t          size,
   uint32_t          new_level,
   void             *entry_point,
-  bool              is_fp
+  bool              is_fp,
+  void             *tls_area
 )
 {
     uint32_t     stack_high;  /* highest "stack aligned" address */
@@ -285,4 +323,10 @@ void _CPU_Context_Initialize(
    *  thread can have an _ISR_Dispatch stack frame on its stack.
    */
     the_context->isr_dispatch_disable = 0;
+
+  if ( tls_area != NULL ) {
+    void *tcb = _TLS_TCB_after_TLS_block_initialize( tls_area );
+
+    the_context->g7 = (uintptr_t) tcb;
+  }
 }

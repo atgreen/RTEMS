@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -20,7 +20,10 @@
 
 #include <rtems/score/schedulerpriorityimpl.h>
 
-void _Scheduler_priority_Schedule( Thread_Control *thread )
+void _Scheduler_priority_Schedule(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
+)
 {
-  _Scheduler_priority_Schedule_body( thread, false );
+  _Scheduler_priority_Schedule_body( scheduler, the_thread, false );
 }

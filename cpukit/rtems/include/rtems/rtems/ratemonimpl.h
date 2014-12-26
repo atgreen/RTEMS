@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_RATEMONIMPL_H
@@ -143,18 +143,6 @@ RTEMS_INLINE_ROUTINE bool _Rate_monotonic_Is_expired (
 )
 {
   return (the_period->state == RATE_MONOTONIC_EXPIRED);
-}
-
-/**
- *  @brief Checks if the_period is NULL.
- *
- *  This function returns TRUE if the_period is NULL and FALSE otherwise.
- */
-RTEMS_INLINE_ROUTINE bool _Rate_monotonic_Is_null (
-  Rate_monotonic_Control *the_period
-)
-{
-  return (the_period == NULL);
 }
 
 /**

@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -149,15 +149,10 @@ int pthread_mutex_init(
   }
 #endif
 
-  /*
-   *  Enter a dispatching critical section and begin to do the real work.
-   */
-  _Thread_Disable_dispatch();
-
   the_mutex = _POSIX_Mutex_Allocate();
 
   if ( !the_mutex ) {
-    _Thread_Enable_dispatch();
+    _Objects_Allocator_unlock();
     return EAGAIN;
   }
 
@@ -177,17 +172,12 @@ int pthread_mutex_init(
   /*
    *  Must be initialized to unlocked.
    */
-  _CORE_mutex_Initialize(
-    &the_mutex->Mutex,
-    NULL,
-    the_mutex_attr,
-    CORE_MUTEX_UNLOCKED
-  );
+  _CORE_mutex_Initialize( &the_mutex->Mutex, NULL, the_mutex_attr, false );
 
   _Objects_Open_u32( &_POSIX_Mutex_Information, &the_mutex->Object, 0 );
 
   *mutex = the_mutex->Object.id;
 
-  _Thread_Enable_dispatch();
+  _Objects_Allocator_unlock();
   return 0;
 }

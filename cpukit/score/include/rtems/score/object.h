@@ -14,13 +14,14 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_OBJECT_H
 #define _RTEMS_SCORE_OBJECT_H
 
 #include <rtems/score/basedefs.h>
+#include <rtems/score/cpu.h>
 #include <rtems/score/chain.h>
 
 #ifdef __cplusplus
@@ -217,7 +218,8 @@ typedef enum {
   OBJECTS_NO_API       = 0,
   OBJECTS_INTERNAL_API = 1,
   OBJECTS_CLASSIC_API  = 2,
-  OBJECTS_POSIX_API    = 3
+  OBJECTS_POSIX_API    = 3,
+  OBJECTS_FAKE_OBJECTS_API = 7
 } Objects_APIs;
 
 /** This macro is used to generically specify the last API index. */
@@ -394,9 +396,9 @@ RTEMS_INLINE_ROUTINE Objects_Maximum _Objects_Get_index(
  */
 RTEMS_INLINE_ROUTINE Objects_Id _Objects_Build_id(
   Objects_APIs     the_api,
-  uint32_t         the_class,
-  uint32_t         node,
-  uint32_t         index
+  uint16_t         the_class,
+  uint8_t          node,
+  uint16_t         index
 )
 {
   return (( (Objects_Id) the_api )   << OBJECTS_API_START_BIT)   |

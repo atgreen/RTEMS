@@ -9,7 +9,9 @@
 #endif
 
 #include <timesys.h>
-#include <rtems/timerdrv.h>
+#include <rtems/btimer.h>
+
+const char rtems_test_name[] = "RHMLATENCY";
 
 #define MESSAGE_SIZE (sizeof(long) * 4)
 #define BENCHMARKS 50000
@@ -35,7 +37,7 @@ void Init(
 
   Print_Warning();
 
-  puts( "*** START OF RHMLATENCY ***" );
+  TEST_BEGIN();
 
   status = rtems_message_queue_create(
     rtems_build_name( 'M', 'Q', '1', ' '  ),
@@ -137,7 +139,7 @@ rtems_task Task02( rtems_task_argument ignored )
    treceive_overhead             /* Overhead of recieve call and task switch */
   );
 
-  puts( "*** END OF RHMLATENCY ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -148,6 +150,8 @@ rtems_task Task02( rtems_task_argument ignored )
 
 #define CONFIGURE_MAXIMUM_TASKS              3
 #define CONFIGURE_MAXIMUM_MESSAGE_QUEUES     1
+#define CONFIGURE_MESSAGE_BUFFER_MEMORY \
+  CONFIGURE_MESSAGE_BUFFERS_FOR_QUEUE(1, MESSAGE_SIZE)
 #define CONFIGURE_TICKS_PER_TIMESLICE        0
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

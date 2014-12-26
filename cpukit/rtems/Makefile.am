@@ -53,9 +53,6 @@ include_rtems_rtems_HEADERS += include/rtems/rtems/tasksimpl.h
 include_rtems_rtems_HEADERS += include/rtems/rtems/timer.h
 include_rtems_rtems_HEADERS += include/rtems/rtems/timerimpl.h
 include_rtems_rtems_HEADERS += include/rtems/rtems/types.h
-if ATOMIC
-include_rtems_rtems_HEADERS += include/rtems/rtems/atomic.h
-endif
 include_rtems_rtems_HEADERS += mainpage.h
 
 if HAS_MP
@@ -92,7 +89,9 @@ librtems_a_SOURCES += src/rtemsobjectgetclassicname.c
 librtems_a_SOURCES += src/tasks.c
 librtems_a_SOURCES += src/taskcreate.c
 librtems_a_SOURCES += src/taskdelete.c
+librtems_a_SOURCES += src/taskgetaffinity.c
 librtems_a_SOURCES += src/taskgetnote.c
+librtems_a_SOURCES += src/taskgetscheduler.c
 librtems_a_SOURCES += src/taskident.c
 librtems_a_SOURCES += src/taskinitusers.c
 librtems_a_SOURCES += src/taskissuspended.c
@@ -100,17 +99,24 @@ librtems_a_SOURCES += src/taskmode.c
 librtems_a_SOURCES += src/taskrestart.c
 librtems_a_SOURCES += src/taskresume.c
 librtems_a_SOURCES += src/taskself.c
+librtems_a_SOURCES += src/tasksetaffinity.c
 librtems_a_SOURCES += src/tasksetnote.c
 librtems_a_SOURCES += src/tasksetpriority.c
+librtems_a_SOURCES += src/tasksetscheduler.c
 librtems_a_SOURCES += src/taskstart.c
 librtems_a_SOURCES += src/tasksuspend.c
 librtems_a_SOURCES += src/taskwakeafter.c
 librtems_a_SOURCES += src/taskwakewhen.c
+if HAS_SMP
+else
 librtems_a_SOURCES += src/taskvariableadd.c
 librtems_a_SOURCES += src/taskvariabledelete.c
 librtems_a_SOURCES += src/taskvariableget.c
 librtems_a_SOURCES += src/taskvariable_invoke_dtor.c
+endif
 librtems_a_SOURCES += src/taskdata.c
+librtems_a_SOURCES += src/schedulergetprocessorset.c
+librtems_a_SOURCES += src/schedulerident.c
 
 ## RATEMON_C_FILES
 librtems_a_SOURCES += src/ratemon.c
@@ -145,7 +151,6 @@ librtems_a_SOURCES += src/barrierdata.c
 librtems_a_SOURCES += src/clockget.c
 librtems_a_SOURCES += src/clockgetsecondssinceepoch.c
 librtems_a_SOURCES += src/clockgettickspersecond.c
-librtems_a_SOURCES += src/clockgettickssinceboot.c
 librtems_a_SOURCES += src/clockgettod.c
 librtems_a_SOURCES += src/clockgettodtimeval.c
 librtems_a_SOURCES += src/clockgetuptime.c
@@ -175,7 +180,6 @@ librtems_a_SOURCES += src/rtemstimerdata.c
 
 ## MESSAGE_QUEUE_C_FILES
 librtems_a_SOURCES += src/msg.c
-librtems_a_SOURCES += src/msgqallocate.c
 librtems_a_SOURCES += src/msgqbroadcast.c
 librtems_a_SOURCES += src/msgqcreate.c
 librtems_a_SOURCES += src/msgqdelete.c
@@ -198,6 +202,7 @@ librtems_a_SOURCES += src/semrelease.c
 librtems_a_SOURCES += src/semflush.c
 librtems_a_SOURCES += src/semtranslatereturncode.c
 librtems_a_SOURCES += src/semdata.c
+librtems_a_SOURCES += src/semsetpriority.c
 
 ## EVENT_C_FILES
 librtems_a_SOURCES += src/event.c
@@ -255,6 +260,10 @@ librtems_a_SOURCES += src/workspacegreedy.c
 librtems_a_SOURCES += src/modes.c
 
 librtems_a_SOURCES += src/status.c
+librtems_a_SOURCES += src/statustext.c
+
+librtems_a_SOURCES += src/getcurrentprocessor.c
+librtems_a_SOURCES += src/getprocessorcount.c
 
 if HAS_MP
 # We only build multiprocessing related files if HAS_MP was defined

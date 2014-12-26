@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -16,8 +16,10 @@
 #include <semaphore.h>
 #include <tmacros.h>
 #include <timesys.h>
-#include <rtems/timerdrv.h>
+#include <rtems/btimer.h>
 #include "test_support.h"
+
+const char rtems_test_name[] = "PSXTMSEM 01";
 
 /* forward declarations to avoid warnings */
 void *POSIX_Init(void *argument);
@@ -164,7 +166,7 @@ static void benchmark_sem_close_second(void)
 void *POSIX_Init(void *argument)
 {
 
-  puts( "\n\n*** POSIX TIME TEST PSXTMSEM01 ***" );
+  TEST_BEGIN();
 
   /* creating unnamed semaphore */
   benchmark_sem_init();
@@ -187,7 +189,7 @@ void *POSIX_Init(void *argument)
   benchmark_sem_close(false);
   benchmark_sem_unlink("sem_unlink: deletes semaphore");
 
-  puts( "*** END OF POSIX TIME TEST PSXTMSEM01 ***" );
+  TEST_END();
 
   rtems_test_exit(0);
 }

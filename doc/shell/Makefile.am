@@ -24,7 +24,7 @@ confinit.texi: confinit.t
 	    -n "General Commands" < $< > $@
 
 general.texi: general.t
-	$(BMENU2) -p "Configuration and Initialization rtems_shell_init - initialize the shell" \
+	$(BMENU2) -p "Configuration and Initialization rtems_shell_login_check - Default login check handler" \
 	    -u "Top" \
 	    -n "File and Directory Commands" < $< > $@
 
@@ -34,7 +34,7 @@ file.texi: file.t
 	    -n "Memory Commands" < $< > $@
 
 memory.texi: memory.t
-	$(BMENU2) -p "File and Directory Commands df - display file system disk space usage" \
+	$(BMENU2) -p "File and Directory Commands unmount - unmount disk" \
 	    -u "Top" \
 	    -n "RTEMS Specific Commands" < $< > $@
 

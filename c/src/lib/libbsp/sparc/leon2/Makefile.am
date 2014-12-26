@@ -45,24 +45,36 @@ noinst_LIBRARIES += libbsp.a
 libbsp_a_SOURCES =
 
 # startup
-libbsp_a_SOURCES += ../../shared/bspclean.c ../../shared/bsplibc.c \
-    ../../shared/bsppost.c startup/bsppredriver.c \
-    startup/bspstart.c ../../sparc/shared/bsppretaskinghook.c \
-    ../../sparc/shared/startup/bspgetworkarea.c ../../shared/bootcard.c \
-    ../../shared/sbrk.c startup/setvec.c startup/spurious.c startup/bspidle.c \
-    ../../shared/bspinit.c startup/bspdelay.c \
-    ../../sparc/shared/startup/early_malloc.c
+libbsp_a_SOURCES += ../../shared/bspclean.c
+libbsp_a_SOURCES += ../../shared/bsplibc.c
+libbsp_a_SOURCES += ../../shared/bsppost.c
+libbsp_a_SOURCES += startup/bsppredriver.c
+libbsp_a_SOURCES += startup/bspstart.c
+libbsp_a_SOURCES += ../../sparc/shared/bsppretaskinghook.c
+libbsp_a_SOURCES += ../../sparc/shared/startup/bspgetworkarea.c
+libbsp_a_SOURCES += ../../shared/bootcard.c
+libbsp_a_SOURCES += ../../shared/sbrk.c
+libbsp_a_SOURCES += startup/setvec.c
+libbsp_a_SOURCES += startup/spurious.c
+libbsp_a_SOURCES += startup/bspidle.c
+libbsp_a_SOURCES += startup/bspdelay.c
+libbsp_a_SOURCES += ../../sparc/shared/startup/early_malloc.c
+libbsp_a_SOURCES += ../../sparc/shared/startup/bsp_fatal_exit.c
+libbsp_a_SOURCES += ../../sparc/shared/startup/bsp_fatal_halt.c
+
 # ISR Handler
+libbsp_a_SOURCES += ../../sparc/shared/cpu.c
 libbsp_a_SOURCES += ../../sparc/shared/irq_asm.S
 # gnatsupp
 libbsp_a_SOURCES += gnatsupp/gnatsupp.c ../../sparc/shared/gnatcommon.c
+include_bsp_HEADERS = ../shared/include/gnatcommon.h
 # console
 libbsp_a_SOURCES += console/console.c console/debugputs.c
 # clock
 libbsp_a_SOURCES += clock/ckinit.c
 libbsp_a_SOURCES += ../../shared/clockdrv_shell.h
 # IRQ
-include_bsp_HEADERS = \
+include_bsp_HEADERS += \
     ../../shared/include/irq-generic.h \
     ../../shared/include/irq-info.h \
     include/bsp/irq.h
@@ -119,7 +131,8 @@ libbsp_a_SOURCES += ../../sparc/shared/i2c/i2cmst.c
 libbsp_a_SOURCES += timer/timer.c
 
 if HAS_SMP
-libbsp_a_SOURCES += ../../shared/smp/getcpuid.c ../../shared/smp/smp_stub.c
+libbsp_a_SOURCES += ../../shared/bspsmp.c
+libbsp_a_SOURCES += ../../shared/bspsmpgetcurrentprocessor.c
 endif
 
 if HAS_NETWORKING

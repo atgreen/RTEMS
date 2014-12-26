@@ -9,9 +9,11 @@
  *  COPYRIGHT (c) 1989-2009.
  *  On-Line Applications Research Corporation (OAR).
  *
+ *  Copyright (c) 2014 embedded brains GmbH.
+ *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -26,50 +28,73 @@
 #include <rtems/score/todimpl.h>
 #include <rtems/score/userextimpl.h>
 #include <rtems/score/wkspace.h>
+#include <rtems/config.h>
+
+static Thread_Action *_Thread_Get_post_switch_action(
+  Thread_Control *executing
+)
+{
+  Chain_Control *chain = &executing->Post_switch_actions.Chain;
+
+  return (Thread_Action *) _Chain_Get_unprotected( chain );
+}
+
+static void _Thread_Run_post_switch_actions( Thread_Control *executing )
+{
+  ISR_Level        level;
+  Per_CPU_Control *cpu_self;
+  Thread_Action   *action;
+
+  cpu_self = _Thread_Action_ISR_disable_and_acquire( executing, &level );
+  action = _Thread_Get_post_switch_action( executing );
+
+  while ( action != NULL ) {
+    _Chain_Set_off_chain( &action->Node );
+
+    ( *action->handler )( executing, action, cpu_self, level );
+
+    cpu_self = _Thread_Action_ISR_disable_and_acquire( executing, &level );
+    action = _Thread_Get_post_switch_action( executing );
+  }
+
+  _Thread_Action_release_and_ISR_enable( cpu_self, level );
+}
 
 void _Thread_Dispatch( void )
 {
-  Per_CPU_Control  *per_cpu;
+  Per_CPU_Control  *cpu_self;
   Thread_Control   *executing;
-  Thread_Control   *heir;
   ISR_Level         level;
 
 #if defined( RTEMS_SMP )
+  /*
+   * On SMP the complete context switch must be atomic with respect to one
+   * processor.  See also _Thread_Handler() since _Context_switch() may branch
+   * to this function.
+   */
   _ISR_Disable_without_giant( level );
 #endif
 
-  per_cpu = _Per_CPU_Get();
-  _Assert( per_cpu->thread_dispatch_disable_level == 0 );
-  per_cpu->thread_dispatch_disable_level = 1;
-
-#if defined( RTEMS_SMP )
-  _ISR_Enable_without_giant( level );
-#endif
+  cpu_self = _Per_CPU_Get();
+  _Assert( cpu_self->thread_dispatch_disable_level == 0 );
+  _Profiling_Thread_dispatch_disable( cpu_self, 0 );
+  cpu_self->thread_dispatch_disable_level = 1;
 
   /*
    *  Now determine if we need to perform a dispatch on the current CPU.
    */
-  executing = per_cpu->executing;
-  _Per_CPU_ISR_disable_and_acquire( per_cpu, level );
+  executing = cpu_self->executing;
+
+#if !defined( RTEMS_SMP )
+  _ISR_Disable( level );
+#endif
+
 #if defined( RTEMS_SMP )
-  /*
-   * On SMP the complete context switch must be atomic with respect to one
-   * processor.  The scheduler must obtain the per-CPU lock to check if a
-   * thread is executing and to update the heir.  This ensures that a thread
-   * cannot execute on more than one processor at a time.  See also
-   * _Thread_Handler() since _Context_switch() may branch to this function.
-   */
-  if ( per_cpu->dispatch_necessary ) {
+  if ( cpu_self->dispatch_necessary ) {
 #else
-  while ( per_cpu->dispatch_necessary ) {
+  while ( cpu_self->dispatch_necessary ) {
 #endif
-    heir = per_cpu->heir;
-    per_cpu->dispatch_necessary = false;
-    per_cpu->executing = heir;
-#if defined( RTEMS_SMP )
-    executing->is_executing = false;
-    heir->is_executing = true;
-#endif
+    Thread_Control *heir = _Thread_Get_heir_and_make_it_executing( cpu_self );
 
     /*
      *  When the heir and executing are the same, then we are being
@@ -88,7 +113,7 @@ void _Thread_Dispatch( void )
     rtems_ada_self = heir->rtems_ada_self;
 #endif
     if ( heir->budget_algorithm == THREAD_CPU_BUDGET_ALGORITHM_RESET_TIMESLICE )
-      heir->cpu_time_budget = _Thread_Ticks_per_timeslice;
+      heir->cpu_time_budget = rtems_configuration_get_ticks_per_timeslice();
 
 #if !defined( RTEMS_SMP )
     _ISR_Enable( level );
@@ -97,11 +122,11 @@ void _Thread_Dispatch( void )
     #ifndef __RTEMS_USE_TICKS_FOR_STATISTICS__
       _Thread_Update_cpu_time_used(
         executing,
-        &per_cpu->time_of_last_context_switch
+        &cpu_self->time_of_last_context_switch
       );
     #else
       {
-        _TOD_Get_uptime( &per_cpu->time_of_last_context_switch );
+        _TOD_Get_uptime( &cpu_self->time_of_last_context_switch );
         heir->cpu_time_used++;
       }
     #endif
@@ -160,7 +185,9 @@ void _Thread_Dispatch( void )
      * heir thread may have migrated from another processor.  Values from the
      * stack or non-volatile registers reflect the old execution environment.
      */
-    per_cpu = _Per_CPU_Get();
+    cpu_self = _Per_CPU_Get();
+
+    _Thread_Debug_set_real_processor( executing, cpu_self );
 
 #if !defined( RTEMS_SMP )
     _ISR_Disable( level );
@@ -168,10 +195,11 @@ void _Thread_Dispatch( void )
   }
 
 post_switch:
-  _Assert( per_cpu->thread_dispatch_disable_level == 1 );
-  per_cpu->thread_dispatch_disable_level = 0;
+  _Assert( cpu_self->thread_dispatch_disable_level == 1 );
+  cpu_self->thread_dispatch_disable_level = 0;
+  _Profiling_Thread_dispatch_enable( cpu_self, 0 );
 
-  _Per_CPU_Release_and_ISR_enable( per_cpu, level );
+  _ISR_Enable_without_giant( level );
 
-  _API_extensions_Run_post_switch( executing );
+  _Thread_Run_post_switch_actions( executing );
 }

@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <ambapp.h>
@@ -28,7 +28,7 @@ int ambapp_find_by_idx(struct ambapp_dev *dev, int index, void *pcount)
   int *pi = pcount;
 
   if (pi) {
-    if (*pi-- == 0)
+    if ((*pi)-- == 0)
       return (int)dev;
     else
       return 0;

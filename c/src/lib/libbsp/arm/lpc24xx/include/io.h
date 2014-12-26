@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef LIBBSP_ARM_LPC24XX_IO_H
@@ -293,6 +293,16 @@ rtems_status_code lpc24xx_pin_config(
   const lpc24xx_pin_range *pins,
   lpc24xx_pin_action action
 );
+
+/**
+ * @brief Returns the first pin index of a pin range.
+ */
+static inline unsigned lpc24xx_pin_get_first_index(
+  const lpc24xx_pin_range *range
+)
+{
+  return LPC24XX_IO_INDEX_BY_PORT(range->fields.port, range->fields.port_bit);
+}
 
 /**
  * @name ADC Pins

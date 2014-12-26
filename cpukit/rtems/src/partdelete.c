@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2007.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -26,16 +26,16 @@ rtems_status_code rtems_partition_delete(
   rtems_id id
 )
 {
-  register Partition_Control *the_partition;
+   Partition_Control           *the_partition;
   Objects_Locations           location;
 
+  _Objects_Allocator_lock();
   the_partition = _Partition_Get( id, &location );
   switch ( location ) {
 
     case OBJECTS_LOCAL:
       if ( the_partition->number_of_used_blocks == 0 ) {
         _Objects_Close( &_Partition_Information, &the_partition->Object );
-        _Partition_Free( the_partition );
 #if defined(RTEMS_MULTIPROCESSING)
         if ( _Attributes_Is_global( the_partition->attribute_set ) ) {
 
@@ -54,20 +54,25 @@ rtems_status_code rtems_partition_delete(
 #endif
 
         _Objects_Put( &the_partition->Object );
+        _Partition_Free( the_partition );
+        _Objects_Allocator_unlock();
         return RTEMS_SUCCESSFUL;
       }
       _Objects_Put( &the_partition->Object );
+      _Objects_Allocator_unlock();
       return RTEMS_RESOURCE_IN_USE;
 
 #if defined(RTEMS_MULTIPROCESSING)
     case OBJECTS_REMOTE:
-      _Thread_Dispatch();
+      _Objects_Allocator_unlock();
       return RTEMS_ILLEGAL_ON_REMOTE_OBJECT;
 #endif
 
     case OBJECTS_ERROR:
       break;
   }
+
+  _Objects_Allocator_unlock();
 
   return RTEMS_INVALID_ID;
 }

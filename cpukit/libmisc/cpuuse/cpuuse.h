@@ -16,7 +16,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef __RTEMS_CPUUSE_h
@@ -61,6 +61,25 @@ void rtems_cpu_usage_report_with_plugin(
  */
 
 void rtems_cpu_usage_report( void );
+
+/**
+ *   @brief CPU usage Top plugin
+ *
+ *   Report CPU Usage in top format to
+ *   to a print plugin.
+ */
+void rtems_cpu_usage_top_with_plugin(
+  void                  *context,
+  rtems_printk_plugin_t  print
+);
+
+/**
+ *  @brief CPU usage top.
+ *
+ *  CPU Usage top
+ */
+
+void rtems_cpu_usage_top( void );
 
 /**
  *  @brief Reset CPU usage.

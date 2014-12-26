@@ -8,20 +8,10 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <tmacros.h>
-
-/* buffered IO */
-
-void buffered_io_initialize( void );
-
-void buffered_io_flush(void);
-
-void buffered_io_add_string( char *s );
-
-/* end of buffered IO */
 
 /* functions */
 
@@ -77,6 +67,8 @@ void Task_exit_extension(
 #define CONFIGURE_MAXIMUM_USER_EXTENSIONS     2
 #define CONFIGURE_TICKS_PER_TIMESLICE       100
 
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_EXTRA_TASK_STACKS         (4 * RTEMS_MINIMUM_STACK_SIZE)
@@ -91,5 +83,24 @@ TEST_EXTERN rtems_name Task_name[ 5 ];       /* array of task names */
 
 TEST_EXTERN rtems_id   Extension_id[ 4 ];
 TEST_EXTERN rtems_name Extension_name[ 4 ];  /* array of task names */
+
+TEST_EXTERN int Task_created[ RTEMS_ARRAY_SIZE( Task_id ) ];
+
+TEST_EXTERN int Task_started[ RTEMS_ARRAY_SIZE( Task_id ) ];
+
+TEST_EXTERN int Task_restarted[ RTEMS_ARRAY_SIZE( Task_id ) ];
+
+TEST_EXTERN int Task_deleted[ RTEMS_ARRAY_SIZE( Task_id ) ];
+
+RTEMS_INLINE_ROUTINE void assert_extension_counts( const int *table, int tasks )
+{
+  size_t i;
+
+  for ( i = 0; i < RTEMS_ARRAY_SIZE( Task_id ); ++i ) {
+    rtems_test_assert(
+      ( tasks & ( 1 << i ) ) != 0 ? table[ i ] == 1 : table[ i ] == 0
+    );
+  }
+}
 
 /* end of include file */

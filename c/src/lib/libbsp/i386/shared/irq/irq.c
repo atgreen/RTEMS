@@ -1,13 +1,14 @@
-/* irq.c
- *
+/*
  *  This file contains the implementation of the function described in irq.h
- *
+ */
+
+/*
  *  Copyright (c) 2009 embedded brains GmbH
  *  Copyright (C) 1998 valette@crf.canon.fr
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>

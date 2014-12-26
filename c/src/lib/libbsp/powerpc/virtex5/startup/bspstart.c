@@ -1,14 +1,12 @@
-/*  bsp_start()
+/*
  *
  *  This routine starts the application.  It includes application,
  *  board, and monitor specific initialization and configuration.
  *  The generic CPU dependent initialization has been performed
  *  before this routine is invoked.
- *
- *  INPUT:  NONE
- *
- *  OUTPUT: NONE
- *
+ */
+
+/*
  *  Author:	Thomas Doerfler <td@imd.m.isar.de>
  *              IMD Ingenieurbuero fuer Microcomputertechnik
  *
@@ -57,6 +55,7 @@
 #include <rtems.h>
 #include <rtems/config.h>
 #include <rtems/bspIo.h>
+#include <rtems/counter.h>
 #include <rtems/libio.h>
 #include <rtems/libcsupport.h>
 
@@ -214,6 +213,9 @@ void bsp_start(void)
 
   /* Timebase register ticks/microsecond;  The application may override these */
   bsp_clicks_per_usec        = BSP_bus_frequency/(BSP_time_base_divisor * 1000);
+  rtems_counter_initialize_converter(
+    BSP_bus_frequency / (BSP_time_base_divisor / 1000)
+  );
   bsp_timer_internal_clock   = true;
   bsp_timer_average_overhead = 2;
   bsp_timer_least_valid      = 3;
@@ -224,9 +226,7 @@ void bsp_start(void)
   intrStackStart = CPU_UP_ALIGN((uint32_t)__bsp_ram_start);
   intrStackSize  = rtems_configuration_get_interrupt_stack_size();
 
-  ppc_exc_initialize(PPC_INTERRUPT_DISABLE_MASK_DEFAULT,
-                     intrStackStart,
-                     intrStackSize);
+  ppc_exc_initialize(intrStackStart, intrStackSize);
 
   /* Let the user know what parameters we were compiled with */
   printk("                  Base/Start     End         Size\n"

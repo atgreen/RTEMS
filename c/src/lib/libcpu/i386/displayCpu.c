@@ -1,8 +1,9 @@
-/*  displayCpu.c
- *
+/*
  *  This file contains code for displaying the Intel Cpu identification
  *  that has been performed by checkCPUtypeSetCr0 function.
- *
+ */
+
+/*
  *  This file was updated by Joel Sherrill <joel.sherrill@oarcorp.com>
  *  to define more capability bits, pick up more CPU model information,
  *  and add more model strings. --joel (April 2010)
@@ -12,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 /*

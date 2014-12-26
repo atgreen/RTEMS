@@ -18,25 +18,25 @@ EXTRA_DIST += capture/README
 
 noinst_LIBRARIES += libcapture.a
 libcapture_a_SOURCES = capture/capture.c capture/capture-cli.c \
-    capture/capture.h capture/capture-cli.h
+    capture/capture_user_extension.c capture/capture_buffer.c \
+    capture/capture_support.c \
+    capture/capture.h capture/captureimpl.h capture/capture-cli.h \
+    capture/capture_buffer.h
 
 ## cpuuse
 EXTRA_DIST += cpuuse/README
 
 noinst_LIBRARIES += libcpuuse.a
 libcpuuse_a_SOURCES = cpuuse/cpuusagereport.c cpuuse/cpuusagereset.c \
-    cpuuse/cpuuse.h cpuuse/cpuusagedata.c
+     cpuuse/cpuuse.h cpuuse/cpuusagedata.c cpuuse/cpuusagetop.c
 
 ## devnull
 noinst_LIBRARIES += libdevnull.a
 libdevnull_a_SOURCES = devnull/devnull.c devnull/devnull.h \
     devnull/devzero.c devnull/devzero.h
 
-## dummy
-EXTRA_DIST += dummy/README
-
 noinst_LIBRARIES += libdummy.a
-libdummy_a_SOURCES = dummy/dummy.c dummy/dummy-networking.c
+libdummy_a_SOURCES = dummy/default-configuration.c dummy/dummy-networking.c
 
 ## dumpbuf
 noinst_LIBRARIES += libdumpbuf.a
@@ -69,6 +69,10 @@ noinst_LIBRARIES += libmouse.a
 libmouse_a_SOURCES = mouse/mouse_parser.c mouse/serial_mouse.c
 EXTRA_DIST += mouse/README
 
+## redirector
+noinst_LIBRARIES += libredirector.a
+libredirector_a_SOURCES = redirector/stdio-redirect.c redirector/stdio-redirect.h
+
 ## shell
 if LIBSHELL
 noinst_LIBRARIES += libshell.a
@@ -79,10 +83,10 @@ libshell_a_SOURCES = shell/cat_file.c shell/cmds.c shell/internal.h \
     shell/main_cp.c shell/main_cpuuse.c shell/main_date.c shell/main_dir.c \
     shell/main_echo.c shell/main_exit.c shell/main_halt.c shell/main_help.c \
     shell/main_id.c shell/main_logoff.c shell/main_ln.c shell/main_ls.c \
-    shell/main_mallocinfo.c shell/main_mdump.c shell/main_medit.c \
-    shell/main_mfill.c shell/main_mkdir.c shell/main_mount.c \
-    shell/main_mmove.c shell/main_msdosfmt.c \
-    shell/main_mv.c shell/main_perioduse.c \
+    shell/main_mallocinfo.c shell/main_md5.c shell/main_mdump.c \
+    shell/main_medit.c shell/main_mfill.c shell/main_mkdir.c \
+    shell/main_mount.c shell/main_mmove.c shell/main_msdosfmt.c \
+    shell/main_mv.c shell/main_perioduse.c shell/main_top.c \
     shell/main_pwd.c shell/main_rm.c shell/main_rmdir.c shell/main_sleep.c \
     shell/main_stackuse.c shell/main_tty.c shell/main_umask.c \
     shell/main_unmount.c shell/main_blksync.c shell/main_whoami.c \
@@ -103,13 +107,17 @@ libshell_a_SOURCES = shell/cat_file.c shell/cmds.c shell/internal.h \
     shell/main_time.c shell/main_mknod.c \
     shell/main_setenv.c shell/main_getenv.c shell/main_unsetenv.c \
     shell/main_mkrfs.c shell/main_debugrfs.c shell/main_df.c \
-    shell/main_lsof.c \
+    shell/main_lsof.c shell/main_edit.c \
     shell/main_blkstats.c \
     shell/shell-wait-for-input.c
+libshell_a_SOURCES += shell/main_cmdls.c
+libshell_a_SOURCES += shell/main_cmdchown.c
+libshell_a_SOURCES += shell/main_cmdchmod.c
 
 if LIBNETWORKING
 libshell_a_SOURCES += \
-    shell/main_ifconfig.c shell/main_route.c shell/main_netstats.c
+    shell/main_ifconfig.c shell/main_route.c shell/main_netstats.c \
+    shell/main_ping.c
 endif
 endif
 

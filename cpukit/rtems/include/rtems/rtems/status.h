@@ -15,7 +15,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_STATUS_H
@@ -240,6 +240,18 @@ RTEMS_INLINE_ROUTINE bool rtems_are_statuses_equal(
  *  @retval ENOMEM RTEMS_NO_MEMORY
  */
 int rtems_status_code_to_errno(rtems_status_code sc);
+
+/**
+ * @brief Returns a text for a status code.
+ *
+ * The text for each status code is the enumerator constant.
+ *
+ * @param[in] code The status code.
+ *
+ * @retval text The status code text.
+ * @retval "?" The passed status code is invalid.
+ */
+const char *rtems_status_text( rtems_status_code code );
 
 /**@}*/
 

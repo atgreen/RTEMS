@@ -30,7 +30,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -574,6 +574,47 @@ typedef struct {
      * is the stack pointer.
      */
     uint32_t   stack_pointer;
+
+#ifdef RTEMS_SMP
+    /**
+     * @brief On SMP configurations the thread context must contain a boolean
+     * indicator to signal if this context is executing on a processor.
+     *
+     * This field must be updated during a context switch.  The context switch
+     * to the heir must wait until the heir context indicates that it is no
+     * longer executing on a processor.  The context switch must also check if
+     * a thread dispatch is necessary to honor updates of the heir thread for
+     * this processor.  This indicator must be updated using an atomic test and
+     * set operation to ensure that at most one processor uses the heir
+     * context at the same time.
+     *
+     * @code
+     * void _CPU_Context_switch(
+     *   Context_Control *executing,
+     *   Context_Control *heir
+     * )
+     * {
+     *   save( executing );
+     *
+     *   executing->is_executing = false;
+     *   memory_barrier();
+     *
+     *   if ( test_and_set( &heir->is_executing ) ) {
+     *     do {
+     *       Per_CPU_Control *cpu_self = _Per_CPU_Get_snapshot();
+     *
+     *       if ( cpu_self->dispatch_necessary ) {
+     *         heir = _Thread_Get_heir_and_make_it_executing( cpu_self );
+     *       }
+     *     } while ( test_and_set( &heir->is_executing ) );
+     *   }
+     *
+     *   restore( heir );
+     * }
+     * @endcode
+     */
+    volatile bool is_executing;
+#endif
 } Context_Control;
 
 /**
@@ -686,19 +727,24 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
 /**
  * @ingroup CPUInterrupt
  * 
- * This defines the number of entries in the @ref _ISR_Vector_table managed
- * by RTEMS.
+ * This defines the number of entries in the _ISR_Vector_table managed by RTEMS
+ * in case CPU_SIMPLE_VECTORED_INTERRUPTS is defined to TRUE.  It must be a
+ * compile-time constant.
  *
- * Port Specific Information:
- *
- * XXX document implementation including references if appropriate
+ * It must be undefined in case CPU_SIMPLE_VECTORED_INTERRUPTS is defined to
+ * FALSE.
  */
 #define CPU_INTERRUPT_NUMBER_OF_VECTORS      32
 
 /**
  * @ingroup CPUInterrupt
  * 
- * This defines the highest interrupt vector number for this port.
+ * This defines the highest interrupt vector number for this port in case
+ * CPU_SIMPLE_VECTORED_INTERRUPTS is defined to TRUE.  It must be less than
+ * CPU_INTERRUPT_NUMBER_OF_VECTORS.  It may be not a compile-time constant.
+ *
+ * It must be undefined in case CPU_SIMPLE_VECTORED_INTERRUPTS is defined to
+ * FALSE.
  */
 #define CPU_INTERRUPT_MAXIMUM_VECTOR_NUMBER  (CPU_INTERRUPT_NUMBER_OF_VECTORS - 1)
 
@@ -733,7 +779,10 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
 
 /**
  * CPU's worst alignment requirement for data types on a byte boundary.  This
- * alignment does not take into account the requirements for the stack.
+ * alignment does not take into account the requirements for the stack.  It
+ * must be a power of two greater than or equal to two.  The power of two
+ * requirement makes it possible to align values easily using simple bit
+ * operations.
  *
  * Port Specific Information:
  *
@@ -749,12 +798,11 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  * @ref CPU_ALIGNMENT.  If the @ref CPU_ALIGNMENT is strict enough for
  * the heap, then this should be set to @ref CPU_ALIGNMENT.
  *
- * NOTE:  This does not have to be a power of 2 although it should be
- *        a multiple of 2 greater than or equal to 2.  The requirement
- *        to be a multiple of 2 is because the heap uses the least
- *        significant field of the front and back flags to indicate
- *        that a block is in use or free.  So you do not want any odd
- *        length blocks really putting length data in that bit.
+ * NOTE:  It must be a power of two greater than or equal to two.  The
+ *        requirement to be a multiple of two is because the heap uses the
+ *        least significant field of the front and back flags to indicate that
+ *        a block is in use or free.  So you do not want any odd length blocks
+ *        really putting length data in that bit.
  *
  *        On byte oriented architectures, @ref CPU_HEAP_ALIGNMENT normally will
  *        have to be greater or equal to than @ref CPU_ALIGNMENT to ensure that
@@ -932,13 +980,14 @@ uint32_t   _CPU_ISR_Get_level( void );
  *       point thread.  This is typically only used on CPUs where the
  *       FPU may be easily disabled by software such as on the SPARC
  *       where the PSR contains an enable FPU bit.
+ * @param[in] _tls_area The thread-local storage (TLS) area.
  *
  * Port Specific Information:
  *
  * XXX document implementation including references if appropriate
  */
 #define _CPU_Context_Initialize( _the_context, _stack_base, _size, \
-                                 _isr, _entry_point, _is_fp ) \
+                                 _isr, _entry_point, _is_fp, _tls_area ) \
   { \
   }
 
@@ -1022,7 +1071,7 @@ uint32_t   _CPU_ISR_Get_level( void );
  *
  * XXX document implementation including references if appropriate
  */
-#define _CPU_Fatal_halt( _error ) \
+#define _CPU_Fatal_halt( _source, _error ) \
   { \
   }
 
@@ -1058,7 +1107,7 @@ uint32_t   _CPU_ISR_Get_level( void );
 /**
  * This routine sets @a _output to the bit number of the first bit
  * set in @a _value.  @a _value is of CPU dependent type
- * @a Priority_bit_map_Control.  This type may be either 16 or 32 bits
+ * @a Priority_bit_map_Word.  This type may be either 16 or 32 bits
  * wide although only the 16 least significant bits will be used.
  *
  * There are a number of variables in using a "find first bit" type
@@ -1425,7 +1474,105 @@ static inline uint32_t CPU_swap_u32(
 #define CPU_swap_u16( value ) \
   (((value&0xff) << 8) | ((value >> 8)&0xff))
 
+/**
+ * @brief Unsigned integer type for CPU counter values.
+ */
+typedef uint32_t CPU_Counter_ticks;
+
+/**
+ * @brief Returns the current CPU counter value.
+ *
+ * A CPU counter is some free-running counter.  It ticks usually with a
+ * frequency close to the CPU or system bus clock.  The board support package
+ * must ensure that this function works before the RTEMS initialization.
+ * Otherwise invalid profiling statistics will be gathered.
+ *
+ * @return The current CPU counter value.
+ */
+CPU_Counter_ticks _CPU_Counter_read( void );
+
+/**
+ * @brief Returns the difference between the second and first CPU counter
+ * value.
+ *
+ * This operation may be carried out as a modulo operation depending on the
+ * range of the CPU counter device.
+ *
+ * @param[in] second The second CPU counter value.
+ * @param[in] first The first CPU counter value.
+ *
+ * @return Returns second minus first modulo counter period.
+ */
+CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+);
+
+/**
+ * @brief Special register pointing to the per-CPU control of the current
+ * processor.
+ *
+ * This is optional.  Not every CPU port needs this.  It is only an optional
+ * optimization variant.
+ */
+register struct Per_CPU_Control *_CPU_Per_CPU_current asm( "rX" );
+
+/**
+ * @brief Optional method to obtain the per-CPU control of the current processor.
+ *
+ * This is optional.  Not every CPU port needs this.  It is only an optional
+ * optimization variant.  In case this macro is undefined, the default
+ * implementation using the current processor index will be used.
+ */
+#define _CPU_Get_current_per_CPU_control() ( _CPU_Per_CPU_current )
+
 #ifdef RTEMS_SMP
+  /**
+   * @brief Performs CPU specific SMP initialization in the context of the boot
+   * processor.
+   *
+   * This function is invoked on the boot processor during system
+   * initialization.  All interrupt stacks are allocated at this point in case
+   * the CPU port allocates the interrupt stacks.  This function is called
+   * before _CPU_SMP_Start_processor() or _CPU_SMP_Finalize_initialization() is
+   * used.
+   *
+   * @return The count of physically or virtually available processors.
+   * Depending on the configuration the application may use not all processors.
+   */
+  uint32_t _CPU_SMP_Initialize( void );
+
+  /**
+   * @brief Starts a processor specified by its index.
+   *
+   * This function is invoked on the boot processor during system
+   * initialization.
+   *
+   * This function will be called after _CPU_SMP_Initialize().
+   *
+   * @param[in] cpu_index The processor index.
+   *
+   * @retval true Successful operation.
+   * @retval false Unable to start this processor.
+   */
+  bool _CPU_SMP_Start_processor( uint32_t cpu_index );
+
+  /**
+   * @brief Performs final steps of CPU specific SMP initialization in the
+   * context of the boot processor.
+   *
+   * This function is invoked on the boot processor during system
+   * initialization.
+   *
+   * This function will be called after all processors requested by the
+   * application have been started.
+   *
+   * @param[in] cpu_count The minimum value of the count of processors
+   * requested by the application configuration and the count of physically or
+   * virtually available processors.
+   */
+  void _CPU_SMP_Finalize_initialization( uint32_t cpu_count );
+
   /**
    * @brief Returns the index of the current processor.
    *
@@ -1433,8 +1580,7 @@ static inline uint32_t CPU_swap_u32(
    * current processor in the system.  The set of processor indices is the
    * range of integers starting with zero up to the processor count minus one.
    */
-  RTEMS_COMPILER_PURE_ATTRIBUTE static inline uint32_t
-    _CPU_SMP_Get_current_processor( void )
+  static inline uint32_t _CPU_SMP_Get_current_processor( void )
   {
     return 123;
   }
@@ -1476,6 +1622,32 @@ static inline uint32_t CPU_swap_u32(
   static inline void _CPU_SMP_Processor_event_receive( void )
   {
     __asm__ volatile ( "" : : : "memory" );
+  }
+
+  /**
+   * @brief Gets the is executing indicator of the thread context.
+   *
+   * @param[in] context The context.
+   */
+  static inline bool _CPU_Context_Get_is_executing(
+    const Context_Control *context
+  )
+  {
+    return context->is_executing;
+  }
+
+  /**
+   * @brief Sets the is executing indicator of the thread context.
+   *
+   * @param[in] context The context.
+   * @param[in] is_executing The new value for the is executing indicator.
+   */
+  static inline void _CPU_Context_Set_is_executing(
+    Context_Control *context,
+    bool is_executing
+  )
+  {
+    context->is_executing = is_executing;
   }
 #endif
 

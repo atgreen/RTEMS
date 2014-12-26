@@ -14,7 +14,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_WATCHDOG_H
@@ -123,6 +123,13 @@ typedef struct {
    */
   void                           *user_data;
 }   Watchdog_Control;
+
+/**
+ * @brief The watchdog ticks counter.
+ *
+ * With a 1ms watchdog tick, this counter overflows after 50 days since boot.
+ */
+SCORE_EXTERN volatile Watchdog_Interval _Watchdog_Ticks_since_boot;
 
 /**@}*/
 

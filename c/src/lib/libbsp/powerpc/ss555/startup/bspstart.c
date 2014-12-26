@@ -1,16 +1,14 @@
-/*  bspstart.c
- *
- *  This set of routines starts the application.  It includes application,
- *  board, and monitor specific initialization and configuration.
- *  The generic CPU dependent initialization has been performed
- *  before this routine is invoked.
- *
+/*
+ *  This routine does the bulk of the system initialization.
+ */
+
+/*
  *  COPYRIGHT (c) 1989-2007.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  SS555 port sponsored by Defence Research and Development Canada - Suffield
  *  Copyright (C) 2004, Real-Time Systems Inc. (querbach@realtime.bc.ca)
@@ -21,9 +19,9 @@
  *  Copyright (c) 1999, National Research Council of Canada
  */
 
-#warning The interrupt disable mask is now stored in SPRG0, please verify that this is compatible to this BSP (see also bootcard.c).
-
 #include <rtems/bspIo.h>
+#include <rtems/counter.h>
+#include <bsp/bootcard.h>
 #include <rtems/powerpc/powerpc.h>
 
 #include <libcpu/cpuIdent.h>
@@ -78,8 +76,6 @@ void _BSP_Fatal_error(unsigned int v)
  */
 void bsp_start(void)
 {
-  ppc_cpu_id_t myCpu;
-  ppc_cpu_revision_t myCpuRevision;
   register unsigned char* intrStack;
 
   /*
@@ -87,8 +83,8 @@ void bsp_start(void)
    * function stores the result in global variables so that it can be used
    * later.
    */
-  myCpu 	= get_ppc_cpu_type();
-  myCpuRevision = get_ppc_cpu_revision();
+  get_ppc_cpu_type();
+  get_ppc_cpu_revision();
 
   /*
    * Initialize some SPRG registers related to irq handling
@@ -108,6 +104,7 @@ void bsp_start(void)
   bsp_clock_speed     = BSP_CLOCK_HZ;	/* for SCI baud rate generator */
   bsp_timer_least_valid      = 0;
   bsp_timer_average_overhead = 0;
+  rtems_counter_initialize_converter(BSP_CRYSTAL_HZ / 4);
 
   /*
    * Initalize RTEMS IRQ system

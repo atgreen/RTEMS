@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -24,6 +24,8 @@
 
 #include <rtems/score/watchdogimpl.h>
 
+const char rtems_test_name[] = "SPWATCHDOG";
+
 static void test_watchdog_routine( Objects_Id id, void *arg )
 {
   (void) id;
@@ -34,13 +36,20 @@ static void test_watchdog_routine( Objects_Id id, void *arg )
 
 static void test_watchdog_static_init( void )
 {
-  Objects_Id id = 0x12345678;
-  void *arg = (void *) 0xdeadbeef;
-  Watchdog_Control a = WATCHDOG_INITIALIZER( test_watchdog_routine, id, arg );
+  static Watchdog_Control a = WATCHDOG_INITIALIZER(
+    test_watchdog_routine,
+    0x12345678,
+    (void *) 0xdeadbeef
+  );
   Watchdog_Control b;
 
   memset( &b, 0, sizeof( b ) );
-  _Watchdog_Initialize( &b, test_watchdog_routine, id, arg );
+  _Watchdog_Initialize(
+    &b,
+    test_watchdog_routine,
+    0x12345678,
+    (void *) 0xdeadbeef
+  );
 
   rtems_test_assert( memcmp( &a, &b, sizeof( a ) ) == 0 );
 }
@@ -51,16 +60,10 @@ rtems_task Init(
 {
   rtems_time_of_day  time;
   rtems_status_code  status;
-  Chain_Control      empty;
 
-   puts( "\n*** RTEMS WATCHDOG ***" );
-
-  puts( "INIT - report on empty watchdog chain" );
+  TEST_BEGIN();
 
   test_watchdog_static_init();
-
-  _Chain_Initialize_empty( &empty );
-  _Watchdog_Report_chain( "Empty Chain", &empty );
 
   build_time( &time, 12, 31, 1988, 9, 0, 0, 0 );
 

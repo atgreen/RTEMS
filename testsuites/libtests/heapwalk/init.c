@@ -8,7 +8,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -25,6 +25,8 @@
 #include <rtems/score/heapimpl.h>
 #include <rtems/score/sysstate.h>
 #include <rtems/dumpbuf.h>
+
+const char rtems_test_name[] = "HEAPWALK";
 
 #define TEST_HEAP_SIZE 1024
 #define TEST_DEFAULT_PAGESIZE 128
@@ -94,7 +96,7 @@ static void test_system_not_up(void)
 
   rtems_interrupt_disable( level );
   System_state_Codes state = _System_state_Get();
-  _System_state_Set( SYSTEM_STATE_FAILED );
+  _System_state_Set( SYSTEM_STATE_TERMINATED );
   test_call_heap_walk( true );
   _System_state_Set( state );
   rtems_interrupt_enable( level );
@@ -316,7 +318,7 @@ rtems_task Init(
   rtems_task_argument argument
 )
 {
-  puts( "\n\n*** HEAP WALK TEST ***" );
+  TEST_BEGIN();
 
   test_system_not_up();
   test_check_control();
@@ -326,6 +328,6 @@ rtems_task Init(
   test_check_free_block();
   test_output();
 
-  puts( "*** END OF HEAP WALK TEST ***" );
+  TEST_END();
   rtems_test_exit(0);
 }

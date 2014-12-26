@@ -13,11 +13,13 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #define CONFIGURE_INIT
 #include "system.h"
+
+const char rtems_test_name[] = "SPQRESLIB";
 
 rtems_id   Task_id;
 rtems_task_priority Priority;
@@ -48,7 +50,7 @@ rtems_task Init(
   params3.P = -1;
   params4.P = SCHEDULER_EDF_PRIO_MSB + 1;
 
-  puts( "\n\n*** TEST QRES LIBRARY ***" );
+  TEST_BEGIN();
 
 
   status = rtems_task_create(

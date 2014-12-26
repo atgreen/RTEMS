@@ -4,10 +4,10 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
-#define FATAL_ERROR_TEST_NAME            "FATAL 22"
+#define FATAL_ERROR_TEST_NAME            "22"
 #define FATAL_ERROR_DESCRIPTION          "libio init out of memory"
 #define FATAL_ERROR_EXPECTED_SOURCE      INTERNAL_ERROR_RTEMS_API
 #define FATAL_ERROR_EXPECTED_IS_INTERNAL FALSE

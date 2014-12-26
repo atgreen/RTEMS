@@ -1,10 +1,10 @@
 /*
- *  COPYRIGHT (c) 1989-2012.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,56 +17,54 @@
 #include "tmacros.h"
 #include "pmacros.h"
 
-/* forward declarations to avoid warnings */
-void *POSIX_Init(void *argument);
+const char rtems_test_name[] = "PSXKEY 2";
 
-void *POSIX_Init(
-  void *ignored
-)
+/* forward declarations to avoid warnings */
+rtems_task Init(rtems_task_argument ignored);
+
+rtems_task Init(rtems_task_argument ignored)
 {
-  pthread_key_t           key;
+  pthread_key_t           key1;
+  pthread_key_t           key2;
   int                     eno;
   bool                    ok;
-  uintptr_t               to_alloc;
-  void                   *alloced;
   rtems_resource_snapshot snapshot;
   void                   *greedy;
+  void                   *value;
 
-  puts( "\n\n*** TEST KEY 02 ***" );
+  TEST_BEGIN();
 
-  greedy = rtems_workspace_greedy_allocate_all_except_largest( &to_alloc );
+  greedy = rtems_workspace_greedy_allocate( NULL, 0 );
   rtems_resource_snapshot_take( &snapshot );
 
-  puts( "Init - pthread_key_create - ENOMEM" );
-  while ( to_alloc > 8 ) {
-    ok = rtems_workspace_allocate( to_alloc, &alloced );
-    rtems_test_assert( ok );
-
-    eno = pthread_key_create( &key, NULL );
-
-    rtems_workspace_free( alloced );
-
-    if ( eno == 0 )
-      break;
-
-    rtems_test_assert( eno == ENOMEM );
-
-    /*
-     * Verify heap is still in same shape if we couldn't allocate a task
-     */
-    ok = rtems_resource_snapshot_check( &snapshot );
-    rtems_test_assert( ok );
-
-    to_alloc -= 8;
-  }
-
+  puts( "Init - pthread_key_create - OK" );
+  eno = pthread_key_create( &key1, NULL );
   rtems_test_assert( eno == 0 );
 
-  /*
-   * Verify heap is still in same shape after we free the task
-   */
+  eno = pthread_setspecific( key1, (void *) 1 );
+  rtems_test_assert( eno == 0 );
+
+  value = pthread_getspecific( key1 );
+  rtems_test_assert( value == (void *) 1 );
+
+  eno = pthread_setspecific( key1, NULL );
+  rtems_test_assert( eno == 0 );
+
+  value = pthread_getspecific( key1 );
+  rtems_test_assert( value == NULL );
+
+  eno = pthread_setspecific( key1, NULL );
+  rtems_test_assert( eno == 0 );
+
+  value = pthread_getspecific( key1 );
+  rtems_test_assert( value == NULL );
+
+  puts( "Init - pthread_key_create - EAGAIN" );
+  eno = pthread_key_create( &key2, NULL );
+  rtems_test_assert( eno == EAGAIN );
+
   puts( "Init - pthread_key_delete - OK" );
-  eno = pthread_key_delete( key );
+  eno = pthread_key_delete( key1 );
   rtems_test_assert( eno == 0 );
 
   puts( "Init - verify workspace has same memory" );
@@ -75,7 +73,7 @@ void *POSIX_Init(
 
   rtems_workspace_greedy_free( greedy );
 
-  puts( "*** END OF TEST KEY 02 ***" );
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -84,10 +82,12 @@ void *POSIX_Init(
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_DOES_NOT_NEED_CLOCK_DRIVER
 
-#define CONFIGURE_MAXIMUM_POSIX_THREADS  1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
+#define CONFIGURE_MAXIMUM_TASKS          1
 #define CONFIGURE_MAXIMUM_POSIX_KEYS     1
 
-#define CONFIGURE_POSIX_INIT_THREAD_TABLE
+#define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT
 #include <rtems/confdefs.h>

@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -38,12 +38,10 @@ rtems_status_code rtems_timer_create(
   if ( !id )
     return RTEMS_INVALID_ADDRESS;
 
-  _Thread_Disable_dispatch();         /* to prevent deletion */
-
   the_timer = _Timer_Allocate();
 
   if ( !the_timer ) {
-    _Thread_Enable_dispatch();
+    _Objects_Allocator_unlock();
     return RTEMS_TOO_MANY;
   }
 
@@ -57,6 +55,6 @@ rtems_status_code rtems_timer_create(
   );
 
   *id = the_timer->Object.id;
-  _Thread_Enable_dispatch();
+  _Objects_Allocator_unlock();
   return RTEMS_SUCCESSFUL;
 }

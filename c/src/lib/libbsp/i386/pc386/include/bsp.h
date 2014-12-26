@@ -40,19 +40,18 @@
 | *
 | *  The license and distribution terms for this file may be
 | *  found in the file LICENSE in this distribution or at
-| *  http://www.rtems.com/license/LICENSE.
+| *  http://www.rtems.org/license/LICENSE.
 | **************************************************************************
 +--------------------------------------------------------------------------*/
 
 #ifndef _BSP_H
 #define _BSP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef ASM
 
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
+#include <bsp/tblsizes.h>
 
 #include <rtems.h>
 #include <rtems/iosupp.h>
@@ -60,6 +59,10 @@ extern "C" {
 #include <rtems/clockdrv.h>
 #include <libcpu/cpu.h>
 #include <rtems/bspIo.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @degroup pc386_i386 PC386 Support
@@ -113,12 +116,6 @@ extern int rtems_3c509_driver_attach(struct rtems_bsdnet_ifconfig *config);
 +--------------------------------------------------------------------------*/
 
 /*-------------------------------------------------------------------------+
-| Video (console) related constants.
-+--------------------------------------------------------------------------*/
-
-#include <crt.h>
-
-/*-------------------------------------------------------------------------+
 | Constants relating to the 8254 (or 8253) programmable interval timers.
 +--------------------------------------------------------------------------*/
 #define IO_TIMER1      0x40
@@ -162,22 +159,6 @@ extern int rtems_3c509_driver_attach(struct rtems_bsdnet_ifconfig *config);
 #define    BSP_CONSOLE_COM2           2
 
 /*-------------------------------------------------------------------------+
-| Macros
-+--------------------------------------------------------------------------*/
-/* does anyone need this? if so, report it so we can rename this macro */
-#if 0
-/*-------------------------------------------------------------------------+
-| Simple spin delay in microsecond units for device drivers.
-| This is very dependent on the clock speed of the target.
-+--------------------------------------------------------------------------*/
-#define rtems_bsp_delay(_microseconds) \
-{ \
-  uint32_t         _cnt = _microseconds; \
-  __asm__ volatile ("0: nop; mov %0,%0; loop 0b" : "=c"(_cnt) : "0"(_cnt)); \
-}
-#endif
-
-/*-------------------------------------------------------------------------+
 | Convert microseconds to ticks and ticks to microseconds.
 +--------------------------------------------------------------------------*/
 #define US_TO_TICK(us) (((us)*105+44)/88)
@@ -186,11 +167,8 @@ extern int rtems_3c509_driver_attach(struct rtems_bsdnet_ifconfig *config);
 /*-------------------------------------------------------------------------+
 | External Variables.
 +--------------------------------------------------------------------------*/
-#define IDT_SIZE 256
-#define GDT_SIZE 3
-
 extern interrupt_gate_descriptor Interrupt_descriptor_table[IDT_SIZE];
-extern segment_descriptors Global_descriptor_table   [GDT_SIZE];
+extern segment_descriptors _Global_descriptor_table   [GDT_SIZE];
 
 /*-------------------------------------------------------------------------+
 | Function Prototypes.
@@ -199,12 +177,35 @@ void          _IBMPC_initVideo(void);    /* from 'outch.c'  */
 void          _IBMPC_outch    (char);    /* from 'outch.c'  */
 char          _IBMPC_inch     (void);    /* from 'inch.c'   */
 char          _IBMPC_inch_sleep (void);  /* from 'inch.c'   */
+int           BSP_wait_polled_input(void); /* from 'inch.c' */
+int           rtems_kbpoll( void );      /* from 'inch.c' */
+int           getch( void );             /* from 'inch.c' */
+void           add_to_queue( unsigned short b ); /* from 'inch.c' */
 
 void Wait_X_ms(unsigned int timeToWait); /* from 'timer.c'  */
+void Calibrate_loop_1ms(void);           /* from 'timer.c'  */
+
+void rtems_irq_mngt_init(void);          /* from 'irq_init.c' */
+
+void bsp_size_memory(void);              /* from 'bspstart.c' */
 
 void Clock_driver_install_handler(void); /* from 'ckinit.c'  */
 void Clock_driver_support_initialize_hardware(void); /* from 'ckinit.c'  */
+
+void kbd_reset_setup(char *str, int *ints);   /* from 'pc_keyb.c' */
 size_t read_aux(char * buffer, size_t count); /* from 'ps2_mouse.c'  */
+
+bool bsp_get_serial_mouse_device(             /* from 'serial_mouse.c' */
+  const char **name,
+  const char **type
+);
+
+void register_leds(                           /* from 'keyboard.c' */
+  int console,
+  unsigned int led,
+  unsigned int *addr,
+  unsigned int mask
+);
 
 /* Definitions for BSPConsolePort */
 #define BSP_CONSOLE_PORT_CONSOLE (-1)
@@ -228,15 +229,30 @@ void bsp_ide_cmdline_init(void);
 #define RTEMS_BSP_HAS_IDE_DRIVER
 
 /* GDB stub stuff */
+void init_remote_gdb( void );
 void i386_stub_glue_init(int uart);
 void i386_stub_glue_init_breakin(void);
-void set_debug_traps(void);
 void breakpoint(void);
 
 #define BSP_MAXIMUM_DEVICES 6
 
+/*
+ * Debug helper methods
+ */
+typedef __FILE FILE;
+uint32_t BSP_irq_count_dump(FILE *f);
+
+/*
+ * Prototypes just called from .S files. This lets the .S file include
+ * bsp.h just to establish the dependency.
+ */
+void raw_idt_notify(void);
+void C_dispatch_isr(int vector);
+
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* !ASM */
 
 #endif /* _BSP_H */

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -15,6 +15,8 @@
 
 #include <sys/types.h>
 #include <rtems/score/timespec.h>
+
+const char rtems_test_name[] = "SP 58";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -64,12 +66,12 @@ rtems_task Init(
   rtems_task_argument ignored
 )
 {
-  puts( "\n\n*** TEST 58 ***" );
+  TEST_BEGIN();
 
   timespec_divide_by_zero();
   timespec_greater_than_lhs_sec_less();
 
-  puts( "*** END OF TEST 58 ***" );
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -79,6 +81,8 @@ rtems_task Init(
 #define CONFIGURE_APPLICATION_DOES_NOT_NEED_CLOCK_DRIVER
 
 #define CONFIGURE_MAXIMUM_TASKS  1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

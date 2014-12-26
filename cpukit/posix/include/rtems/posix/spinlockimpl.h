@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_POSIX_SPINLOCKIMPL_H
@@ -104,25 +104,6 @@ RTEMS_INLINE_ROUTINE POSIX_Spinlock_Control *_POSIX_Spinlock_Get (
       (Objects_Id) *spinlock,
       location
   );
-}
-
-/**
- * @brief Check if a spinlock control block is NULL.
- *
- * This function returns @c TRUE if the_spinlock is @c NULL and @c FALSE
- * otherwise.
- * 
- * @param[in] the_spinlock is the pointer to the spinlock control block
- * to be checked.
- * 
- * @retval TRUE The spinlock control block is @c NULL.
- * @retval FALSE The spinlock control block is not @c NULL.
- */
-RTEMS_INLINE_ROUTINE bool _POSIX_Spinlock_Is_null (
-  POSIX_Spinlock_Control *the_spinlock
-)
-{
-  return ( the_spinlock == NULL );
 }
 
 #ifdef __cplusplus

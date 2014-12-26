@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_POSIX_PTHREADIMPL_H
@@ -23,7 +23,8 @@
 #include <rtems/posix/config.h>
 #include <rtems/posix/threadsup.h>
 #include <rtems/score/objectimpl.h>
-#include <rtems/score/thread.h>
+#include <rtems/score/threadimpl.h>
+#include <rtems/score/assert.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,7 +49,7 @@ POSIX_EXTERN Objects_Information  _POSIX_Threads_Information;
 /**
  * This variable contains the default POSIX Thread attributes.
  */
-extern const pthread_attr_t _POSIX_Threads_Default_attributes;
+extern pthread_attr_t _POSIX_Threads_Default_attributes;
 
 /**
  * When the user configures a set of POSIX API initialization threads,
@@ -67,14 +68,21 @@ extern void (*_POSIX_Threads_Initialize_user_threads_p)(void);
 void _POSIX_Threads_Manager_initialization(void);
 
 /**
- * @brief Allocate POSIX thread control block.
+ * @brief Copy POSIX Thread attribute structure.
  *
- * This function allocates a pthread control block from
- * the inactive chain of free pthread control blocks.
+ * This routine copies the attr2 thread attribute structure
+ * to the attr1 Thread Attribute structure.
  *
- * @return This method returns a newly allocated thread.
+ * @param[in] dst_attr is a pointer to the thread attribute
+ * structure to copy into.
+ *
+ * @param[out] src_attr is a pointer to the thread attribute
+ * structure to copy from.
  */
-RTEMS_INLINE_ROUTINE Thread_Control *_POSIX_Threads_Allocate( void );
+RTEMS_INLINE_ROUTINE void _POSIX_Threads_Copy_attributes(
+  pthread_attr_t        *dst_attr,
+  const pthread_attr_t  *src_attr
+);
 
 /**
  * @brief Free POSIX control block.
@@ -89,40 +97,12 @@ RTEMS_INLINE_ROUTINE void _POSIX_Threads_Free(
 );
 
 /**
- * @brief Map POSIX thread IDs to control blocks.
+ * @brief POSIX threads initialize user threads body.
  *
- * This function maps pthread IDs to pthread control blocks.
- * If ID corresponds to a local pthread, then it returns
- * the_pthread control pointer which maps to ID and location
- * is set to OBJECTS_LOCAL.  if the pthread ID is global and
- * resides on a remote node, then location is set to OBJECTS_REMOTE,
- * and the_pthread is undefined.  Otherwise, location is set
- * to OBJECTS_ERROR and the_pthread is undefined.
- *
- * @param[in] id is the id to lookup
- * @param[in] location points to the returned location value
- *
- * @return This methods returns a pointer to the corresponding Thread_Control.
+ * This routine initializes the thread attributes structure.
  */
-RTEMS_INLINE_ROUTINE Thread_Control *_POSIX_Threads_Get(
-  pthread_t          id,
-  Objects_Locations *location
-);
-
-/**
- * @brief Check if a POSIX thread control block is NULL.
- *
- * This function returns @c TRUE if the_pthread is @c NULL and @c FALSE
- * otherwise.
- *
- * @param[in] the_pthread is a pointer to the POSIX thread control block
- * to check.
- *
- * @retval TRUE The thread control block is @c NULL.
- * @retval FALSE The thread control block is not @c NULL.
- */
-RTEMS_INLINE_ROUTINE bool _POSIX_Threads_Is_null(
-  Thread_Control *the_pthread
+RTEMS_INLINE_ROUTINE void _POSIX_Threads_Initialize_attributes(
+  pthread_attr_t  *attr
 );
 
 /**
@@ -177,12 +157,39 @@ int _POSIX_Thread_Translate_sched_param(
 );
 
 /*
- *  _POSIX_Threads_Allocate
+ * rtems_pthread_attribute_compare
+ */
+int rtems_pthread_attribute_compare(
+  const pthread_attr_t *attr1,
+  const pthread_attr_t *attr2
+);
+
+RTEMS_INLINE_ROUTINE Thread_Control *_POSIX_Threads_Allocate(void)
+{
+  _Objects_Allocator_lock();
+
+  _Thread_Kill_zombies();
+
+  return (Thread_Control *)
+    _Objects_Allocate_unprotected( &_POSIX_Threads_Information );
+}
+
+/*
+ * _POSIX_Threads_Copy_attributes
  */
 
-RTEMS_INLINE_ROUTINE Thread_Control *_POSIX_Threads_Allocate( void )
+RTEMS_INLINE_ROUTINE void _POSIX_Threads_Copy_attributes(
+  pthread_attr_t        *dst_attr,
+  const pthread_attr_t  *src_attr
+)
 {
-  return (Thread_Control *) _Objects_Allocate( &_POSIX_Threads_Information );
+  *dst_attr = *src_attr;
+#if defined(RTEMS_SMP) && defined(__RTEMS_HAVE_SYS_CPUSET_H__)
+  _Assert(
+    dst_attr->affinitysetsize == sizeof(dst_attr->affinitysetpreallocated)
+  );
+  dst_attr->affinityset = &dst_attr->affinitysetpreallocated;
+#endif
 }
 
 /*
@@ -197,16 +204,17 @@ RTEMS_INLINE_ROUTINE void _POSIX_Threads_Free (
 }
 
 /*
- *  _POSIX_Threads_Get
+ * _POSIX_Threads_Initialize_attributes
  */
 
-RTEMS_INLINE_ROUTINE Thread_Control *_POSIX_Threads_Get (
-  pthread_t          id,
-  Objects_Locations *location
+RTEMS_INLINE_ROUTINE void _POSIX_Threads_Initialize_attributes(
+  pthread_attr_t  *attr
 )
 {
-  return (Thread_Control *)
-    _Objects_Get( &_POSIX_Threads_Information, (Objects_Id)id, location );
+  _POSIX_Threads_Copy_attributes(
+    attr,
+    &_POSIX_Threads_Default_attributes
+  );
 }
 
 /*

@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -24,15 +24,11 @@
 
 #include "malloc_p.h"
 
-#include <rtems/score/sysstate.h>
-
 void *malloc(
   size_t  size
 )
 {
   void        *return_this;
-
-  MSBUMP(malloc_calls, 1);
 
   /*
    *  If some free's have been deferred, then do them now.
@@ -48,8 +44,7 @@ void *malloc(
   /*
    *  Do not attempt to allocate memory if not in correct system state.
    */
-  if ( _System_state_Is_up(_System_state_Get()) &&
-       !malloc_is_system_state_OK() )
+  if ( !malloc_is_system_state_OK() )
     return NULL;
 
   /*
@@ -73,12 +68,6 @@ void *malloc(
    */
   if ( rtems_malloc_dirty_helper )
     (*rtems_malloc_dirty_helper)( return_this, size );
-
-  /*
-   *  If configured, update the statistics
-   */
-  if ( rtems_malloc_statistics_helpers )
-    (*rtems_malloc_statistics_helpers->at_malloc)(return_this);
 
   return return_this;
 }

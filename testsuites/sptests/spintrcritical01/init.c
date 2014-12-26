@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -22,31 +22,31 @@ rtems_timer_service_routine test_release_from_isr(rtems_id  timer, void *arg);
 Thread_blocking_operation_States getState(void);
 
 #if defined(FIFO_NO_TIMEOUT)
-  #define TEST_NAME                "01"
+  #define TEST_NAME                "1"
   #define TEST_STRING              "FIFO/Without Timeout"
   #define SEMAPHORE_OBTAIN_TIMEOUT 0
   #define SEMAPHORE_ATTRIBUTES     RTEMS_DEFAULT_ATTRIBUTES
 
 #elif defined(FIFO_WITH_TIMEOUT)
-  #define TEST_NAME                "02"
+  #define TEST_NAME                "2"
   #define TEST_STRING              "FIFO/With Timeout"
   #define SEMAPHORE_OBTAIN_TIMEOUT 10
   #define SEMAPHORE_ATTRIBUTES     RTEMS_DEFAULT_ATTRIBUTES
 
 #elif defined(PRIORITY_NO_TIMEOUT)
-  #define TEST_NAME                "03"
+  #define TEST_NAME                "3"
   #define TEST_STRING              "Priority/Without Timeout"
   #define SEMAPHORE_OBTAIN_TIMEOUT 0
   #define SEMAPHORE_ATTRIBUTES     RTEMS_PRIORITY
 
 #elif defined(PRIORITY_WITH_TIMEOUT)
-  #define TEST_NAME                "04"
+  #define TEST_NAME                "4"
   #define TEST_STRING              "Priority/With Timeout"
   #define SEMAPHORE_OBTAIN_TIMEOUT 10
   #define SEMAPHORE_ATTRIBUTES     RTEMS_PRIORITY
 
 #elif defined(PRIORITY_NO_TIMEOUT_REVERSE)
-  #define TEST_NAME                "05"
+  #define TEST_NAME                "5"
   #define TEST_STRING              "Priority/Without Timeout (Reverse)"
   #define SEMAPHORE_OBTAIN_TIMEOUT 0
   #define SEMAPHORE_ATTRIBUTES     RTEMS_PRIORITY
@@ -56,9 +56,10 @@ Thread_blocking_operation_States getState(void);
   #error "Test Mode not defined"
 #endif
 
-rtems_id Main_task;
+const char rtems_test_name[] = "SPINTRCRITICAL " TEST_NAME;
+
 rtems_id Semaphore;
-volatile bool case_hit;
+volatile bool case_hit = false;
 
 Thread_blocking_operation_States getState(void)
 {
@@ -92,6 +93,21 @@ rtems_timer_service_routine test_release_from_isr(
 }
 
 
+static bool test_body( void *arg )
+{
+  rtems_status_code status;
+
+  (void) arg;
+
+  status = rtems_semaphore_obtain(
+    Semaphore,
+    RTEMS_DEFAULT_OPTIONS,
+    SEMAPHORE_OBTAIN_TIMEOUT
+  );
+  directive_failed( status, "rtems_semaphore_obtain" );
+
+  return case_hit;
+}
 
 rtems_task Init(
   rtems_task_argument ignored
@@ -99,39 +115,24 @@ rtems_task Init(
 {
   rtems_status_code     status;
 
-  puts( "\n\n*** TEST INTERRUPT CRITICAL SECTION " TEST_NAME " ***" );
+  TEST_BEGIN();
 
   puts( "Init - Trying to generate semaphore release from ISR while blocking" );
   puts( "Init - Variation is: " TEST_STRING );
   status = rtems_semaphore_create(
     rtems_build_name( 'S', 'M', '1', ' ' ),
-    1,
+    0,
     SEMAPHORE_ATTRIBUTES,
     RTEMS_NO_PRIORITY,
     &Semaphore
   );
   directive_failed( status, "rtems_semaphore_create of SM1" );
 
-  Main_task = rtems_task_self();
-
-  interrupt_critical_section_test_support_initialize( test_release_from_isr );
-
-  case_hit = false;
-
-  while (!case_hit) {
-    interrupt_critical_section_test_support_delay();
-
-    status = rtems_semaphore_obtain(
-      Semaphore,
-      RTEMS_DEFAULT_OPTIONS,
-      SEMAPHORE_OBTAIN_TIMEOUT
-    );
-    directive_failed( status, "rtems_semaphore_obtain" );
-  }
+  interrupt_critical_section_test( test_body, NULL, test_release_from_isr );
 
   if ( case_hit ) {
     puts( "Init - Case hit" );
-    puts( "*** END OF TEST INTERRUPT CRITICAL SECTION " TEST_NAME " ***" );
+    TEST_END();
   } else
     puts( "Init - Case not hit - ran too long" );
 
@@ -146,11 +147,14 @@ rtems_task Init(
 #define CONFIGURE_MAXIMUM_TASKS       1
 #define CONFIGURE_MAXIMUM_TIMERS      1
 #define CONFIGURE_MAXIMUM_SEMAPHORES  1
+#define CONFIGURE_MAXIMUM_USER_EXTENSIONS 1
 #define CONFIGURE_MICROSECONDS_PER_TICK  1000
 #if defined(PRIORITY_NO_TIMEOUT_REVERSE)
   #define CONFIGURE_INIT_TASK_PRIORITY   250
 #endif
 #define CONFIGURE_MICROSECONDS_PER_TICK  1000
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

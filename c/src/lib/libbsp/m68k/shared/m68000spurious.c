@@ -1,15 +1,17 @@
 /*
- *  C3X Spurious Trap Handler
+ *  M68000 Spurious Trap Handler
  *
  *  This is just enough of a trap handler to let us know what
  *  the likely source of the trap was.
- *
- *  COPYRIGHT (c) 1989-1999.
+ */
+
+/*
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
@@ -20,20 +22,15 @@
  *
  *  Print a message on the debug console and then die
  */
-
-void bsp_spurious_handler_assistant(
-  rtems_vector_number /*,
-  CPU_Interrupt_frame * */
-);
-
 rtems_isr bsp_spurious_handler(
-   rtems_vector_number  vector /*,
-   CPU_Interrupt_frame *isf */
+   rtems_vector_number  vector
 )
 {
+#if 0
+  printk( "Unexpected interrupt (0x%x)\n", vector );
+#else
   char *s;
 
-  printk( "Unexpected interrupt (0x%x)\n", vector );
 /*
   printk( "It looks like we got the interrupt at 0x%x\n", isf->interrupted );
 */
@@ -41,9 +38,7 @@ rtems_isr bsp_spurious_handler(
   /*
    *  Can we print a name?
    */
-
   s = 0;
-#if 0
   if ( vector <= 0x1f ) {
     switch ( vector ) {
       case 1:     s = "INT0";     break;

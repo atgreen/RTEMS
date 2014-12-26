@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef LIBBSP_ARM_SHARED_ARM_A9MPCORE_REGS_H
@@ -46,7 +46,22 @@ typedef struct {
 #define A9MPCORE_SCU_CFG_TAG_RAM_SIZE_SET(reg, val) BSP_FLD32SET(reg, val, 8, 15)
   uint32_t pwrst;
   uint32_t invss;
-  uint32_t reserved_10[12];
+#define A9MPCORE_SCU_INVSS_CPU0(ways) BSP_FLD32(val, 0, 3)
+#define A9MPCORE_SCU_INVSS_CPU0_GET(reg) /* Write only register */
+#define A9MPCORE_SCU_INVSS_CPU0_SET(reg, val) BSP_FLD32SET(reg, val, 0, 3)
+#define A9MPCORE_SCU_INVSS_CPU1(ways) BSP_FLD32(val, 4, 7)
+#define A9MPCORE_SCU_INVSS_CPU1_GET(reg) /* Write only register */
+#define A9MPCORE_SCU_INVSS_CPU1_SET(reg, val) BSP_FLD32SET(reg, val, 4, 7)
+#define A9MPCORE_SCU_INVSS_CPU2(ways) BSP_FLD32(val, 8, 11)
+#define A9MPCORE_SCU_INVSS_CPU2_GET(reg) /* Write only register */
+#define A9MPCORE_SCU_INVSS_CPU2_SET(reg, val) BSP_FLD32SET(reg, val, 8, 11)
+#define A9MPCORE_SCU_INVSS_CPU3(ways) BSP_FLD32(val, 12, 15)
+#define A9MPCORE_SCU_INVSS_CPU3_GET(reg) /* Write only register */
+#define A9MPCORE_SCU_INVSS_CPU3_SET(reg, val) BSP_FLD32SET(reg, val, 12, 15)
+  uint32_t reserved_09[8];
+  uint32_t diagn_ctrl;
+#define A9MPCORE_SCU_DIAGN_CTRL_MIGRATORY_BIT_DISABLE BSP_BIT32(0)
+  uint32_t reserved_10[3];
   uint32_t fltstart;
   uint32_t fltend;
   uint32_t reserved_48[2];
@@ -58,12 +73,20 @@ typedef struct {
 } a9mpcore_gic;
 
 typedef struct {
-  uint32_t cntr;
-  uint32_t reserved_04;
+  uint32_t cntrlower;
+  uint32_t cntrupper;
+#define A9MPCORE_GT_CTRL_PRESCALER(val) BSP_FLD32(val, 8, 15)
+#define A9MPCORE_GT_CTRL_PRESCALER_GET(reg) BSP_FLD32GET(reg, 8, 15)
+#define A9MPCORE_GT_CTRL_PRESCALER_SET(reg, val) BSP_FLD32SET(reg, val, 8, 15)
+#define A9MPCORE_GT_CTRL_AUTOINC_EN BSP_BIT32(3)
+#define A9MPCORE_GT_CTRL_IRQ_EN BSP_BIT32(2)
+#define A9MPCORE_GT_CTRL_COMP_EN BSP_BIT32(1)
+#define A9MPCORE_GT_CTRL_TMR_EN BSP_BIT32(0)
   uint32_t ctrl;
+#define A9MPCORE_GT_IRQST_EFLG BSP_BIT32(0)
   uint32_t irqst;
-  uint32_t cmpval;
-  uint32_t reserved_14;
+  uint32_t cmpvallower;
+  uint32_t cmpvalupper;
   uint32_t autoinc;
 } a9mpcore_gt;
 

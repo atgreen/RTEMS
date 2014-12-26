@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -19,6 +19,10 @@
 #include <bsp.h>
 #include <bsp/bootcard.h>
 
+#include <rtems/test.h>
+
+const char rtems_test_name[] = "SPINTERNALERROR 1";
+
 #define FATAL_SOURCE 0xdeadbeef
 
 #define FATAL_IS_INTERNAL false
@@ -27,7 +31,7 @@
 
 void boot_card( const char *cmdline )
 {
-  _Internal_error_Occurred( FATAL_SOURCE, FATAL_IS_INTERNAL, FATAL_ERROR );
+  _Terminate( FATAL_SOURCE, FATAL_IS_INTERNAL, FATAL_ERROR );
 }
 
 static void fatal_extension(
@@ -36,14 +40,14 @@ static void fatal_extension(
   Internal_errors_t error
 )
 {
-  printk( "\n\n*** TEST SPINTERNALERROR 1 ***\n" );
+  rtems_test_begink();
 
   if (
     source == FATAL_SOURCE
       && is_internal == FATAL_IS_INTERNAL
       && error == FATAL_ERROR
   ) {
-    printk( "*** END OF TEST SPINTERNALERROR 1 ***\n" );
+    rtems_test_endk();
   }
 }
 
@@ -56,7 +60,9 @@ static void *idle_body(uintptr_t ignored)
   return NULL;
 }
 
-#define CONFIGURE_INITIAL_EXTENSIONS { .fatal = fatal_extension }
+#define CONFIGURE_INITIAL_EXTENSIONS \
+  { .fatal = fatal_extension }, \
+  RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_APPLICATION_DOES_NOT_NEED_CLOCK_DRIVER
 
@@ -64,11 +70,11 @@ static void *idle_body(uintptr_t ignored)
 
 #define CONFIGURE_DISABLE_NEWLIB_REENTRANCY
 
-#define CONFIGURE_SCHEDULER_ENTRY_POINTS NULL
-
 #define CONFIGURE_SCHEDULER_USER
 
-#define CONFIGURE_MEMORY_FOR_SCHEDULER 0
+#define CONFIGURE_SCHEDULER_CONTEXT
+
+#define CONFIGURE_SCHEDULER_CONTROLS { }
 
 #define CONFIGURE_MEMORY_PER_TASK_FOR_SCHEDULER 0
 

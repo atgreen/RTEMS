@@ -8,7 +8,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,7 +42,7 @@ rtems_task Task_1_through_5(
     bool malloc_walk_ok;
 
     if ( passes++ > NUM_PASSES ) {
-	puts("*** END OF MALLOC TEST ***");
+	TEST_END();
         rtems_test_exit(0);
     }
 
@@ -59,7 +59,6 @@ rtems_task Task_1_through_5(
     }
     printf("mallocing %d bytes\n",mem_amt);
     memset( mem_ptr, mem_amt, mem_amt );
-    malloc_report_statistics();
     malloc_walk_ok = malloc_walk( 1, false );
     rtems_test_assert( malloc_walk_ok );
     status = rtems_task_wake_after(

@@ -8,7 +8,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  * Till Straumann <strauman@slac.stanford.edu>, 2003/9:
  *  - added handling of basic escape sequences (cursor movement
@@ -239,7 +239,7 @@ int ro,co;
 	return rval;
 }
 
-void
+static void
 clear_screen(void)
 {
     int i,j;
@@ -308,6 +308,10 @@ _IBMPC_initVideo(void)
 } /* _IBMPC_initVideo */
 
 /* for old DOS compatibility n-curses type of applications */
+void gotoxy( int x, int y );
+int whereX( void );
+int whereY( void );
+
 void gotoxy( int x, int y )
 {
   gotorc(y,x);

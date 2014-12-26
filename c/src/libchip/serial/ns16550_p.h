@@ -22,7 +22,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _NS16550_P_H_
@@ -130,82 +130,6 @@ extern "C" {
 #define SP_LSR_THOLD  0x20
 #define SP_LSR_TX   0x40
 #define SP_LSR_EFIFO  0x80
-
-typedef struct {
-  uint8_t ucModemCtrl;
-  int transmitFifoChars;
-} ns16550_context;
-
-/*
- * Driver functions
- */
-
-void ns16550_init(int minor);
-
-int ns16550_open(
-  int major,
-  int minor,
-  void  * arg
-);
-
-int ns16550_close(
-  int major,
-  int minor,
-  void  * arg
-);
-
-void ns16550_write_polled(
-  int   minor,
-  char  cChar
-);
-
-NS16550_STATIC int ns16550_assert_RTS(
-  int minor
-);
-
-NS16550_STATIC int ns16550_negate_RTS(
-  int minor
-);
-
-NS16550_STATIC int ns16550_assert_DTR(
-  int minor
-);
-
-NS16550_STATIC int ns16550_negate_DTR(
-  int minor
-);
-
-NS16550_STATIC void ns16550_initialize_interrupts(int minor);
-
-NS16550_STATIC void ns16550_cleanup_interrupts(int minor);
-
-ssize_t ns16550_write_support_int(
-  int   minor,
-  const char *buf,
-  size_t len
-);
-
-ssize_t ns16550_write_support_polled(
-  int   minor,
-  const char *buf,
-  size_t len
-  );
-
-int ns16550_inbyte_nonblocking_polled(
-  int minor
-);
-
-NS16550_STATIC void ns16550_enable_interrupts(
-  console_tbl *c,
-  int         mask
-);
-
-int ns16550_set_attributes(
-  int                   minor,
-  const struct termios *t
-);
-
-void ns16550_isr(void *arg);
 
 #ifdef __cplusplus
 }

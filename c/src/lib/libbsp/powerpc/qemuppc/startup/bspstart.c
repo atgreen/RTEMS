@@ -9,11 +9,13 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <string.h>
 #include <fcntl.h>
+
+#include <rtems/counter.h>
 
 #include <libcpu/bat.h>
 #include <libcpu/spr.h>
@@ -79,6 +81,7 @@ void bsp_start( void )
   BSP_bus_frequency        = 20;
   bsp_time_base_frequency  = 20000000;
   bsp_clicks_per_usec      = BSP_bus_frequency;
+  rtems_counter_initialize_converter(bsp_time_base_frequency);
 
   /*
    * Initialize the interrupt related settings.
@@ -91,11 +94,7 @@ void bsp_start( void )
   /*
    * Initialize default raw exception handlers.
    */
-  ppc_exc_initialize(
-    PPC_INTERRUPT_DISABLE_MASK_DEFAULT,
-    intrStackStart,
-    intrStackSize
-  );
+  ppc_exc_initialize(intrStackStart, intrStackSize);
 
   /* Install default handler for the decrementer exception */
   sc = ppc_exc_set_handler( ASM_DEC_VECTOR, default_decrementer_exception_handler);

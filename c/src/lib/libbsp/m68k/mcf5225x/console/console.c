@@ -5,7 +5,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <stdio.h>
@@ -479,7 +479,7 @@ static int IntUartTaskRead(int minor)
    Description : This reads a character from the internal uart. It returns 
    to the caller without blocking if not character is waiting.
  ***************************************************************************/
-/*static*/
+static
 int IntUartPollRead(int minor)
 {
   if ((MCF_UART_USR(minor) & MCF_UART_USR_RXRDY) == 0)

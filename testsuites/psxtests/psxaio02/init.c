@@ -3,7 +3,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -23,12 +23,14 @@
 #include <fcntl.h>
 #include <rtems/chain.h>
 
+const char rtems_test_name[] = "PSXAIO 2";
+
 /* forward declarations to avoid warnings */
 struct aiocb *create_aiocb(int fd);
 void free_aiocb(struct aiocb *aiocbp);
 
 #define BUFSIZE 32
-#define MAX 10
+#define FD_COUNT 10
 #define WRONG_FD 666
 
 struct aiocb *
@@ -57,8 +59,8 @@ free_aiocb (struct aiocb *aiocbp)
 void *
 POSIX_Init (void *argument)
 {
-  int fd[MAX];
-  struct aiocb *aiocbp[MAX+1];
+  int fd[FD_COUNT];
+  struct aiocb *aiocbp[FD_COUNT+1];
   int status, i, policy = SCHED_FIFO;
   char filename[BUFSIZE];
   struct sched_param param;
@@ -73,11 +75,11 @@ POSIX_Init (void *argument)
   status = mkdir ("/tmp", S_IRWXU);
   rtems_test_assert (!status);
   
-  puts ("\n\n*** POSIX AIO TEST 02 ***");
+  TEST_BEGIN();
   
   puts ("Init: Open files");
 
-  for (i=0; i<MAX; i++)
+  for (i=0; i<FD_COUNT; i++)
     {
       sprintf (filename, "/tmp/aio_fildes%d",i);
       fd[i] = open (filename, O_RDWR|O_CREAT, S_IRWXU|S_IRWXG|S_IRWXO);
@@ -171,9 +173,9 @@ POSIX_Init (void *argument)
   status = aio_cancel (fd[5], aiocbp[6]);
   rtems_test_assert (status == AIO_ALLDONE);
 
-  puts ("*** END OF POSIX AIO TEST 02 ***");
+  TEST_END();
 
-  for (i = 0; i < MAX; i++)
+  for (i = 0; i < FD_COUNT; i++)
     {
       close (fd[i]);
       free_aiocb (aiocbp[i]);      

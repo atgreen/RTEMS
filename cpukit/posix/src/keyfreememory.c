@@ -12,7 +12,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -26,39 +26,35 @@ void _POSIX_Keys_Free_memory(
   POSIX_Keys_Control *the_key
 )
 {
-  POSIX_Keys_Key_value_pair search_node;
   POSIX_Keys_Key_value_pair *p;
   RBTree_Node *iter, *next;
   Objects_Id key_id;
 
   key_id = the_key->Object.id;
-  search_node.key = key_id;
-  search_node.thread_id = 0;
-  iter = _RBTree_Find( &_POSIX_Keys_Key_value_lookup_tree, &search_node.Key_value_lookup_node );
+  iter = _POSIX_Keys_Find( key_id, 0 );
   if ( !iter )
     return;
   /**
    * find the smallest thread_id node in the rbtree.
    */
   next = _RBTree_Next( iter, RBT_LEFT );
-  p = _RBTree_Container_of( next, POSIX_Keys_Key_value_pair, Key_value_lookup_node );
+  p = POSIX_KEYS_RBTREE_NODE_TO_KEY_VALUE_PAIR( next );
   while ( next != NULL && p->key == key_id) {
     iter = next;
     next = _RBTree_Next( iter, RBT_LEFT );
-    p = _RBTree_Container_of( next, POSIX_Keys_Key_value_pair, Key_value_lookup_node );
+    p = POSIX_KEYS_RBTREE_NODE_TO_KEY_VALUE_PAIR( next );
   }
 
   /**
    * delete all nodes belongs to the_key from the rbtree and chain.
    */
-  p = _RBTree_Container_of( iter, POSIX_Keys_Key_value_pair, Key_value_lookup_node );
+  p = POSIX_KEYS_RBTREE_NODE_TO_KEY_VALUE_PAIR( iter );
   while ( iter != NULL && p->key == key_id ) {
     next = _RBTree_Next( iter, RBT_RIGHT );
-    _RBTree_Extract( &_POSIX_Keys_Key_value_lookup_tree, iter );
-    _Chain_Extract_unprotected( &p->Key_values_per_thread_node );
-    _POSIX_Keys_Key_value_pair_free( p );
+
+    _POSIX_Keys_Free_key_value_pair( p );
 
     iter = next;
-    p = _RBTree_Container_of( iter, POSIX_Keys_Key_value_pair, Key_value_lookup_node );
+    p = POSIX_KEYS_RBTREE_NODE_TO_KEY_VALUE_PAIR( iter );
   }
 }

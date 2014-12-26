@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_STATESIMPL_H
@@ -36,16 +36,12 @@ extern "C" {
  *  be used to compose and manipulate a thread's state.
  */
 
-/** This macro corresponds to all states being set. */
-#define STATES_ALL_SET                         0xfffff
 /** This macro corresponds to a task being ready. */
 #define STATES_READY                           0x00000
 /** This macro corresponds to a task being created but not yet started. */
 #define STATES_DORMANT                         0x00001
 /** This macro corresponds to a task being suspended. */
 #define STATES_SUSPENDED                       0x00002
-/** This macro corresponds to a task being in an internal state transition. */
-#define STATES_TRANSIENT                       0x00004
 /** This macro corresponds to a task which is waiting for a timeout. */
 #define STATES_DELAYING                        0x00008
 /** This macro corresponds to a task waiting until a specific TOD. */
@@ -80,6 +76,14 @@ extern "C" {
 #define STATES_WAITING_FOR_SYSTEM_EVENT        0x40000
 /** This macro corresponds to a task waiting for BSD wakeup. */
 #define STATES_WAITING_FOR_BSD_WAKEUP          0x80000
+/** This macro corresponds to a task waiting for a task termination. */
+#define STATES_WAITING_FOR_TERMINATION         0x100000
+/** This macro corresponds to a task being a zombie. */
+#define STATES_ZOMBIE                          0x200000
+/** This macro corresponds to a task migrating to another scheduler. */
+#define STATES_MIGRATING                       0x400000
+/** This macro corresponds to a task restarting. */
+#define STATES_RESTARTING                      0x800000
 
 /** This macro corresponds to a task which is in an interruptible
  *  blocking state.
@@ -206,21 +210,6 @@ RTEMS_INLINE_ROUTINE bool _States_Is_suspended (
 )
 {
    return (the_states & STATES_SUSPENDED);
-}
-
-/**
- * This function returns true if the TRANSIENT state is set in
- * the_states, and false otherwise.
- *
- * @param[in] the_states is the task state set to test
- *
- * @return This method returns true if the desired state condition is set.
- */
-RTEMS_INLINE_ROUTINE bool _States_Is_transient (
-  States_Control the_states
-)
-{
-   return (the_states & STATES_TRANSIENT);
 }
 
 /**

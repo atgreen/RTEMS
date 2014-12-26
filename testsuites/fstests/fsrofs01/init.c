@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -27,6 +27,8 @@
 #include <rtems/libio.h>
 #include <rtems/rtems-rfs-format.h>
 #include <rtems/ramdisk.h>
+
+const char rtems_test_name[] = "FSROFS 1";
 
 static const rtems_rfs_format_config rfs_config;
 
@@ -151,13 +153,12 @@ static void test_rofs(void)
 
 static void Init(rtems_task_argument arg)
 {
-  printf("\n\n*** TEST FSROFS 1 ***\n");
+  TEST_BEGIN():
 
   test_create_file_system();
   test_rofs();
 
-  printf("*** END OF TEST FSROFS 1 ***\n");
-
+  TEST_END():
   rtems_test_exit(0);
 }
 
@@ -174,12 +175,13 @@ size_t rtems_ramdisk_configuration_size = 1;
 
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 5
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 #define CONFIGURE_FILESYSTEM_RFS
 
 #define CONFIGURE_MAXIMUM_TASKS 2
 
 #define CONFIGURE_EXTRA_TASK_STACKS (8 * 1024)
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

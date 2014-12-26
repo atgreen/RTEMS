@@ -99,6 +99,15 @@
 #include <string.h>
 #include <stdbool.h>
 
+/*
+ * Prototypes we need to avoid warnings but not going into public space.
+ */
+void breakpoint (void);
+void set_debug_traps(void);
+void set_mem_err(void);
+void _returnFromException(void);
+void exceptionHandler (int, void (*handler) (void));
+
 /************************************************************************
  *
  * external low-level support routines
@@ -106,8 +115,6 @@
 extern int putDebugChar (int ch);	   /* write a single character      */
 extern int getDebugChar (void);	           /* read and return a single char */
 
-/* assign an exception handler */
-extern void exceptionHandler (int, void (*handler) (void));
 
 /************************************************************************/
 /* BUFMAX defines the maximum number of characters in inbound/outbound buffers */
@@ -452,7 +459,7 @@ _returnFromException (void)
   return_to_prog ();
 }
 
-int
+static int
 hex (char ch)
 {
   if ((ch >= 'a') && (ch <= 'f'))
@@ -465,7 +472,7 @@ hex (char ch)
 }
 
 /* scan for the sequence $<data>#<checksum>     */
-void
+static void
 getpacket (char *buffer)
 {
   unsigned char checksum;
@@ -529,7 +536,7 @@ getpacket (char *buffer)
 
 /* send the packet in buffer.  */
 
-void
+static void
 putpacket (char *buffer)
 {
   unsigned char checksum;
@@ -564,7 +571,7 @@ char remcomInBuffer[BUFMAX];
 char remcomOutBuffer[BUFMAX];
 static short error;
 
-void
+static void
 debug_error (
      char *format,
      char *parm
@@ -597,7 +604,7 @@ get_char (char *addr)
   return *addr;
 }
 
-void
+static void
 set_char (char *addr, int val)
 {
   *addr = val;
@@ -607,7 +614,7 @@ set_char (char *addr, int val)
 /* return a pointer to the last char put in buf (null) */
 /* If MAY_FAULT is non-zero, then we should set mem_err in response to
    a fault; if zero treat a fault like any other fault in the stub.  */
-char *
+static char *
 mem2hex (char *mem, char *buf, int count, int may_fault)
 {
   int i;
@@ -631,7 +638,7 @@ mem2hex (char *mem, char *buf, int count, int may_fault)
 
 /* convert the hex array pointed to by buf into binary to be placed in mem */
 /* return a pointer to the character AFTER the last byte written */
-char *
+static char *
 hex2mem (char *buf, char *mem, int count, int may_fault)
 {
   int i;
@@ -654,7 +661,7 @@ hex2mem (char *buf, char *mem, int count, int may_fault)
 
 /* this function takes the 386 exception vector and attempts to
    translate this number into a unix compatible signal value */
-int
+static int
 computeSignal (int exceptionVector)
 {
   int sigval;
@@ -715,7 +722,7 @@ computeSignal (int exceptionVector)
 /* WHILE WE FIND NICE HEX CHARS, BUILD AN INT */
 /* RETURN NUMBER OF CHARS PROCESSED           */
 /**********************************************/
-int
+static int
 hexToInt (char **ptr, int *intValue)
 {
   int numChars = 0;
@@ -742,14 +749,17 @@ hexToInt (char **ptr, int *intValue)
 
 /*
  * This function does all command procesing for interfacing to gdb.
+ *
+ * NOTE: This method is called from assembly code so must be marked
+ *       as used.
  */
-void
+static void handle_exception (int exceptionVector) __attribute__((used));
+static void
 handle_exception (int exceptionVector)
 {
   int sigval;
   int addr, length, reg;
   char *ptr;
-  int newPC;
 
   gdb_i386vector = exceptionVector;
 
@@ -893,8 +903,6 @@ handle_exception (int exceptionVector)
 	  ptr = &remcomInBuffer[1];
 	  if (hexToInt (&ptr, &addr))
 	    registers[PC] = addr;
-
-	  newPC = registers[PC];
 
 	  /* clear the trace bit */
 	  registers[PS] &= 0xfffffeff;

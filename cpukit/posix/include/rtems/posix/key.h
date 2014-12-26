@@ -14,7 +14,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_POSIX_KEY_H
@@ -25,6 +25,7 @@
 #include <rtems/score/chain.h>
 #include <rtems/score/object.h>
 #include <rtems/score/rbtree.h>
+#include <rtems/score/thread.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,20 +40,36 @@ extern "C" {
 /**@{**/
 
 /**
- * @brief The rbtree node used to manage a POSIX key and value.
+ * @brief Represents POSIX key and value pair.
  */
 typedef struct {
-  /** This field is the chain node structure. */
+  /**
+   * @brief The chain node for the per-thread value chain.
+   */
   Chain_Node Key_values_per_thread_node;
-  /** This field is the rbtree node structure. */
+
+  /**
+   * @brief The tree node for the lookup tree.
+   */
   RBTree_Node Key_value_lookup_node;
-  /** This field is the POSIX key used as an rbtree key */
+
+  /**
+   * @brief The POSIX key identifier used in combination with the thread
+   * pointer as the tree key.
+   */
   pthread_key_t key;
-  /** This field is the Thread id also used as an rbtree key */
-  Objects_Id thread_id;
-  /** This field points to the POSIX key value of specific thread */
-  const void *value;
-}  POSIX_Keys_Key_value_pair;
+
+  /**
+   * @brief The thread pointer used in combination with the POSIX key
+   * identifier as the tree key.
+   */
+  Thread_Control *thread;
+
+  /**
+   * @brief The thread specific POSIX key value.
+   */
+  void *value;
+} POSIX_Keys_Key_value_pair;
 
 /**
  * @brief The data structure used to manage a POSIX key.

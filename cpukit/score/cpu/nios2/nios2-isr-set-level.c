@@ -14,7 +14,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,7 +48,7 @@ uint32_t _Nios2_ISR_Set_level( uint32_t new_level, uint32_t status )
       break;
     default:
       /* FIXME */
-      _Internal_error_Occurred( INTERNAL_ERROR_CORE, false, 0xdeadbeef );
+      _Terminate( INTERNAL_ERROR_CORE, false, 0xdeadbeef );
       break;
   }
 

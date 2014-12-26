@@ -1,6 +1,5 @@
 /**
  *  @file
- *  
  */
 
 /*
@@ -9,15 +8,13 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _BSP_H
 #define _BSP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef ASM
 
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
@@ -27,6 +24,10 @@ extern "C" {
 #include <rtems/console.h>
 #include <rtems/clockdrv.h>
 #include <libcpu/rm5231.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 extern void WriteDisplay( char * string );
 
@@ -66,8 +67,16 @@ extern uint32_t mips_get_timer( void );
 #define RAM_START 0
 #define RAM_END   0x100000
 
+/*
+ * Prototypes for methods called from .S for dependency tracking
+ */
+void init_tlb(void);
+void resettlb(int i);
+
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* !ASM */
 
 #endif	/* __HURRICANE_BSP_h */

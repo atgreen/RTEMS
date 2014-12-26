@@ -12,29 +12,20 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <rtems/score/schedulersimple.h>
+#include <rtems/score/schedulersimpleimpl.h>
 #include <rtems/score/chainimpl.h>
-#include <rtems/score/wkspace.h>
 
-void _Scheduler_simple_Initialize ( void )
+void _Scheduler_simple_Initialize( const Scheduler_Control *scheduler )
 {
-  void *f;
+  Scheduler_simple_Context *context =
+    _Scheduler_simple_Get_context( scheduler );
 
-  /*
-   * Initialize Ready Queue
-   */
-
-  /* allocate ready queue structures */
-  f = _Workspace_Allocate_or_fatal_error( sizeof(Chain_Control) );
-  _Scheduler.information = f;
-
-  /* initialize ready queue structure */
-  _Chain_Initialize_empty( (Chain_Control *)f );
+  _Chain_Initialize_empty( &context->Ready );
 }

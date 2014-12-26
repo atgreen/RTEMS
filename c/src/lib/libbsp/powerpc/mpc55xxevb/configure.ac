@@ -8,7 +8,7 @@
 #
 
 AC_PREREQ([2.69])
-AC_INIT([rtems-c-src-lib-libbsp-powerpc-mpc55xxevb],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-c-src-lib-libbsp-powerpc-mpc55xxevb],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([bsp_specs])
 RTEMS_TOP(../../../../../..)
 
@@ -142,12 +142,14 @@ RTEMS_BSPOPTS_HELP([SMSC9218I_ENABLE_LED_OUTPUTS],
 [enable LED outputs for SMSC9218I network interface])
 
 RTEMS_BSPOPTS_SET([SMSC9218I_RESET_PIN],[mpc5674f_ecu508*],[433])
-RTEMS_BSPOPTS_SET([SMSC9218I_RESET_PIN],[*],[186])
+RTEMS_BSPOPTS_SET([SMSC9218I_RESET_PIN],[mpc5566*],[186])
+RTEMS_BSPOPTS_SET([SMSC9218I_RESET_PIN],[*],[])
 RTEMS_BSPOPTS_HELP([SMSC9218I_RESET_PIN],
 [reset pin for SMSC9218I network interface])
 
 RTEMS_BSPOPTS_SET([SMSC9218I_IRQ_PIN],[mpc5674f_ecu508*],[450])
-RTEMS_BSPOPTS_SET([SMSC9218I_IRQ_PIN],[*],[193])
+RTEMS_BSPOPTS_SET([SMSC9218I_IRQ_PIN],[mpc5566*],[193])
+RTEMS_BSPOPTS_SET([SMSC9218I_IRQ_PIN],[*],[])
 RTEMS_BSPOPTS_HELP([SMSC9218I_IRQ_PIN],
 [IRQ pin for SMSC9218I network interface])
 

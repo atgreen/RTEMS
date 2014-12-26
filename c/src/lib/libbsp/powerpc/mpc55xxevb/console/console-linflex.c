@@ -5,22 +5,23 @@
  */
 
 /*
- * Copyright (c) 2011 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2011-2014 embedded brains GmbH.  All rights reserved.
  *
  *  embedded brains GmbH
- *  Obere Lagerstr. 30
+ *  Dornierstr. 4
  *  82178 Puchheim
  *  Germany
  *  <rtems@embedded-brains.de>
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp/console-linflex.h>
 
 #include <bsp.h>
+#include <bsp/fatal.h>
 #include <bsp/irq.h>
 
 #ifdef MPC55XX_HAS_LINFLEX
@@ -49,7 +50,7 @@ mpc55xx_linflex_context mpc55xx_linflex_devices [] = {
   }
 };
 
-void enter_init_mode(volatile LINFLEX_tag *regs)
+static void enter_init_mode(volatile LINFLEX_tag *regs)
 {
   LINFLEX_LINCR1_32B_tag cr1 = { .R = regs->LINCR1.R };
   cr1.B.SLEEP = 0;
@@ -57,7 +58,7 @@ void enter_init_mode(volatile LINFLEX_tag *regs)
   regs->LINCR1.R = cr1.R;
 }
 
-void enter_active_mode(volatile LINFLEX_tag *regs)
+static void enter_active_mode(volatile LINFLEX_tag *regs)
 {
   LINFLEX_LINCR1_32B_tag cr1 = { .R = regs->LINCR1.R };
   cr1.B.SLEEP = 0;
@@ -65,7 +66,7 @@ void enter_active_mode(volatile LINFLEX_tag *regs)
   regs->LINCR1.R = cr1.R;
 }
 
-void enter_sleep_mode(volatile LINFLEX_tag *regs)
+static void enter_sleep_mode(volatile LINFLEX_tag *regs)
 {
   LINFLEX_LINCR1_32B_tag cr1 = { .R = regs->LINCR1.R };
   cr1.B.SLEEP = 1;
@@ -261,12 +262,12 @@ static int mpc55xx_linflex_first_open(int major, int minor, void *arg)
 
   rv = rtems_termios_set_initial_baud(tty, BSP_DEFAULT_BAUD_RATE);
   if (rv != 0) {
-    mpc55xx_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_BAUD);
+    bsp_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_BAUD);
   }
 
   rv = mpc55xx_linflex_set_attributes(minor, &tty->termios);
   if (rv != 0) {
-    mpc55xx_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_ATTRIBUTES);
+    bsp_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_ATTRIBUTES);
   }
 
   sc = mpc55xx_interrupt_handler_install(
@@ -278,7 +279,7 @@ static int mpc55xx_linflex_first_open(int major, int minor, void *arg)
     self
   );
   if (sc != RTEMS_SUCCESSFUL) {
-    mpc55xx_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_RX_IRQ_INSTALL);
+    bsp_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_RX_IRQ_INSTALL);
   }
 
   sc = mpc55xx_interrupt_handler_install(
@@ -290,7 +291,7 @@ static int mpc55xx_linflex_first_open(int major, int minor, void *arg)
     self
   );
   if (sc != RTEMS_SUCCESSFUL) {
-    mpc55xx_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_TX_IRQ_INSTALL);
+    bsp_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_TX_IRQ_INSTALL);
   }
 
   /*
@@ -303,7 +304,7 @@ static int mpc55xx_linflex_first_open(int major, int minor, void *arg)
     self
   );
   if (sc != RTEMS_SUCCESSFUL) {
-    mpc55xx_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_ERR_IRQ_INSTALL);
+    bsp_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_ERR_IRQ_INSTALL);
   }
   */
 
@@ -333,7 +334,7 @@ static int mpc55xx_linflex_last_close(int major, int minor, void* arg)
     self
   );
   if (sc != RTEMS_SUCCESSFUL) {
-    mpc55xx_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_RX_IRQ_REMOVE);
+    bsp_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_RX_IRQ_REMOVE);
   }
 
   sc = rtems_interrupt_handler_remove(
@@ -342,7 +343,7 @@ static int mpc55xx_linflex_last_close(int major, int minor, void* arg)
     self
   );
   if (sc != RTEMS_SUCCESSFUL) {
-    mpc55xx_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_TX_IRQ_REMOVE);
+    bsp_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_TX_IRQ_REMOVE);
   }
 
   /*
@@ -352,7 +353,7 @@ static int mpc55xx_linflex_last_close(int major, int minor, void* arg)
     self
   );
   if (sc != RTEMS_SUCCESSFUL) {
-    mpc55xx_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_ERR_IRQ_REMOVE);
+    bsp_fatal(MPC55XX_FATAL_CONSOLE_LINFLEX_ERR_IRQ_REMOVE);
   }
   */
 

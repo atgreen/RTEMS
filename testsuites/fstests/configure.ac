@@ -2,7 +2,7 @@
 
 AC_PREREQ([2.69])
 AC_INIT([rtems-c-src-tests-fstests],
-        [_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+        [_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([imfs_support])
 RTEMS_TOP([../..],[..])
 
@@ -100,6 +100,7 @@ mdosfs_fserror/Makefile
 mdosfs_fspatheval/Makefile
 mdosfs_fsrdwr/Makefile
 mdosfs_fsstatvfs/Makefile
+mdosfs_fstime/Makefile
 mimfs_fserror/Makefile
 mimfs_fslink/Makefile
 mimfs_fspatheval/Makefile
@@ -107,6 +108,7 @@ mimfs_fspermission/Makefile
 mimfs_fsrdwr/Makefile
 mimfs_fssymlink/Makefile
 mimfs_fstime/Makefile
+mimfs_fsrename/Makefile
 mrfs_fserror/Makefile
 mrfs_fslink/Makefile
 mrfs_fspatheval/Makefile

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems/gxx_wrappers.h>
@@ -18,9 +18,7 @@
 
 void force_error()
 {
-  __gthread_key key;
+  pthread_key_t key = -1;
 
-  rtems_workspace_greedy_allocate( NULL, 0 );
-
-  rtems_gxx_getspecific( &key );
+  rtems_gxx_setspecific( &key, NULL );
 }

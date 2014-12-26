@@ -14,7 +14,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -34,7 +34,9 @@
   {
     bool search_again = false;
     uintptr_t const blocks_to_free_count =
-      (heap->Protection.delayed_free_block_count + 1) / 2;
+      (heap->Protection.delayed_free_block_count
+         + heap->Protection.delayed_free_fraction - 1)
+      / heap->Protection.delayed_free_fraction;
 
     if ( alloc_begin == 0 && blocks_to_free_count > 0 ) {
       Heap_Block *block_to_free = heap->Protection.first_delayed_free_block;
@@ -252,10 +254,6 @@ void *_Heap_Allocate_aligned_with_boundary(
   } while ( search_again );
 
   if ( alloc_begin != 0 ) {
-    /* Statistics */
-    ++stats->allocs;
-    stats->searches += search_count;
-
     block = _Heap_Block_allocate( heap, block, alloc_begin, alloc_size );
 
     _Heap_Check_allocation(
@@ -266,6 +264,14 @@ void *_Heap_Allocate_aligned_with_boundary(
       alignment,
       boundary
     );
+
+    /* Statistics */
+    ++stats->allocs;
+    stats->searches += search_count;
+    stats->lifetime_allocated += _Heap_Block_size( block );
+  } else {
+    /* Statistics */
+    ++stats->failed_allocs;
   }
 
   /* Statistics */

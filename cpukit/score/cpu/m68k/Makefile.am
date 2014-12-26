@@ -19,7 +19,9 @@ include_rtems_score_HEADERS += rtems/score/types.h
 include_rtems_score_HEADERS += rtems/score/cpuatomic.h
 
 libscorecpu_a_SOURCES = cpu.c cpu_asm.S
+libscorecpu_a_SOURCES += ../no_cpu/cpucounterread.c
 libscorecpu_a_SOURCES += m68k-exception-frame-print.c
+libscorecpu_a_SOURCES += __m68k_read_tp.c
 
 include $(srcdir)/preinstall.am
 include $(top_srcdir)/automake/local.am

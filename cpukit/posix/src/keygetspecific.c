@@ -12,7 +12,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -40,7 +40,6 @@ void *pthread_getspecific(
 {
   POSIX_Keys_Control          *the_key;
   Objects_Locations            location;
-  POSIX_Keys_Key_value_pair    search_node;
   RBTree_Node                 *p;
   void                        *key_data;
   POSIX_Keys_Key_value_pair   *value_pair_p;
@@ -49,19 +48,12 @@ void *pthread_getspecific(
   switch ( location ) {
 
     case OBJECTS_LOCAL:
-      search_node.key = key;
-      search_node.thread_id = _Thread_Executing->Object.id;
-      p = _RBTree_Find( &_POSIX_Keys_Key_value_lookup_tree,
-                                    &search_node.Key_value_lookup_node );
-      key_data = NULL;
-      if ( p ) {
-        value_pair_p = _RBTree_Container_of( p,
-                                          POSIX_Keys_Key_value_pair,
-                                          Key_value_lookup_node );
-        /* key_data = _RBTree_Container_of( p, */
-        /*                                  POSIX_Keys_Key_value_pair, */
-        /*                                  Key_value_lookup_node )->value; */
+      p = _POSIX_Keys_Find( key, _Thread_Executing );
+      if ( p != NULL ) {
+        value_pair_p = POSIX_KEYS_RBTREE_NODE_TO_KEY_VALUE_PAIR( p );
         key_data = value_pair_p->value;
+      } else {
+        key_data = NULL;
       }
 
       _Objects_Put( &the_key->Object );

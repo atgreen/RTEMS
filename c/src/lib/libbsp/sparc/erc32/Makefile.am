@@ -28,17 +28,30 @@ noinst_LIBRARIES += libbsp.a
 libbsp_a_SOURCES =
 
 # startup
-libbsp_a_SOURCES += ../../shared/bspclean.c ../../shared/bsplibc.c \
-    startup/bsppredriver.c ../../sparc/shared/startup/bspgetworkarea.c \
-    ../../sparc/shared/bsppretaskinghook.c ../../shared/bsppost.c \
-    ../../shared/bspstart.c ../../shared/bootcard.c ../../shared/bspinit.c \
-    ../../shared/sbrk.c startup/setvec.c startup/spurious.c \
-    startup/erc32mec.c startup/boardinit.S startup/bspidle.c \
-    startup/bspdelay.c ../../sparc/shared/startup/early_malloc.c
+libbsp_a_SOURCES += ../../shared/bspclean.c
+libbsp_a_SOURCES += ../../shared/bsplibc.c
+libbsp_a_SOURCES += startup/bsppredriver.c
+libbsp_a_SOURCES += ../../sparc/shared/startup/bspgetworkarea.c
+libbsp_a_SOURCES += ../../sparc/shared/bsppretaskinghook.c
+libbsp_a_SOURCES += ../../shared/bsppost.c
+libbsp_a_SOURCES += ../../shared/bspstart.c
+libbsp_a_SOURCES += ../../shared/bootcard.c
+libbsp_a_SOURCES += ../../shared/sbrk.c
+libbsp_a_SOURCES += startup/setvec.c
+libbsp_a_SOURCES += startup/spurious.c
+libbsp_a_SOURCES += startup/erc32mec.c
+libbsp_a_SOURCES += startup/boardinit.S
+libbsp_a_SOURCES += startup/bspidle.c
+libbsp_a_SOURCES += startup/bspdelay.c
+libbsp_a_SOURCES += ../../sparc/shared/startup/early_malloc.c
+libbsp_a_SOURCES += ../../sparc/shared/startup/bsp_fatal_exit.c
+libbsp_a_SOURCES += ../../sparc/shared/startup/bsp_fatal_halt.c
 # ISR Handler
+libbsp_a_SOURCES += ../../sparc/shared/cpu.c
 libbsp_a_SOURCES += ../../sparc/shared/irq_asm.S
 # gnatsupp
 libbsp_a_SOURCES += gnatsupp/gnatsupp.c ../../sparc/shared/gnatcommon.c
+include_bsp_HEADERS = ../shared/include/gnatcommon.h
 # console
 libbsp_a_SOURCES += console/erc32_console.c ../../shared/console.c \
     ../../shared/console_select.c  ../../shared/console_control.c \
@@ -52,7 +65,7 @@ libbsp_a_SOURCES += ../../shared/clockdrv_shell.h
 libbsp_a_SOURCES += timer/timer.c
 
 # IRQ
-include_bsp_HEADERS = \
+include_bsp_HEADERS += \
     ../../shared/include/irq-generic.h \
     ../../shared/include/irq-info.h \
     include/bsp/irq.h
@@ -66,7 +79,8 @@ libbsp_a_SOURCES += \
     ../../shared/src/irq-shell.c
 
 if HAS_SMP
-libbsp_a_SOURCES += ../../shared/smp/getcpuid.c ../../shared/smp/smp_stub.c
+libbsp_a_SOURCES += ../../shared/bspsmp.c
+libbsp_a_SOURCES += ../../shared/bspsmpgetcurrentprocessor.c
 endif
 
 if HAS_NETWORKING

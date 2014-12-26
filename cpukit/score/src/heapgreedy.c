@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -83,7 +83,12 @@ Heap_Block *_Heap_Greedy_allocate_all_except_largest(
   Heap_Information info;
 
   _Heap_Get_free_information( heap, &info );
-  *allocatable_size = info.largest - HEAP_BLOCK_HEADER_SIZE + HEAP_ALLOC_BONUS;
+
+  if ( info.largest > 0 ) {
+    *allocatable_size = info.largest - HEAP_BLOCK_HEADER_SIZE + HEAP_ALLOC_BONUS;
+  } else {
+    *allocatable_size = 0;
+  }
 
   return _Heap_Greedy_allocate( heap, allocatable_size, 1 );
 }

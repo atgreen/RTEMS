@@ -1,15 +1,18 @@
-/*
- *  This file contains a stub for the required printk support.
+/**
+ *  @file
+ *  @brief Stub printk() support
+ *
+ *  This file contains a stub for the required printk() support.
  *  It is NOT functional!!!
- *
- *  This driver uses the termios pseudo driver.
- *
- *  COPYRIGHT (c) 1989-2007.
+ */
+
+/*
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 /*
@@ -19,7 +22,7 @@
 #include <rtems.h>
 #include <rtems/bspIo.h>
 
-void BSP_output_char_f(char c)
+static void BSP_output_char_f(char c)
 {
   /* the character just needs to disappear */
 }

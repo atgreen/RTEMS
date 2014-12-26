@@ -11,7 +11,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 
@@ -24,6 +24,7 @@ void bsp_reset(void)
 {
   rtems_interrupt_level level;
 
+  (void) level;
   rtems_interrupt_disable(level);
 
   _ARMV7M_SCB->aircr = ARMV7M_SCB_AIRCR_VECTKEY

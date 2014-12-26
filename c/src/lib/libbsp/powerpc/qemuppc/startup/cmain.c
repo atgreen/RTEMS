@@ -6,11 +6,15 @@ __outb(int port, unsigned char v)
   *((volatile unsigned char *)(0x80000000 + port)) = v;
 }
 
+#if 0
+/* currently unused but keep just in case */
+
 static unsigned char
 __inb(int port)
 {
   return *((volatile unsigned char *)(0x80000000 + port));
 }
+#endif
 
 static void
 __memcpy (unsigned char *d, unsigned char *s, int len)
@@ -33,6 +37,12 @@ extern unsigned char __sbss2_start[], __sbss2_end[];
 extern unsigned char __sbss_start[], __sbss_end[];
 extern unsigned char __bss_start[], __bss_end[];
 
+
+/*
+ * Prototype this here because it is just the entry symbol and
+ * not referenced from any compileable code.
+ */
+void cmain (void);
 
 void cmain (void)
 {

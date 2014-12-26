@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([rtems-tools-build],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-tools-build],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([install-if-change.in])
 RTEMS_TOP(../..)
 
@@ -10,7 +10,7 @@ AM_MAINTAINER_MODE
 
 AC_PROG_CC
 AC_CHECK_HEADERS([getopt.h libgen.h])
-AC_CHECK_FUNCS(strerror strtol basename)
+AC_CHECK_FUNCS(strerror strtol basename strnlen)
 
 RTEMS_PATH_KSH
 

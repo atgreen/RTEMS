@@ -14,7 +14,7 @@
 | The license and distribution terms for this file may be         |
 | found in the file LICENSE in this distribution or at            |
 |                                                                 |
-| http://www.rtems.com/license/LICENSE.                           |
+| http://www.rtems.org/license/LICENSE.                           |
 |                                                                 |
 +-----------------------------------------------------------------+
 | this file contains the code to initialize the cpu               |
@@ -112,7 +112,7 @@ static void calc_dbat_regvals(
   bat_ptr->batl.pp   = flg_bpp;
 }
 
-static inline enable_bat_4_to_7(void)
+static inline void enable_bat_4_to_7(void)
 {
   PPC_SET_SPECIAL_PURPOSE_REGISTER_BITS(HID2, BSP_BBIT32(13));
 }

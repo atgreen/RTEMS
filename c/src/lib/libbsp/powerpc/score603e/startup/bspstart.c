@@ -1,24 +1,24 @@
-/*  bspstart.c
- *
- *  This set of routines starts the application.  It includes application,
- *  board, and monitor specific initialization and configuration.
- *  The generic CPU dependent initialization has been performed
- *  before any of these are invoked.
- *
+/*
+ *  This routine does the bulk of the system initialization.
+ */
+
+/*
  *  COPYRIGHT (c) 1989-2010.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <string.h>
 
 #include <bsp.h>
+#include <bsp/bootcard.h>
 #include <rtems/libio.h>
 #include <rtems/libcsupport.h>
 #include <rtems/bspIo.h>
+#include <rtems/counter.h>
 #include <libcpu/cpuIdent.h>
 #include <bsp/irq.h>
 
@@ -71,13 +71,11 @@ void _BSP_Fatal_error(unsigned int v)
   __asm__ __volatile ("sc");
 }
 
-/*PAGE
- *
+/*
  *  bsp_predriver_hook
  *
  *  Before drivers are setup initialize interupt vectors.
  */
-
 void init_RTC(void);
 void initialize_PMC(void);
 
@@ -193,11 +191,7 @@ void bsp_start( void )
   /*
    * Initialize default raw exception handlers.
    */
-  ppc_exc_initialize(
-    PPC_INTERRUPT_DISABLE_MASK_DEFAULT,
-    intrStackStart,
-    intrStackSize
-  );
+  ppc_exc_initialize(intrStackStart, intrStackSize);
 
   msr_value = 0x2030;
   _CPU_MSR_SET( msr_value );
@@ -210,6 +204,7 @@ void bsp_start( void )
     printk("bsp_start: set clicks poer usec\n");
   #endif
   bsp_clicks_per_usec = 66 / 4;
+  rtems_counter_initialize_converter(bsp_clicks_per_usec * 1000000);
 
   #if BSP_DATA_CACHE_ENABLED
     #if DEBUG

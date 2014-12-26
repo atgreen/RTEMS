@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef LIBBSP_SHARED_U_BOOT_H
@@ -44,6 +44,9 @@ extern bd_t bsp_uboot_board_info;
  */
 
 void bsp_uboot_copy_board_info(const bd_t *src);
+
+/* FIXME: Do not use this function */
+void dumpUBootBDInfo(bd_t *u);
 
 #ifdef __cplusplus
 }

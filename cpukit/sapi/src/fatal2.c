@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -31,5 +31,5 @@ void rtems_fatal(
   rtems_fatal_code error
 )
 {
-  _Internal_error_Occurred( source, false, error );
+  _Terminate( source, false, error );
 }

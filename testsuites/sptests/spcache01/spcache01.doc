@@ -1,0 +1,23 @@
+This file describes the directives and concepts tested by this test set.
+
+test set name: spcache01
+
+The screen file was obtained on a PowerPC QorIQ P1020E target running with a
+processor frequency of 800MHz.
+
+directives:
+
+  - rtems_cache_flush_multiple_data_lines()
+  - rtems_cache_get_data_line_size()
+  - rtems_cache_get_instruction_line_size()
+  - rtems_cache_invalidate_entire_instruction()
+  - rtems_cache_invalidate_multiple_data_lines()
+  - rtems_cache_invalidate_multiple_instruction_lines()
+  - rtems_cache_aligned_malloc()
+  - rtems_cache_coherent_allocate()
+  - rtems_cache_coherent_free()
+  - rtems_cache_coherent_add_area()
+
+concepts:
+
+  - Ensure that some cache manager functions work.

@@ -1,14 +1,17 @@
-/*  tmacros.h
+/**
+ * @file
  *
- *  This include file contains macros which are useful in the RTEMS
- *  test suites.
- *
- *  COPYRIGHT (c) 1989-2009.
+ * This include file contains macros which are useful in the RTEMS
+ * test suites.
+ */
+
+/*
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef __TMACROS_h
@@ -22,12 +25,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <rtems/error.h>
+#include <rtems/test.h>
 #include <rtems/score/threaddispatch.h>
+
+#include <buffer_test_io.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 #define FOREVER 1                  /* infinite loop */
 
@@ -36,8 +41,6 @@ extern "C" {
 #else
 #define TEST_EXTERN extern
 #endif
-
-#include <buffer_test_io.h>
 
 /*
  *  Check that that the dispatch disable level is proper for the
@@ -53,8 +56,8 @@ extern "C" {
  #define check_dispatch_disable_level( _expect ) \
   do { \
     if ( (_expect) != -1 \
-           && ((!_Thread_Dispatch_is_enabled() == false && (_expect) != 0) \
-             || (!_Thread_Dispatch_is_enabled() && (_expect) == 0)) \
+           && (((!_Thread_Dispatch_is_enabled()) == false && (_expect) != 0) \
+             || ((!_Thread_Dispatch_is_enabled()) && (_expect) == 0)) \
     ) { \
       printk( \
         "\n_Thread_Dispatch_disable_level is (%" PRId32 \
@@ -296,6 +299,25 @@ extern "C" {
 
 /* newlib's ino_t is a typedef to "unsigned long" */
 #define PRIxino_t "lx"
+
+/**
+ * This assists in clearly disabling warnings on GCC in certain very
+ * specific cases.
+ *
+ * + -Wnon-null - If a method is declared as never having a NULL first
+ *   parameter. We need to explicitly disable this compiler warning to make
+ *   the code warning free.
+ */
+#ifdef __GNUC__
+  #define COMPILER_DIAGNOSTIC_SETTINGS_PUSH _Pragma("GCC diagnostic push")
+  #define COMPILER_DIAGNOSTIC_SETTINGS_POP _Pragma("GCC diagnostic pop")
+  #define COMPILER_DIAGNOSTIC_SETTINGS_DISABLE_NONNULL \
+    _Pragma("GCC diagnostic ignored \"-Wnonnull\"")
+#else
+  #define COMPILER_DIAGNOSTIC_SETTINGS_PUSH
+  #define COMPILER_DIAGNOSTIC_SETTINGS_POP
+  #define COMPILER_DIAGNOSTIC_SETTINGS_DISABLE_NONNULL
+#endif
 
 #ifdef __cplusplus
 }

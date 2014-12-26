@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -78,7 +78,7 @@ void _Objects_Initialize_information(
    *  Unlimited and maximum of zero is illogical.
    */
   if ( information->auto_extend && maximum_per_allocation == 0) {
-    _Internal_error_Occurred(
+    _Terminate(
       INTERNAL_ERROR_CORE,
       true,
       INTERNAL_ERROR_UNLIMITED_AND_MAXIMUM_IS_0

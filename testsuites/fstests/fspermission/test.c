@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -22,7 +22,10 @@
 #include <unistd.h>
 
 #include "fstest.h"
+#include "fs_config.h"
 #include "pmacros.h"
+
+const char rtems_test_name[] = "FSPERMISSION " FILESYSTEM;
 
 /*
  *  Test the umask
@@ -476,10 +479,8 @@ static void root_test(void )
 
 void test(void )
 {
-  puts( "\n\n*** PERMISSION TEST ***" );
   umask_test01();
   test_premission01();
   test_premission02();
   root_test();
-  puts( "*** END OF PERMISSION TEST ***" );
 }

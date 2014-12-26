@@ -23,7 +23,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *	Modified to reflect SH7045F processor and EVB:
  *	John M. Mills (jmills@tga.com)
@@ -115,7 +115,6 @@ SECTIONS
   .rel.fini      : { *(.rel.fini)	}
   .rel.bss       : { *(.rel.bss)		}
   .rel.plt       : { *(.rel.plt)		}
-  .init          : { *(.init)	} =0
   .plt      	 : { *(.plt)	}
   .text   .   	 :
   {
@@ -139,9 +138,28 @@ SECTIONS
   } > ram
   _etext = .;
   PROVIDE (etext = .);
-  .fini    .  : { *(.fini)    } =0
-  .rodata  .  : { *(.rodata*) *(.gnu.linkonce.r*) }
-  .rodata1 .  : { *(.rodata1) }
+  .init    .  : { KEEP(*(.init))    } > ram =0
+  .fini    .  : { KEEP(*(.fini))    } > ram =0
+  .ctors   .  : { KEEP(*(.ctors))    } > ram =0
+  .dtors   .  : { KEEP(*(.dtors))    } > ram =0
+  .rodata  .  : { *(.rodata*) *(.gnu.linkonce.r*) } > ram
+  .rodata1 .  : { *(.rodata1) } > ram
+  .tdata : {
+    __TLS_Data_begin = .;
+    *(.tdata .tdata.* .gnu.linkonce.td.*)
+    __TLS_Data_end = .;
+  } > ram
+  .tbss : {
+    __TLS_BSS_begin = .;
+    *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon)
+    __TLS_BSS_end = .;
+  } > ram
+  __TLS_Data_size = __TLS_Data_end - __TLS_Data_begin;
+  __TLS_Data_begin = __TLS_Data_size != 0 ? __TLS_Data_begin : __TLS_BSS_begin;
+  __TLS_Data_end = __TLS_Data_size != 0 ? __TLS_Data_end : __TLS_BSS_begin;
+  __TLS_BSS_size = __TLS_BSS_end - __TLS_BSS_begin;
+  __TLS_Size = __TLS_BSS_end - __TLS_Data_begin;
+  __TLS_Alignment = MAX (ALIGNOF (.tdata), ALIGNOF (.tbss));
   /* Adjust the address for the data segment.  We want to adjust up to
      the same address within the page on the next page up.  */
   . = ALIGN(128) + (. & (128 - 1));
@@ -158,18 +176,6 @@ SECTIONS
     CONSTRUCTORS
   } > ram
   .data1  . : { *(.data1) }
-  .ctors  .       :
-  {
-    ___ctors = .;
-    *(.ctors)
-    ___ctors_end = .;
-  }
-  .dtors  .       :
-  {
-    ___dtors = .;
-    *(.dtors)
-    ___dtors_end = .;
-  }
   .got     .      : { *(.got.plt) *(.got) }
   .dynamic .      : { *(.dynamic) }
   /* We want the small data sections together, so single-instruction offsets

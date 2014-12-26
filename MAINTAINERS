@@ -37,18 +37,17 @@ in those areas. They must get approval for changes elsewhere in RTEMS.
 Blanket Write Privileges
 ========================
 Jennifer Averett           jennifer.averett@OARcorp.com
-Ralf Corsepius             ralf.corsepius@rtems.org
 Thomas Doefler             Thomas.Doerfler@embedded-brains.de
 Sebastian Huber            sebastian.huber@embedded-brains.de
 Chris Johns                chrisj@rtems.org
-Eric Norum                 eric.norum@rtems.org
 Joel Sherrill              joel.sherrill@OARcorp.com
+Gedare Bloom               gedare@rtems.org
 
 Write After Approval
 ====================
-Gedare Bloom               gedare@rtems.org
+Daniel Hellstrom           daniel@gaisler.com
 
 Localized Write Permission
 ==========================
-sparc64                    Gedare Bloom          gedare@rtems.org
+sparc                      Daniel Hellstrom (daniel@gaisler.com)
 

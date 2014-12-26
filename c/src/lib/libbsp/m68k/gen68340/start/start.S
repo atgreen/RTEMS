@@ -3,13 +3,15 @@
  *  The name of this entry point is compiler dependent.
  *  It jumps to the BSP which is responsible for performing
  *  all initialization.
- *
+ */
+
+/*
  *  COPYRIGHT (c) 1989-1999.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may in
  *  the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  * Based on the `gen68360' board support package, and covered by the
  * original distribution terms.
@@ -26,7 +28,10 @@
 #include <rtems/asm.h>
 #include <m68349.inc>
 
-#define	_OLD_ASTECC 1 /* old addresses for AST68340 only, undefine for AST68349 */
+#include <bsp.h> /* to indicate dependencies */
+
+/* old addresses for AST68340 only, undefine for AST68349 */
+#define	_OLD_ASTECC 1
 
 BEGIN_CODE
 	/*

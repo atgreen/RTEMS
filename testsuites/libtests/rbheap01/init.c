@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -22,6 +22,8 @@
 #include <rtems/rbheap.h>
 #include <rtems/malloc.h>
 #include <rtems/score/rbtreeimpl.h>
+
+const char rtems_test_name[] = "RBHEAP 1";
 
 /* forward declarations to avoid warnings */
 static rtems_task Init(rtems_task_argument argument);
@@ -90,22 +92,6 @@ static bool chunk_visitor(
   ++context->free_current;
 
   return false;
-}
-
-static void test_init_chunk_alignment(void)
-{
-  rtems_status_code sc = RTEMS_SUCCESSFUL;
-  rtems_rbheap_control control;
-
-  sc = rtems_rbheap_initialize(
-    &control,
-    area,
-    sizeof(area),
-    0,
-    extend_descriptors,
-    NULL
-  );
-  rtems_test_assert(sc == RTEMS_INVALID_NUMBER);
 }
 
 static void test_init_begin_greater_than_end(void)
@@ -593,9 +579,8 @@ static void test_free_merge_left_or_right(bool left)
 
 static void Init(rtems_task_argument arg)
 {
-  puts("\n\n*** TEST RBHEAP 1 ***");
+  TEST_BEGIN();
 
-  test_init_chunk_alignment();
   test_init_begin_greater_than_end();
   test_init_begin_greater_than_aligned_begin();
   test_init_aligned_begin_greater_than_aligned_end();
@@ -613,7 +598,7 @@ static void Init(rtems_task_argument arg)
   test_free_merge_left_or_right(true);
   test_free_merge_left_or_right(false);
 
-  puts("*** END OF TEST RBHEAP 1 ***");
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -622,6 +607,8 @@ static void Init(rtems_task_argument arg)
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 
 #define CONFIGURE_MAXIMUM_TASKS 1
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

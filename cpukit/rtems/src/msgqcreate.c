@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-1999.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -39,7 +39,7 @@ rtems_status_code rtems_message_queue_create(
   rtems_id        *id
 )
 {
-  register Message_queue_Control *the_message_queue;
+  Message_queue_Control          *the_message_queue;
   CORE_message_queue_Attributes   the_msgq_attributes;
 #if defined(RTEMS_MULTIPROCESSING)
   bool                            is_global;
@@ -81,12 +81,10 @@ rtems_status_code rtems_message_queue_create(
 #endif
 #endif
 
-  _Thread_Disable_dispatch();              /* protects object pointer */
-
   the_message_queue = _Message_queue_Allocate();
 
   if ( !the_message_queue ) {
-    _Thread_Enable_dispatch();
+    _Objects_Allocator_unlock();
     return RTEMS_TOO_MANY;
   }
 
@@ -95,7 +93,7 @@ rtems_status_code rtems_message_queue_create(
     !( _Objects_MP_Allocate_and_open( &_Message_queue_Information,
                               name, the_message_queue->Object.id, false ) ) ) {
     _Message_queue_Free( the_message_queue );
-    _Thread_Enable_dispatch();
+    _Objects_Allocator_unlock();
     return RTEMS_TOO_MANY;
   }
 #endif
@@ -120,7 +118,7 @@ rtems_status_code rtems_message_queue_create(
 #endif
 
     _Message_queue_Free( the_message_queue );
-    _Thread_Enable_dispatch();
+    _Objects_Allocator_unlock();
     return RTEMS_UNSATISFIED;
   }
 
@@ -142,6 +140,6 @@ rtems_status_code rtems_message_queue_create(
     );
 #endif
 
-  _Thread_Enable_dispatch();
+  _Objects_Allocator_unlock();
   return RTEMS_SUCCESSFUL;
 }

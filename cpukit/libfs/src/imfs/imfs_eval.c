@@ -14,7 +14,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -134,6 +134,8 @@ static rtems_filesystem_eval_path_generic_status IMFS_eval_token(
           --dir->reference_count;
           ++entry->reference_count;
           currentloc->node_access = entry;
+          currentloc->node_access_2 =
+            IMFS_generic_get_context_by_node( entry );
           IMFS_Set_handlers( currentloc );
 
           if ( !terminal ) {

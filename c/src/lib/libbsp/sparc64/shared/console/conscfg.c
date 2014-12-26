@@ -3,17 +3,16 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
 
 #include <libchip/serial.h>
 
-extern void ofw_write(const char *,const int );
-extern void ofw_read(void *,int );
+#include <boot/ofw.h>
 
-int sun4v_console_device_first_open(int major, int minor, void *arg)
+static int sun4v_console_device_first_open(int major, int minor, void *arg)
 {
   return 0;
 }
@@ -24,21 +23,21 @@ static ssize_t sun4v_console_poll_write(int minor, const char *buf, size_t n)
   return 0;
 }
 
-void sun4v_console_deviceInitialize (int minor)
+static void sun4v_console_deviceInitialize (int minor)
 {
   
 }
 
-int sun4v_console_poll_read(int minor){
+static int sun4v_console_poll_read(int minor){
   int a;
   ofw_read(&a,1);
-  if(a!=0){
+  if ( a != 0 ) {
     return a>>24;
   }
   return -1;
 }
 
-bool sun4v_console_deviceProbe (int minor){
+static bool sun4v_console_deviceProbe (int minor){
   return true;
 }
 

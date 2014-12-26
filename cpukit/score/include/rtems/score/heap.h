@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_HEAP_H
@@ -161,6 +161,7 @@ typedef struct Heap_Block Heap_Block;
     Heap_Block *first_delayed_free_block;
     Heap_Block *last_delayed_free_block;
     uintptr_t delayed_free_block_count;
+    uintptr_t delayed_free_fraction;
   } Heap_Protection;
 
   typedef struct {
@@ -256,6 +257,20 @@ struct Heap_Block {
  */
 typedef struct {
   /**
+   * @brief Lifetime number of bytes allocated from this heap.
+   *
+   * This value is an integral multiple of the page size.
+   */
+  uint64_t lifetime_allocated;
+
+  /**
+   * @brief Lifetime number of bytes freed to this heap.
+   *
+   * This value is an integral multiple of the page size.
+   */
+  uint64_t lifetime_freed;
+
+  /**
    * @brief Instance number of this heap.
    */
   uint32_t instance;
@@ -302,17 +317,22 @@ typedef struct {
   uint32_t max_search;
 
   /**
+   * @brief Total number of searches.
+   */
+  uint32_t searches;
+
+  /**
    * @brief Total number of successful allocations.
    */
   uint32_t allocs;
 
   /**
-   * @brief Total number of searches ever.
+   * @brief Total number of failed allocations.
    */
-  uint32_t searches;
+  uint32_t failed_allocs;
 
   /**
-   * @brief Total number of suceessful calls to free.
+   * @brief Total number of successful frees.
    */
   uint32_t frees;
 
@@ -365,6 +385,7 @@ typedef struct {
 typedef struct {
   Heap_Information Free;
   Heap_Information Used;
+  Heap_Statistics Stats;
 } Heap_Information_block;
 
 /**
@@ -448,6 +469,11 @@ RTEMS_INLINE_ROUTINE uintptr_t _Heap_Align_up(
   }
 }
 
+RTEMS_INLINE_ROUTINE uintptr_t _Heap_Min_block_size( uintptr_t page_size )
+{
+  return _Heap_Align_up( sizeof( Heap_Block ), page_size );
+}
+
 /**
  * @brief Returns the worst case overhead to manage a memory area.
  */
@@ -462,6 +488,29 @@ RTEMS_INLINE_ROUTINE uintptr_t _Heap_Area_overhead(
   }
 
   return 2 * (page_size - 1) + HEAP_BLOCK_HEADER_SIZE;
+}
+
+/**
+ * @brief Returns the size with administration and alignment overhead for one
+ * allocation.
+ */
+RTEMS_INLINE_ROUTINE uintptr_t _Heap_Size_with_overhead(
+  uintptr_t page_size,
+  uintptr_t size,
+  uintptr_t alignment
+)
+{
+  if ( page_size != 0 ) {
+    page_size = _Heap_Align_up( page_size, CPU_ALIGNMENT );
+  } else {
+    page_size = CPU_ALIGNMENT;
+  }
+
+  if ( page_size < alignment ) {
+    page_size = alignment;
+  }
+
+  return HEAP_BLOCK_HEADER_SIZE + page_size - 1 + size;
 }
 
 /** @} */

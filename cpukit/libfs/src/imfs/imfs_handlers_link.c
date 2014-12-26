@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -77,6 +77,8 @@ static IMFS_jnode_t *IMFS_node_remove_hard_link(
 )
 {
   IMFS_jnode_t *target = node->info.hard_link.link_node;
+
+  _Assert( target != NULL );
 
   if ( target->st_nlink == 1) {
     target = (*target->control->node_remove)( target );

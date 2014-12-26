@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
@@ -60,7 +60,7 @@ shm_config_table BSP_shm_cfgtbl __attribute__((weak)) =
   Shm_Cause_interrupt,
   {
     NULL,
-    1 << LEON3_MP_IRQ,      /* USER OVERRIDABLE */
+    0,                      /* USER OVERRIDABLE - Uses default MP-IRQ if 0 */
     4,
   },
 };
@@ -72,6 +72,7 @@ void Shm_Get_configuration(
 {
   int i;
   unsigned int tmp;
+  rtems_multiprocessing_table *mptable;
 
   BSP_shm_cfgtbl.format       = SHM_BIG;
 
@@ -92,13 +93,13 @@ void Shm_Get_configuration(
   BSP_shm_cfgtbl.Intr.address =
      (vol_u32 *) &(LEON3_IrqCtrl_Regs->force[LEON3_Cpu_Index]);
   if (BSP_shm_cfgtbl.Intr.value == 0)
-    BSP_shm_cfgtbl.Intr.value = 1 << LEON3_MP_IRQ; /* Use default MP-IRQ */
+    BSP_shm_cfgtbl.Intr.value = 1 << LEON3_mp_irq; /* Use default MP-IRQ */
   BSP_shm_cfgtbl.Intr.length  = 4;
 
   if (LEON3_Cpu_Index == 0) {
     tmp = 0;
-    for (i = 1;
-         i < (rtems_configuration_get_user_multiprocessing_table())->maximum_nodes; i++)
+    mptable = rtems_configuration_get_user_multiprocessing_table();
+    for (i = 1; i < mptable->maximum_nodes; i++)
       tmp |= (1 << i);
     LEON3_IrqCtrl_Regs->mpstat = tmp;
   }

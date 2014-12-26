@@ -1,18 +1,18 @@
 /*
- *  Clock Tick Device Driver
- *
  *  This routine initializes the Real Time Clock Counter Timer which is
  *  part of the MEC on the ERC32 CPU.
  *
  *  The tick frequency is directly programmed to the configured number of
  *  microseconds per tick.
- *
+ */
+
+/*
  *  COPYRIGHT (c) 1989-2008.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  Ported to ERC32 implementation of the SPARC by On-Line Applications
  *  Research Corporation (OAR) under contract to the European Space
@@ -24,6 +24,7 @@
 
 #include <bsp.h>
 #include <bspopts.h>
+#include <rtems/counter.h>
 
 #if SIMSPARC_FAST_IDLE==1
 #define CLOCK_DRIVER_USE_FAST_IDLE 1
@@ -32,7 +33,6 @@
 /*
  *  The Real Time Clock Counter Timer uses this trap type.
  */
-
 #define CLOCK_VECTOR ERC32_TRAP_TYPE( ERC32_INTERRUPT_REAL_TIME_CLOCK )
 
 #define Clock_driver_support_at_tick()
@@ -44,7 +44,7 @@
 
 extern int CLOCK_SPEED;
 
-uint32_t bsp_clock_nanoseconds_since_last_tick(void)
+static uint32_t bsp_clock_nanoseconds_since_last_tick(void)
 {
   uint32_t clicks;
   uint32_t usecs;
@@ -63,6 +63,16 @@ uint32_t bsp_clock_nanoseconds_since_last_tick(void)
 #define Clock_driver_nanoseconds_since_last_tick \
   bsp_clock_nanoseconds_since_last_tick
 
+static CPU_Counter_ticks erc32_counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  CPU_Counter_ticks period = rtems_configuration_get_microseconds_per_tick();
+
+  return (first + period - second) % period;
+}
+
 #define Clock_driver_support_initialize_hardware() \
   do { \
     /* approximately 1 us per countdown */ \
@@ -71,15 +81,20 @@ uint32_t bsp_clock_nanoseconds_since_last_tick(void)
       rtems_configuration_get_microseconds_per_tick(); \
     \
     ERC32_MEC_Set_Real_Time_Clock_Timer_Control( \
-      ERC32_MEC_TIMER_COUNTER_ENABLE_COUNTING | \
-    	ERC32_MEC_TIMER_COUNTER_LOAD_SCALER | \
-	    ERC32_MEC_TIMER_COUNTER_LOAD_COUNTER \
+        ERC32_MEC_TIMER_COUNTER_ENABLE_COUNTING | \
+        ERC32_MEC_TIMER_COUNTER_LOAD_SCALER | \
+        ERC32_MEC_TIMER_COUNTER_LOAD_COUNTER \
     ); \
     \
     ERC32_MEC_Set_Real_Time_Clock_Timer_Control( \
-      ERC32_MEC_TIMER_COUNTER_ENABLE_COUNTING | \
-	    ERC32_MEC_TIMER_COUNTER_RELOAD_AT_ZERO \
+        ERC32_MEC_TIMER_COUNTER_ENABLE_COUNTING | \
+        ERC32_MEC_TIMER_COUNTER_RELOAD_AT_ZERO \
     ); \
+    _SPARC_Counter_initialize( \
+      &ERC32_MEC.Real_Time_Clock_Counter, \
+      erc32_counter_difference \
+    ); \
+    rtems_counter_initialize_converter(1000000); \
   } while (0)
 
 #define Clock_driver_support_shutdown_hardware() \

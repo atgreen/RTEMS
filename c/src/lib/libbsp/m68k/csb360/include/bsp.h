@@ -20,7 +20,7 @@
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
  *
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _BSP_H
@@ -117,16 +117,16 @@
 
 #ifndef ASM
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <bspopts.h>
 #include <rtems.h>
 #include <rtems/console.h>
 #include <rtems/iosupp.h>
 #include <rtems/clockdrv.h>
 #include <bsp/default-initial-extension.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct rtems_bsdnet_ifconfig;
 extern int rtems_enet_driver_attach (struct rtems_bsdnet_ifconfig *config);
@@ -177,6 +177,11 @@ rtems_isr_entry set_vector(
   rtems_vector_number vector,
   int                 type
 );
+
+/*
+ * Prototypes for BSP methods which cross file boundaries
+ */
+void init5272(void);
 
 #ifdef __cplusplus
 }

@@ -19,7 +19,7 @@
  *    Rewritten to remove score mutex access. Fixes many performance
  *    issues.
  *
- * Copyright (c) 2009-2012 embedded brains GmbH.
+ * Copyright (c) 2009-2014 embedded brains GmbH.
  */
 
 /**
@@ -35,10 +35,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include <pthread.h>
 
 #include <rtems.h>
 #include <rtems/error.h>
-#include <rtems/malloc.h>
 
 #include "rtems/bdbuf.h"
 
@@ -76,12 +76,22 @@ typedef struct rtems_bdbuf_swapout_worker
                                           * thread. */
 } rtems_bdbuf_swapout_worker;
 
+#if defined(RTEMS_BDBUF_USE_PTHREAD)
+typedef pthread_mutex_t rtems_bdbuf_lock_type;
+#else
+typedef rtems_id rtems_bdbuf_lock_type;
+#endif
+
 /**
  * Buffer waiters synchronization.
  */
 typedef struct rtems_bdbuf_waiters {
-  unsigned count;
-  rtems_id sema;
+  unsigned       count;
+#if defined(RTEMS_BDBUF_USE_PTHREAD)
+  pthread_cond_t cond_var;
+#else
+  rtems_id       sema;
+#endif
 } rtems_bdbuf_waiters;
 
 /**
@@ -105,9 +115,9 @@ typedef struct rtems_bdbuf_cache
                                           * buffer size that fit in a group. */
   uint32_t            flags;             /**< Configuration flags. */
 
-  rtems_id            lock;              /**< The cache lock. It locks all
+  rtems_bdbuf_lock_type lock;            /**< The cache lock. It locks all
                                           * cache data, BD and lists. */
-  rtems_id            sync_lock;         /**< Sync calls block writes. */
+  rtems_bdbuf_lock_type sync_lock;       /**< Sync calls block writes. */
   bool                sync_active;       /**< True if a sync is active. */
   rtems_id            sync_requester;    /**< The sync requester. */
   rtems_disk_device  *sync_device;       /**< The device to sync and
@@ -137,8 +147,7 @@ typedef struct rtems_bdbuf_cache
   rtems_id            read_ahead_task;   /**< Read-ahead task */
   rtems_chain_control read_ahead_chain;  /**< Read-ahead request chain */
   bool                read_ahead_enabled; /**< Read-ahead enabled */
-
-  bool                initialised;       /**< Initialised state. */
+  rtems_status_code   init_status;       /**< The initialization status */
 } rtems_bdbuf_cache;
 
 typedef enum {
@@ -168,7 +177,12 @@ typedef enum {
   RTEMS_BDBUF_FATAL_SYNC_UNLOCK,
   RTEMS_BDBUF_FATAL_TREE_RM,
   RTEMS_BDBUF_FATAL_WAIT_EVNT,
-  RTEMS_BDBUF_FATAL_WAIT_TRANS_EVNT
+  RTEMS_BDBUF_FATAL_WAIT_TRANS_EVNT,
+  RTEMS_BDBUF_FATAL_ONCE,
+  RTEMS_BDBUF_FATAL_MTX_ATTR_INIT,
+  RTEMS_BDBUF_FATAL_MTX_ATTR_SETPROTO,
+  RTEMS_BDBUF_FATAL_CV_WAIT,
+  RTEMS_BDBUF_FATAL_CV_BROADCAST
 } rtems_bdbuf_fatal_code;
 
 /**
@@ -217,6 +231,8 @@ static rtems_task rtems_bdbuf_read_ahead_task(rtems_task_argument arg);
  * The Buffer Descriptor cache.
  */
 static rtems_bdbuf_cache bdbuf_cache;
+
+static pthread_once_t rtems_bdbuf_once_state = PTHREAD_ONCE_INIT;
 
 #if RTEMS_BDBUF_TRACE
 /**
@@ -314,6 +330,82 @@ rtems_bdbuf_fatal_with_state (rtems_bdbuf_buf_state state,
                               rtems_bdbuf_fatal_code error)
 {
   rtems_bdbuf_fatal ((((uint32_t) state) << 16) | error);
+}
+
+static rtems_status_code
+rtems_bdbuf_lock_create (rtems_name name, rtems_bdbuf_lock_type *lock)
+{
+#if defined(RTEMS_BDBUF_USE_PTHREAD)
+  int                 eno;
+  pthread_mutexattr_t attr;
+
+  (void) name;
+
+  eno = pthread_mutexattr_init (&attr);
+  if (eno != 0)
+    rtems_bdbuf_fatal (RTEMS_BDBUF_FATAL_MTX_ATTR_INIT);
+
+  eno = pthread_mutexattr_setprotocol (&attr, PTHREAD_PRIO_INHERIT);
+  if (eno != 0)
+    rtems_bdbuf_fatal (RTEMS_BDBUF_FATAL_MTX_ATTR_SETPROTO);
+
+  eno = pthread_mutex_init (lock, &attr);
+
+  pthread_mutexattr_destroy (&attr);
+
+  if (eno != 0)
+    return RTEMS_UNSATISFIED;
+
+  return RTEMS_SUCCESSFUL;
+#else
+  return rtems_semaphore_create(
+    name,
+    1,
+    RTEMS_BDBUF_CACHE_LOCK_ATTRIBS,
+    0,
+    lock
+  );
+#endif
+}
+
+static void
+rtems_bdbuf_lock_delete (rtems_bdbuf_lock_type *lock)
+{
+#if defined(RTEMS_BDBUF_USE_PTHREAD)
+  pthread_mutex_destroy (lock);
+#else
+  rtems_semaphore_delete (*lock);
+#endif
+}
+
+static rtems_status_code
+rtems_bdbuf_waiter_create (rtems_name name, rtems_bdbuf_waiters *waiter)
+{
+#if defined(RTEMS_BDBUF_USE_PTHREAD)
+  int eno = pthread_cond_init (&waiter->cond_var, NULL);
+  if (eno != 0)
+    return RTEMS_UNSATISFIED;
+
+  return RTEMS_SUCCESSFUL;
+#else
+  return rtems_semaphore_create(
+    name,
+    0,
+    RTEMS_BDBUF_CACHE_WAITER_ATTRIBS,
+    0,
+    &waiter->sema
+  );
+#endif
+}
+
+static void
+rtems_bdbuf_waiter_delete (rtems_bdbuf_waiters *waiter)
+{
+#if defined(RTEMS_BDBUF_USE_PTHREAD)
+  pthread_cond_destroy (&waiter->cond_var);
+#else
+  rtems_semaphore_delete (waiter->sema);
+#endif
 }
 
 /**
@@ -832,13 +924,19 @@ rtems_bdbuf_media_block (const rtems_disk_device *dd, rtems_blkdev_bnum block)
  * @param fatal_error_code The error code if the call fails.
  */
 static void
-rtems_bdbuf_lock (rtems_id lock, uint32_t fatal_error_code)
+rtems_bdbuf_lock (rtems_bdbuf_lock_type *lock, uint32_t fatal_error_code)
 {
-  rtems_status_code sc = rtems_semaphore_obtain (lock,
+#if defined(RTEMS_BDBUF_USE_PTHREAD)
+  int eno = pthread_mutex_lock (lock);
+  if (eno != 0)
+    rtems_bdbuf_fatal (fatal_error_code);
+#else
+  rtems_status_code sc = rtems_semaphore_obtain (*lock,
                                                  RTEMS_WAIT,
                                                  RTEMS_NO_TIMEOUT);
   if (sc != RTEMS_SUCCESSFUL)
     rtems_bdbuf_fatal (fatal_error_code);
+#endif
 }
 
 /**
@@ -848,11 +946,17 @@ rtems_bdbuf_lock (rtems_id lock, uint32_t fatal_error_code)
  * @param fatal_error_code The error code if the call fails.
  */
 static void
-rtems_bdbuf_unlock (rtems_id lock, uint32_t fatal_error_code)
+rtems_bdbuf_unlock (rtems_bdbuf_lock_type *lock, uint32_t fatal_error_code)
 {
-  rtems_status_code sc = rtems_semaphore_release (lock);
+#if defined(RTEMS_BDBUF_USE_PTHREAD)
+  int eno = pthread_mutex_unlock (lock);
+  if (eno != 0)
+    rtems_bdbuf_fatal (fatal_error_code);
+#else
+  rtems_status_code sc = rtems_semaphore_release (*lock);
   if (sc != RTEMS_SUCCESSFUL)
     rtems_bdbuf_fatal (fatal_error_code);
+#endif
 }
 
 /**
@@ -861,7 +965,7 @@ rtems_bdbuf_unlock (rtems_id lock, uint32_t fatal_error_code)
 static void
 rtems_bdbuf_lock_cache (void)
 {
-  rtems_bdbuf_lock (bdbuf_cache.lock, RTEMS_BDBUF_FATAL_CACHE_LOCK);
+  rtems_bdbuf_lock (&bdbuf_cache.lock, RTEMS_BDBUF_FATAL_CACHE_LOCK);
 }
 
 /**
@@ -870,7 +974,7 @@ rtems_bdbuf_lock_cache (void)
 static void
 rtems_bdbuf_unlock_cache (void)
 {
-  rtems_bdbuf_unlock (bdbuf_cache.lock, RTEMS_BDBUF_FATAL_CACHE_UNLOCK);
+  rtems_bdbuf_unlock (&bdbuf_cache.lock, RTEMS_BDBUF_FATAL_CACHE_UNLOCK);
 }
 
 /**
@@ -879,7 +983,7 @@ rtems_bdbuf_unlock_cache (void)
 static void
 rtems_bdbuf_lock_sync (void)
 {
-  rtems_bdbuf_lock (bdbuf_cache.sync_lock, RTEMS_BDBUF_FATAL_SYNC_LOCK);
+  rtems_bdbuf_lock (&bdbuf_cache.sync_lock, RTEMS_BDBUF_FATAL_SYNC_LOCK);
 }
 
 /**
@@ -888,7 +992,7 @@ rtems_bdbuf_lock_sync (void)
 static void
 rtems_bdbuf_unlock_sync (void)
 {
-  rtems_bdbuf_unlock (bdbuf_cache.sync_lock,
+  rtems_bdbuf_unlock (&bdbuf_cache.sync_lock,
                       RTEMS_BDBUF_FATAL_SYNC_UNLOCK);
 }
 
@@ -904,6 +1008,7 @@ rtems_bdbuf_group_release (rtems_bdbuf_buffer *bd)
   --bd->group->users;
 }
 
+#if !defined(RTEMS_BDBUF_USE_PTHREAD)
 static rtems_mode
 rtems_bdbuf_disable_preemption (void)
 {
@@ -926,6 +1031,7 @@ rtems_bdbuf_restore_preemption (rtems_mode prev_mode)
   if (sc != RTEMS_SUCCESSFUL)
     rtems_bdbuf_fatal (RTEMS_BDBUF_FATAL_PREEMPT_RST);
 }
+#endif
 
 /**
  * Wait until woken. Semaphores are used so a number of tasks can wait and can
@@ -945,42 +1051,52 @@ rtems_bdbuf_restore_preemption (rtems_mode prev_mode)
 static void
 rtems_bdbuf_anonymous_wait (rtems_bdbuf_waiters *waiters)
 {
-  rtems_status_code sc;
-  rtems_mode        prev_mode;
-
   /*
    * Indicate we are waiting.
    */
   ++waiters->count;
 
-  /*
-   * Disable preemption then unlock the cache and block.  There is no POSIX
-   * condition variable in the core API so this is a work around.
-   *
-   * The issue is a task could preempt after the cache is unlocked because it is
-   * blocking or just hits that window, and before this task has blocked on the
-   * semaphore. If the preempting task flushes the queue this task will not see
-   * the flush and may block for ever or until another transaction flushes this
-   * semaphore.
-   */
-  prev_mode = rtems_bdbuf_disable_preemption ();
+#if defined(RTEMS_BDBUF_USE_PTHREAD)
+  {
+    int eno = pthread_cond_wait (&waiters->cond_var, &bdbuf_cache.lock);
+    if (eno != 0)
+      rtems_bdbuf_fatal (RTEMS_BDBUF_FATAL_CV_WAIT);
+  }
+#else
+  {
+    rtems_status_code sc;
+    rtems_mode        prev_mode;
 
-  /*
-   * Unlock the cache, wait, and lock the cache when we return.
-   */
-  rtems_bdbuf_unlock_cache ();
+    /*
+     * Disable preemption then unlock the cache and block.  There is no POSIX
+     * condition variable in the core API so this is a work around.
+     *
+     * The issue is a task could preempt after the cache is unlocked because it is
+     * blocking or just hits that window, and before this task has blocked on the
+     * semaphore. If the preempting task flushes the queue this task will not see
+     * the flush and may block for ever or until another transaction flushes this
+     * semaphore.
+     */
+    prev_mode = rtems_bdbuf_disable_preemption();
 
-  sc = rtems_semaphore_obtain (waiters->sema, RTEMS_WAIT, RTEMS_BDBUF_WAIT_TIMEOUT);
+    /*
+     * Unlock the cache, wait, and lock the cache when we return.
+     */
+    rtems_bdbuf_unlock_cache ();
 
-  if (sc == RTEMS_TIMEOUT)
-    rtems_bdbuf_fatal (RTEMS_BDBUF_FATAL_CACHE_WAIT_TO);
+    sc = rtems_semaphore_obtain (waiters->sema, RTEMS_WAIT, RTEMS_BDBUF_WAIT_TIMEOUT);
 
-  if (sc != RTEMS_UNSATISFIED)
-    rtems_bdbuf_fatal (RTEMS_BDBUF_FATAL_CACHE_WAIT_2);
+    if (sc == RTEMS_TIMEOUT)
+      rtems_bdbuf_fatal (RTEMS_BDBUF_FATAL_CACHE_WAIT_TO);
 
-  rtems_bdbuf_lock_cache ();
+    if (sc != RTEMS_UNSATISFIED)
+      rtems_bdbuf_fatal (RTEMS_BDBUF_FATAL_CACHE_WAIT_2);
 
-  rtems_bdbuf_restore_preemption (prev_mode);
+    rtems_bdbuf_lock_cache ();
+
+    rtems_bdbuf_restore_preemption (prev_mode);
+  }
+#endif
 
   --waiters->count;
 }
@@ -1000,15 +1116,19 @@ rtems_bdbuf_wait (rtems_bdbuf_buffer *bd, rtems_bdbuf_waiters *waiters)
  * there are any waiters.
  */
 static void
-rtems_bdbuf_wake (const rtems_bdbuf_waiters *waiters)
+rtems_bdbuf_wake (rtems_bdbuf_waiters *waiters)
 {
-  rtems_status_code sc = RTEMS_SUCCESSFUL;
-
   if (waiters->count > 0)
   {
-    sc = rtems_semaphore_flush (waiters->sema);
+#if defined(RTEMS_BDBUF_USE_PTHREAD)
+    int eno = pthread_cond_broadcast (&waiters->cond_var);
+    if (eno != 0)
+      rtems_bdbuf_fatal (RTEMS_BDBUF_FATAL_CV_BROADCAST);
+#else
+    rtems_status_code sc = rtems_semaphore_flush (waiters->sema);
     if (sc != RTEMS_SUCCESSFUL)
       rtems_bdbuf_fatal (RTEMS_BDBUF_FATAL_CACHE_WAKE);
+#endif
   }
 }
 
@@ -1385,21 +1505,14 @@ rtems_bdbuf_read_request_size (uint32_t transfer_count)
     + sizeof (rtems_blkdev_sg_buffer) * transfer_count;
 }
 
-/**
- * Initialise the cache.
- *
- * @return rtems_status_code The initialisation status.
- */
-rtems_status_code
-rtems_bdbuf_init (void)
+static rtems_status_code
+rtems_bdbuf_do_init (void)
 {
   rtems_bdbuf_group*  group;
   rtems_bdbuf_buffer* bd;
   uint8_t*            buffer;
   size_t              b;
-  size_t              cache_aligment;
   rtems_status_code   sc;
-  rtems_mode          prev_mode;
 
   if (rtems_bdbuf_tracer)
     printf ("bdbuf:init\n");
@@ -1418,29 +1531,6 @@ rtems_bdbuf_init (void)
       > RTEMS_MINIMUM_STACK_SIZE / 8U)
     return RTEMS_INVALID_NUMBER;
 
-  /*
-   * We use a special variable to manage the initialisation incase we have
-   * completing threads doing this. You may get errors if the another thread
-   * makes a call and we have not finished initialisation.
-   */
-  prev_mode = rtems_bdbuf_disable_preemption ();
-  if (bdbuf_cache.initialised)
-  {
-    rtems_bdbuf_restore_preemption (prev_mode);
-    return RTEMS_RESOURCE_IN_USE;
-  }
-
-  memset(&bdbuf_cache, 0, sizeof(bdbuf_cache));
-  bdbuf_cache.initialised = true;
-  rtems_bdbuf_restore_preemption (prev_mode);
-
-  /*
-   * For unspecified cache alignments we use the CPU alignment.
-   */
-  cache_aligment = 32; /* FIXME rtems_cache_get_data_line_size() */
-  if (cache_aligment <= 0)
-    cache_aligment = CPU_ALIGNMENT;
-
   bdbuf_cache.sync_device = BDBUF_INVALID_DEV;
 
   rtems_chain_initialize_empty (&bdbuf_cache.swapout_free_workers);
@@ -1452,35 +1542,31 @@ rtems_bdbuf_init (void)
   /*
    * Create the locks for the cache.
    */
-  sc = rtems_semaphore_create (rtems_build_name ('B', 'D', 'C', 'l'),
-                               1, RTEMS_BDBUF_CACHE_LOCK_ATTRIBS, 0,
-                               &bdbuf_cache.lock);
+
+  sc = rtems_bdbuf_lock_create (rtems_build_name ('B', 'D', 'C', 'l'),
+                                &bdbuf_cache.lock);
   if (sc != RTEMS_SUCCESSFUL)
     goto error;
 
   rtems_bdbuf_lock_cache ();
 
-  sc = rtems_semaphore_create (rtems_build_name ('B', 'D', 'C', 's'),
-                               1, RTEMS_BDBUF_CACHE_LOCK_ATTRIBS, 0,
-                               &bdbuf_cache.sync_lock);
+  sc = rtems_bdbuf_lock_create (rtems_build_name ('B', 'D', 'C', 's'),
+                                &bdbuf_cache.sync_lock);
   if (sc != RTEMS_SUCCESSFUL)
     goto error;
 
-  sc = rtems_semaphore_create (rtems_build_name ('B', 'D', 'C', 'a'),
-                               0, RTEMS_BDBUF_CACHE_WAITER_ATTRIBS, 0,
-                               &bdbuf_cache.access_waiters.sema);
+  sc = rtems_bdbuf_waiter_create (rtems_build_name ('B', 'D', 'C', 'a'),
+                                  &bdbuf_cache.access_waiters);
   if (sc != RTEMS_SUCCESSFUL)
     goto error;
 
-  sc = rtems_semaphore_create (rtems_build_name ('B', 'D', 'C', 't'),
-                               0, RTEMS_BDBUF_CACHE_WAITER_ATTRIBS, 0,
-                               &bdbuf_cache.transfer_waiters.sema);
+  sc = rtems_bdbuf_waiter_create (rtems_build_name ('B', 'D', 'C', 't'),
+                                  &bdbuf_cache.transfer_waiters);
   if (sc != RTEMS_SUCCESSFUL)
     goto error;
 
-  sc = rtems_semaphore_create (rtems_build_name ('B', 'D', 'C', 'b'),
-                               0, RTEMS_BDBUF_CACHE_WAITER_ATTRIBS, 0,
-                               &bdbuf_cache.buffer_waiters.sema);
+  sc = rtems_bdbuf_waiter_create (rtems_build_name ('B', 'D', 'C', 'b'),
+                                  &bdbuf_cache.buffer_waiters);
   if (sc != RTEMS_SUCCESSFUL)
     goto error;
 
@@ -1512,14 +1598,12 @@ rtems_bdbuf_init (void)
 
   /*
    * Allocate memory for buffer memory. The buffer memory will be cache
-   * aligned. It is possible to free the memory allocated by rtems_memalign()
-   * with free(). Return 0 if allocated.
-   *
-   * The memory allocate allows a
+   * aligned. It is possible to free the memory allocated by
+   * rtems_cache_aligned_malloc() with free().
    */
-  if (rtems_memalign ((void **) &bdbuf_cache.buffers,
-                      cache_aligment,
-                      bdbuf_cache.buffer_min_count * bdbuf_config.buffer_min) != 0)
+  bdbuf_cache.buffers = rtems_cache_aligned_malloc(bdbuf_cache.buffer_min_count
+                                                   * bdbuf_config.buffer_min);
+  if (bdbuf_cache.buffers == NULL)
     goto error;
 
   /*
@@ -1639,20 +1723,35 @@ error:
   free (bdbuf_cache.swapout_transfer);
   free (bdbuf_cache.swapout_workers);
 
-  rtems_semaphore_delete (bdbuf_cache.buffer_waiters.sema);
-  rtems_semaphore_delete (bdbuf_cache.access_waiters.sema);
-  rtems_semaphore_delete (bdbuf_cache.transfer_waiters.sema);
-  rtems_semaphore_delete (bdbuf_cache.sync_lock);
+  rtems_bdbuf_waiter_delete (&bdbuf_cache.buffer_waiters);
+  rtems_bdbuf_waiter_delete (&bdbuf_cache.access_waiters);
+  rtems_bdbuf_waiter_delete (&bdbuf_cache.transfer_waiters);
+  rtems_bdbuf_lock_delete (&bdbuf_cache.sync_lock);
 
   if (bdbuf_cache.lock != 0)
   {
     rtems_bdbuf_unlock_cache ();
-    rtems_semaphore_delete (bdbuf_cache.lock);
+    rtems_bdbuf_lock_delete (&bdbuf_cache.lock);
   }
 
-  bdbuf_cache.initialised = false;
-
   return RTEMS_UNSATISFIED;
+}
+
+static void
+rtems_bdbuf_init_once (void)
+{
+  bdbuf_cache.init_status = rtems_bdbuf_do_init();
+}
+
+rtems_status_code
+rtems_bdbuf_init (void)
+{
+  int eno = pthread_once (&rtems_bdbuf_once_state, rtems_bdbuf_init_once);
+
+  if (eno != 0)
+    rtems_bdbuf_fatal (RTEMS_BDBUF_FATAL_ONCE);
+
+  return bdbuf_cache.init_status;
 }
 
 static void
@@ -2650,8 +2749,14 @@ rtems_bdbuf_swapout_processing (unsigned long                 timer_delta,
 {
   rtems_bdbuf_swapout_worker* worker;
   bool                        transfered_buffers = false;
+  bool                        sync_active;
 
   rtems_bdbuf_lock_cache ();
+
+  /*
+   * To set this to true you need the cache and the sync lock.
+   */
+  sync_active = bdbuf_cache.sync_active;
 
   /*
    * If a sync is active do not use a worker because the current code does not
@@ -2662,7 +2767,7 @@ rtems_bdbuf_swapout_processing (unsigned long                 timer_delta,
    * lock. The simplest solution is to get the main swap out task perform all
    * sync operations.
    */
-  if (bdbuf_cache.sync_active)
+  if (sync_active)
     worker = NULL;
   else
   {
@@ -2674,14 +2779,14 @@ rtems_bdbuf_swapout_processing (unsigned long                 timer_delta,
 
   rtems_chain_initialize_empty (&transfer->bds);
   transfer->dd = BDBUF_INVALID_DEV;
-  transfer->syncing = bdbuf_cache.sync_active;
+  transfer->syncing = sync_active;
 
   /*
    * When the sync is for a device limit the sync to that device. If the sync
    * is for a buffer handle process the devices in the order on the sync
    * list. This means the dev is BDBUF_INVALID_DEV.
    */
-  if (bdbuf_cache.sync_active)
+  if (sync_active)
     transfer->dd = bdbuf_cache.sync_device;
 
   /*
@@ -2700,7 +2805,7 @@ rtems_bdbuf_swapout_processing (unsigned long                 timer_delta,
   rtems_bdbuf_swapout_modified_processing (&transfer->dd,
                                            &bdbuf_cache.modified,
                                            &transfer->bds,
-                                           bdbuf_cache.sync_active,
+                                           sync_active,
                                            update_timers,
                                            timer_delta);
 
@@ -2731,7 +2836,7 @@ rtems_bdbuf_swapout_processing (unsigned long                 timer_delta,
     transfered_buffers = true;
   }
 
-  if (bdbuf_cache.sync_active && !transfered_buffers)
+  if (sync_active && !transfered_buffers)
   {
     rtems_id sync_requester;
     rtems_bdbuf_lock_cache ();
@@ -2978,16 +3083,22 @@ rtems_bdbuf_gather_for_purge (rtems_chain_control *purge_list,
   }
 }
 
-void
-rtems_bdbuf_purge_dev (rtems_disk_device *dd)
+static void
+rtems_bdbuf_do_purge_dev (rtems_disk_device *dd)
 {
   rtems_chain_control purge_list;
 
   rtems_chain_initialize_empty (&purge_list);
-  rtems_bdbuf_lock_cache ();
   rtems_bdbuf_read_ahead_reset (dd);
   rtems_bdbuf_gather_for_purge (&purge_list, dd);
   rtems_bdbuf_purge_list (&purge_list);
+}
+
+void
+rtems_bdbuf_purge_dev (rtems_disk_device *dd)
+{
+  rtems_bdbuf_lock_cache ();
+  rtems_bdbuf_do_purge_dev (dd);
   rtems_bdbuf_unlock_cache ();
 }
 
@@ -3031,7 +3142,7 @@ rtems_bdbuf_set_block_size (rtems_disk_device *dd,
       dd->block_to_media_block_shift = block_to_media_block_shift;
       dd->bds_per_group = bds_per_group;
 
-      rtems_bdbuf_purge_dev (dd);
+      rtems_bdbuf_do_purge_dev (dd);
     }
     else
     {
@@ -3062,8 +3173,8 @@ rtems_bdbuf_read_ahead_task (rtems_task_argument arg)
 
     while ((node = rtems_chain_get_unprotected (chain)) != NULL)
     {
-      rtems_disk_device *dd = (rtems_disk_device *)
-        ((char *) node - offsetof (rtems_disk_device, read_ahead.node));
+      rtems_disk_device *dd =
+        RTEMS_CONTAINER_OF (node, rtems_disk_device, read_ahead.node);
       rtems_blkdev_bnum block = dd->read_ahead.next;
       rtems_blkdev_bnum media_block = 0;
       rtems_status_code sc =

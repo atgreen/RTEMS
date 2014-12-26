@@ -17,7 +17,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,6 +35,8 @@
 #include <rtems/posix/timerimpl.h>
 #include <rtems/score/timespec.h>
 #include "pritime.h"
+
+const char rtems_test_name[] = "PSXTIMER 1";
 
 void StopTimer(
   timer_t  timer_id,
@@ -341,7 +343,7 @@ void *POSIX_Init (
    struct sched_param sch_param;     /* schedule parameters */
    struct periodic_params params_a, params_b, params_c, params_c1;
 
-   puts( "\n\n*** POSIX Timers Test 01 ***" );
+   TEST_BEGIN();
 
    data.updated = FALSE;
 
@@ -455,6 +457,6 @@ void *POSIX_Init (
 
    sleep(5);
 
-   puts( "*** END OF POSIX Timers Test 01 ***" );
+   TEST_END();
    rtems_test_exit (0);
  }

@@ -1,10 +1,21 @@
-/*
+/**
+ * @file
  *
- * Support for gnat/rtems interrupts and exception handling.
- * Jiri Gaisler, ESA/ESTEC, 17-02-1999.
+ * @ingroup sparc_erc32
+ *
+ * @brief Support for gnat/rtems interrupts and exception handling
  */
 
-void __gnat_install_handler_common( int, int );
+/*
+ * COPYRIGHT (c) 1999.
+ * European Space Agency.
+ *
+ * The license and distribution terms for this file may be
+ * found in the file LICENSE in this distribution or at
+ * http://www.rtems.org/license/LICENSE.
+ */
+
+#include <bsp/gnatcommon.h>
 
 void
 __gnat_install_handler (void)

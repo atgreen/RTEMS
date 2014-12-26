@@ -1,14 +1,15 @@
-/*  cpuModel.h
- *
+/*
  *  This file contains declaration for variables and code
  *  that may be used to get the Intel Cpu identification
  *  that has been performed by checkCPUtypeSetCr0 function.
- *
+ */
+
+/*
  *  COPYRIGHT (c) 1998 valette@crf.canon.fr
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef libcpu_cpuModel_h
@@ -30,7 +31,8 @@ extern char x86_vendor_id[13];
 extern int have_cpuid;
 extern unsigned char Cx86_step; /* cyrix processor identification */
 
-extern void printCpuInfo(); /* Display this information on console in ascii form */
+/* Display this information on console in ascii form */
+extern void printCpuInfo(void);
 
 /* determine if the CPU has a TSC */
 #define x86_has_tsc() \

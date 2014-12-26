@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (c) 2008-2013 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2008-2014 embedded brains GmbH.  All rights reserved.
  *
  *  embedded brains GmbH
  *  Obere Lagerstr. 30
@@ -15,7 +15,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems/asm.h>
@@ -44,7 +44,7 @@
 	.extern	_ARMV4_Exception_data_abort_default
 	.extern	_ARMV4_Exception_pref_abort_default
 	.extern	_ARMV4_Exception_reserved_default
-	.extern	_ARMV4_Exception_irq_default
+	.extern	_ARMV4_Exception_interrupt
 	.extern	_ARMV4_Exception_fiq_default
 	.extern	_ARMV7M_Exception_default
 
@@ -110,7 +110,7 @@ handler_addr_reserved:
 
 handler_addr_irq:
 
-	.word	_ARMV4_Exception_irq_default
+	.word	_ARMV4_Exception_interrupt
 
 handler_addr_fiq:
 
@@ -266,6 +266,8 @@ twiddle:
 
 #elif defined(ARM_MULTILIB_ARCH_V7M)
 
+#include <rtems/score/armv7m.h>
+
 	.syntax	unified
 
 	.extern	bsp_stack_main_end
@@ -299,6 +301,19 @@ bsp_start_vector_table_end:
 	.thumb_func
 
 _start:
+
+#ifdef ARM_MULTILIB_VFP
+	/*
+	 * Enable CP10 and CP11 coprocessors for privileged and user mode in
+	 * CPACR (bits 20-23).  Ensure that write to register completes.
+	 */
+	ldr	r0, =ARMV7M_CPACR
+	ldr	r1, [r0]
+	orr	r1, r1, #(0xf << 20)
+	str	r1, [r0]
+	dsb
+	isb
+#endif
 
 	ldr	sp, =bsp_stack_main_end
 	ldr	lr, =bsp_start_hook_0_done + 1

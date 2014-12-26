@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  COPYRIGHT (c) Yann Sionneau <yann.sionneau@telecom-sudparis.eu> (GSoC 2010)
  *  Telecom SudParis
@@ -47,7 +47,7 @@ void benchmark_timer_initialize(void)
                              /* This value is in microseconds. */
 #define LEAST_VALID       4  /* Don't trust a clicks value lower than this */
 
-uint32_t benchmark_timer_read(void)
+benchmark_timer_t benchmark_timer_read(void)
 {
   uint32_t ticks;
   uint32_t total;

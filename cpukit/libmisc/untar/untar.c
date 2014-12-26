@@ -16,13 +16,14 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#include <sys/param.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -65,9 +66,6 @@
  *************************************************************************/
 
 #define MAX_NAME_FIELD_SIZE      99
-
-#define MIN(a,b)   ((a)>(b)?(b):(a))
-
 
 /**************************************************************************
  * This converts octal ASCII number representations into an

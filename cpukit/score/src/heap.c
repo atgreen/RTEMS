@@ -14,7 +14,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -159,7 +159,7 @@ static uint32_t instance = 0;
   )
   {
     /* FIXME */
-    _Internal_error_Occurred( INTERNAL_ERROR_CORE, false, 0xdeadbeef );
+    _Terminate( INTERNAL_ERROR_CORE, false, 0xdeadbeef );
   }
 #endif
 
@@ -228,7 +228,8 @@ uintptr_t _Heap_Initialize(
       return 0;
     }
   }
-  min_block_size = _Heap_Align_up( sizeof( Heap_Block ), page_size );
+
+  min_block_size = _Heap_Min_block_size( page_size );
 
   area_ok = _Heap_Get_first_and_last_block(
     heap_area_begin,
@@ -284,6 +285,8 @@ uintptr_t _Heap_Initialize(
   stats->free_blocks = 1;
   stats->max_free_blocks = 1;
   stats->instance = instance++;
+
+  _Heap_Protection_set_delayed_free_fraction( heap, 2 );
 
   _HAssert( _Heap_Is_aligned( heap->page_size, CPU_ALIGNMENT ) );
   _HAssert( _Heap_Is_aligned( heap->min_block_size, page_size ) );

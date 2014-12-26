@@ -7,9 +7,12 @@
 /*
  *  GR-RASTA-IO PCI board driver
  *
+ *  COPYRIGHT (c) 2007.
+ *  Aeroflex Gaisler AB.
+ *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems/bspIo.h>
@@ -57,8 +60,8 @@ struct gpio_reg *gpio0, *gpio1;
 
 /* static rtems_isr pci_interrupt_handler (rtems_vector_number v) { */
 
-/*     volatile unsigned int *pci_int = (volatile unsigned int *) 0x80000168; */
-/*     volatile unsigned int *pci_mem = (volatile unsigned int *) 0xb0400000; */
+/*     volatile unsigned int *pci_int = (volatile unsigned int *) 0x80000168;*/
+/*     volatile unsigned int *pci_mem = (volatile unsigned int *) 0xb0400000;*/
 
 /*     if (*pci_int & 0x20) { */
 
@@ -123,7 +126,7 @@ static rtems_isr rasta_interrupt_handler (rtems_vector_number v)
 
 }
 
-void rasta_interrrupt_register(void *handler, int irqno, void *arg)
+static void rasta_interrrupt_register(void *handler, int irqno, void *arg)
 {
   DBG("RASTA: Registering irq %d\n",irqno);
   if ( irqno == UART0_IRQNO ){
@@ -198,8 +201,9 @@ void rasta_interrrupt_register(void *handler, int irqno, void *arg)
 }
 
 
-int rasta_get_gpio(struct ambapp_bus *abus, int index, struct gpio_reg **regs,
-                   int *irq)
+static int rasta_get_gpio(
+  struct ambapp_bus *abus, int index, struct gpio_reg **regs,
+  int *irq)
 {
   struct ambapp_apb_info dev;
   int cores;
@@ -228,7 +232,7 @@ static struct ambapp_mmap amba_maps[3];
 
 int rasta_register(void)
 {
-    unsigned int bar0, bar1, data;
+    uint32_t bar0, bar1, data;
 
     unsigned int *page0 = NULL;
     unsigned int *apb_base = NULL;
@@ -243,7 +247,8 @@ int rasta_register(void)
     }
 
     /* Search old PCI vendor/device id. */
-    if ( (!found) && (BSP_pciFindDevice(0x16E3, 0x0210, 0, &bus, &dev, &fun) == 0) ) {
+    if ( (!found) &&
+            (BSP_pciFindDevice(0x16E3, 0x0210, 0, &bus, &dev, &fun) == 0) ) {
       found = 1;
     }
 
@@ -257,7 +262,7 @@ int rasta_register(void)
     pci_read_config_dword(bus, dev, fun, 0x14, &bar1);
 
     page0 = (unsigned int *)(bar0 + 0x400000);
-    *page0 = 0x80000000;                  /* Point PAGE0 to start of APB       */
+    *page0 = 0x80000000;                  /* Point PAGE0 to start of APB     */
 
     apb_base = (unsigned int *)(bar0+APB2_OFFSET);
 
@@ -279,7 +284,8 @@ int rasta_register(void)
     irq = (struct irqmp_regs *) (bar0+IRQ_OFFSET);
     irq->iclear = 0xffff;
     irq->ilevel = 0;
-    irq->mask[0] = 0xffff & ~(UART0_IRQ|UART1_IRQ|SPW0_IRQ|SPW1_IRQ|SPW2_IRQ|GRCAN_IRQ|BRM_IRQ);
+    irq->mask[0] = 0xffff &
+           ~(UART0_IRQ|UART1_IRQ|SPW0_IRQ|SPW1_IRQ|SPW2_IRQ|GRCAN_IRQ|BRM_IRQ);
 
     /* Configure AT697 ioport bit 7 to input pci irq */
     regs->PIO_Direction &= ~(1<<7);
@@ -340,7 +346,7 @@ int rasta_register(void)
     /*brm_register(bar0   +  BRM_OFFSET, bar1);*/
     /* register the BRM RASTA driver, use 128k on RASTA SRAM... */
     b1553brm_rasta_int_reg=rasta_interrrupt_register;
-	  if ( b1553brm_rasta_register(&abus,2,0,3,bar1,0x40000000) ){
+    if ( b1553brm_rasta_register(&abus,2,0,3,bar1,0x40000000) ){
       printk("Failed to register BRM RASTA driver\n");
       return -1;
     }

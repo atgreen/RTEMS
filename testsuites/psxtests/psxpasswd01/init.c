@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -16,6 +16,8 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
+
+const char rtems_test_name[] = "PSXPASSWD 1";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument ignored);
@@ -67,7 +69,7 @@ rtems_task Init(
   struct passwd *pw;
   struct group  *gr;
 
-  puts( "*** PASSWORD/GROUP TEST - 01 ***" );
+  TEST_BEGIN();
 
   /* getpwent */
   puts( "Init - getpwent() -- OK, result should be NULL" );
@@ -96,17 +98,7 @@ rtems_task Init(
   rtems_test_assert( pw );
   print_passwd( pw );
 
-  puts( "Init - getpwent() (2) -- OK" );
-  pw = getpwent();
-  rtems_test_assert( pw );
-  print_passwd( pw );
-
-  puts( "Init - getpwent() (3) -- OK" );
-  pw = getpwent();
-  rtems_test_assert( pw );
-  print_passwd( pw );
-
-  puts( "Init - getpwent() (4) -- result should be NULL" );
+  puts( "Init - getpwent() (2) -- result should be NULL" );
   pw = getpwent();
   rtems_test_assert( !pw );
 
@@ -117,28 +109,13 @@ rtems_task Init(
   rtems_test_assert( gr );
   print_group( gr );
 
-  puts( "Init - getgrent() (2) -- OK" );
-  gr = getgrent();
-  rtems_test_assert( gr );
-  print_group( gr );
-
-  puts( "Init - getgrent() (3) -- OK" );
-  gr = getgrent();
-  rtems_test_assert( gr );
-  print_group( gr );
-
-  puts( "Init - getgrent() (4) -- result should be NULL" );
+  puts( "Init - getgrent() (2) -- result should be NULL" );
   gr = getgrent();
   rtems_test_assert( !gr );
 
   /* getpwnam */
   puts( "Init - getpwnam(\"root\") -- OK" );
   pw = getpwnam( "root" );
-  rtems_test_assert( pw );
-  print_passwd( pw );
-
-  puts( "Init - getpwnam(\"rtems\") -- OK" );
-  pw = getpwnam( "rtems" );
   rtems_test_assert( pw );
   print_passwd( pw );
 
@@ -152,10 +129,14 @@ rtems_task Init(
   rtems_test_assert( pw );
   print_passwd( pw );
 
-  puts( "Init - getpwuid(1) -- OK" );
-  pw = getpwuid( 1 );
-  rtems_test_assert( pw );
-  print_passwd( pw );
+  rtems_test_assert( strcmp(pw->pw_name, "root") == 0 );
+  rtems_test_assert( strcmp(pw->pw_passwd, "") == 0 );
+  rtems_test_assert( pw->pw_uid == 0 );
+  rtems_test_assert( pw->pw_gid == 0 );
+  rtems_test_assert( strcmp(pw->pw_comment, "") == 0 );
+  rtems_test_assert( strcmp(pw->pw_gecos, "") == 0 );
+  rtems_test_assert( strcmp(pw->pw_dir, "") == 0 );
+  rtems_test_assert( strcmp(pw->pw_shell, "") == 0 );
 
   puts( "Init - getpwuid(4) -- result should be NULL" );
   pw = getpwuid( 4 );
@@ -167,21 +148,16 @@ rtems_task Init(
   rtems_test_assert( gr );
   print_group( gr );
 
-  puts( "Init - getgrnam(\"rtems\") -- OK" );
-  gr = getgrnam("rtems");
-  rtems_test_assert( gr );
-  print_group( gr );
-
   /* getgrgid */
   puts( "Init - getgrgid(0) -- OK" );
   gr = getgrgid(0);
   rtems_test_assert( gr );
   print_group( gr );
 
-  puts( "Init - getgrgid(1) -- OK" );
-  gr = getgrgid(1);
-  rtems_test_assert( gr );
-  print_group( gr );
+  rtems_test_assert( strcmp(gr->gr_name, "root") == 0 );
+  rtems_test_assert( strcmp(gr->gr_passwd, "") == 0 );
+  rtems_test_assert( gr->gr_gid == 0 );
+  rtems_test_assert( gr->gr_mem[0] == NULL );
 
   puts( "Init - getgrgid(4) -- result should be NULL");
   gr = getgrgid( 4 );
@@ -195,7 +171,7 @@ rtems_task Init(
   puts( "Init - endgrent() -- OK" );
   endgrent();
 
-  puts( "*** END OF PASSWORD/GROUP TEST - 01 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -204,10 +180,13 @@ rtems_task Init(
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 6
 
 #define CONFIGURE_MAXIMUM_TASKS 1
+#define CONFIGURE_MAXIMUM_POSIX_KEYS 1
+#define CONFIGURE_MAXIMUM_POSIX_KEY_VALUE_PAIRS 1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

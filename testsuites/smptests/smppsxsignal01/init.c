@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -20,6 +20,8 @@
 
 #include <pthread.h>
 #include <signal.h>
+
+const char rtems_test_name[] = "SMPPSXSIGNAL 1";
 
 #define TEST_SIGNAL SIGUSR1
 
@@ -80,14 +82,14 @@ static void signal_send(test_context *ctx, test_state new_state)
 static void check_consumer_processor(const test_context *ctx)
 {
   rtems_test_assert(
-    ctx->consumer_processor == rtems_smp_get_current_processor()
+    ctx->consumer_processor == rtems_get_current_processor()
   );
 }
 
 static void check_producer_processor(const test_context *ctx)
 {
   rtems_test_assert(
-    ctx->producer_processor == rtems_smp_get_current_processor()
+    ctx->producer_processor == rtems_get_current_processor()
   );
 }
 
@@ -95,7 +97,7 @@ static void *producer(void *arg)
 {
   test_context *ctx = arg;
 
-  ctx->producer_processor = rtems_smp_get_current_processor();
+  ctx->producer_processor = rtems_get_current_processor();
 
   rtems_test_assert(ctx->consumer_processor != ctx->producer_processor);
 
@@ -118,7 +120,7 @@ static void test(void)
   void *producer_status;
 
   ctx->consumer = pthread_self();
-  ctx->consumer_processor = rtems_smp_get_current_processor();
+  ctx->consumer_processor = rtems_get_current_processor();
 
   memset(&new_action, 0, sizeof(new_action));
   new_action.sa_handler = signal_handler;
@@ -161,14 +163,13 @@ static void test(void)
 
 static void *POSIX_Init(void *arg)
 {
-  puts("\n\n*** TEST SMPPSXSIGNAL 1 ***");
+  TEST_BEGIN();
 
-  if (rtems_smp_get_processor_count() >= 2) {
+  if (rtems_get_processor_count() >= 2) {
     test();
   }
 
-  puts("*** END OF TEST SMPPSXSIGNAL 1 ***");
-
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -178,6 +179,8 @@ static void *POSIX_Init(void *arg)
 #define CONFIGURE_SMP_APPLICATION
 
 #define CONFIGURE_SMP_MAXIMUM_PROCESSORS 2
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_MAXIMUM_POSIX_THREADS 2
 

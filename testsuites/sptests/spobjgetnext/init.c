@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,6 +17,8 @@
 #include "system.h"
 
 #include <rtems/rtems/tasksimpl.h>
+
+const char rtems_test_name[] = "SPOBJGETNEXT";
 
 /* prototypes */
 int scan_objects(
@@ -71,7 +73,7 @@ rtems_task Init(
   Objects_Information  *info;
   Objects_Maximum       active_count;
 
-  puts( "\n\n*** TEST OBJECT GET NEXT ***" );
+  TEST_BEGIN();
 
   info      = &_RTEMS_tasks_Information;
   main_task = rtems_task_self();
@@ -106,9 +108,11 @@ rtems_task Init(
   /* XXX try with a manager with no objects created */
 
   puts( "Init - _Objects_Active_count" );
+  _Objects_Allocator_lock();
   active_count = _Objects_Active_count( info );
+  _Objects_Allocator_unlock();
   rtems_test_assert( active_count == 1 );
 
-  puts( "*** END OF TEST OBJECT GET NEXT ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

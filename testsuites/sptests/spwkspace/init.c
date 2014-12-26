@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -18,6 +18,8 @@
 #include <string.h>
 
 #include <rtems/score/wkspace.h>
+
+const char rtems_test_name[] = "SPWKSPACE";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -54,6 +56,17 @@ static void test_workspace_string_duplicate(void)
   _Workspace_Free( dup_e );
 }
 
+static void test_workspace_allocate_aligned(void)
+{
+  uintptr_t align = 512;
+  void *p = _Workspace_Allocate_aligned( 1, align );
+
+  rtems_test_assert( p != NULL );
+  rtems_test_assert( ((uintptr_t) p & (align - 1)) == 0 );
+
+  _Workspace_Free( p );
+}
+
 rtems_task Init(
   rtems_task_argument argument
 )
@@ -62,7 +75,7 @@ rtems_task Init(
   bool                    retbool;
   Heap_Information_block  info;
 
-  puts( "\n\n*** TEST WORKSPACE CLASSIC API ***" );
+  TEST_BEGIN();
 
   puts( "rtems_workspace_get_information - null pointer" );
   retbool = rtems_workspace_get_information( NULL );
@@ -100,7 +113,10 @@ rtems_task Init(
   puts( "_Workspace_String_duplicate - samples" );
   test_workspace_string_duplicate();
 
-  puts( "*** END OF TEST WORKSPACE CLASSIC API ***" );
+  puts( "_Workspace_Allocate_aligned" );
+  test_workspace_allocate_aligned();
+
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -108,6 +124,8 @@ rtems_task Init(
 
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_DOES_NOT_NEED_CLOCK_DRIVER
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

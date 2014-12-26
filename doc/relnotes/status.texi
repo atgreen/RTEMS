@@ -1,5 +1,5 @@
 @c
-@c  COPYRIGHT (c) 1989-2011.
+@c  COPYRIGHT (c) 1989-2014.
 @c  On-Line Applications Research Corporation (OAR).
 @c  All rights reserved.
 
@@ -97,7 +97,7 @@ following processors and target boards:
 
 @end itemize
 
-Support for the Cygnus NEWLIB Standard C Library is
+Support for the NEWLIB Standard C Library is
 provided with this release which may be used on any of the RTEMS
 supported targets.  The BSPs only provide support for console
 I/O only using this library.  Support for the reentrancy
@@ -147,6 +147,6 @@ development environment.
 @node RTEMS Problem Reporting, RTEMS PROBLEM REPORT, Development Environment Problems, Development Environment Status Known Problems
 @subsection RTEMS Problem Reporting
 
-The RTEMS Project uses the GNATS Problem Reporting and Tracking System.
+The RTEMS Project uses the Bugzilla Problem Reporting and Tracking System.
 Instructions for reporting a problem are located at
-@uref{http://www.rtems.com/bugs.html}.
+@uref{http://rtems.org/wiki/index.php/RTEMSBugReporting}.

@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  */
 
@@ -34,13 +34,13 @@ extern "C" {
  */
 
 int b1553brm_rasta_register(
- struct ambapp_bus *bus,
- unsigned int clksel,
- unsigned int clkdiv,
- unsigned int brm_freq,
- unsigned int memarea,
- unsigned int hw_address
- );
+  struct ambapp_bus *bus,
+  unsigned int clksel,
+  unsigned int clkdiv,
+  unsigned int brm_freq,
+  unsigned int memarea,
+  unsigned int hw_address
+);
 
 
 /* This function must be called on BRM interrupt. Called from the

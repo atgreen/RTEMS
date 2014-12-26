@@ -1,15 +1,15 @@
 /*
- * Copyright (c) 2012 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2012-2014 embedded brains GmbH.  All rights reserved.
  *
  *  embedded brains GmbH
- *  Obere Lagerstr. 30
+ *  Donierstr. 4
  *  82178 Puchheim
  *  Germany
  *  <rtems@embedded-brains.de>
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -20,46 +20,65 @@
 
 #include <rtems.h>
 
-static void test_internal_error_description(void)
+const char rtems_test_name[] = "SPINTERNALERROR 2";
+
+static void test_internal_error_text(void)
 {
   rtems_fatal_code error = 0;
-  const char *desc = NULL;
-  const char *desc_last;
+  const char *text = NULL;
+  const char *text_last;
 
   do {
-    desc_last = desc;
-    desc = rtems_internal_error_description( error );
+    text_last = text;
+    text = rtems_internal_error_text( error );
     ++error;
-    puts( desc );
-  } while ( desc != desc_last );
+    puts( text );
+  } while ( text != text_last );
 
-  rtems_test_assert( error - 3 == INTERNAL_ERROR_CPU_ISR_INSTALL_VECTOR );
+  rtems_test_assert( error - 3 == INTERNAL_ERROR_RESOURCE_IN_USE );
 }
 
-static void test_fatal_source_description(void)
+static void test_fatal_source_text(void)
 {
   rtems_fatal_source source = 0;
-  const char *desc = NULL;
-  const char *desc_last;
+  const char *text = NULL;
+  const char *text_last;
 
   do {
-    desc_last = desc;
-    desc = rtems_fatal_source_description( source );
+    text_last = text;
+    text = rtems_fatal_source_text( source );
     ++source;
-    puts( desc );
-  } while ( desc != desc_last );
+    puts( text );
+  } while ( text != text_last );
 
-  rtems_test_assert( source - 3 == RTEMS_FATAL_SOURCE_EXCEPTION );
+  rtems_test_assert( source - 3 == RTEMS_FATAL_SOURCE_SMP );
+}
+
+static void test_status_text(void)
+{
+  rtems_status_code code = 0;
+  const char *text = NULL;
+  const char *text_last;
+
+  do {
+    text_last = text;
+    text = rtems_status_text( code );
+    ++code;
+    puts( text );
+  } while ( text != text_last );
+
+  rtems_test_assert( code - 3 == RTEMS_PROXY_BLOCKING );
 }
 
 static void Init(rtems_task_argument arg)
 {
-  puts("\n\n*** TEST SPINTERNALERROR 2 ***");
+  TEST_BEGIN();
 
-  test_internal_error_description();
-  test_fatal_source_description();
+  test_internal_error_text();
+  test_fatal_source_text();
+  test_status_text();
 
-  puts("*** END OF TEST SPINTERNALERROR 2 ***");
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -67,9 +86,9 @@ static void Init(rtems_task_argument arg)
 #define CONFIGURE_APPLICATION_DOES_NOT_NEED_CLOCK_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 #define CONFIGURE_MAXIMUM_TASKS 1
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

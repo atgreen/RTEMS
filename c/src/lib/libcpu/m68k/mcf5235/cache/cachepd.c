@@ -4,11 +4,12 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems.h>
 #include <mcf5235/mcf5235.h>
+#include "cache_.h"
 
 /*
  *  Default value for the cacr is set by the BSP

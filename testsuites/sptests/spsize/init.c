@@ -16,7 +16,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -25,6 +25,8 @@
 
 #define CONFIGURE_INIT
 #include "system.h"
+
+const char rtems_test_name[] = "SPSIZE";
 
 /* #define HAVE_MENU */
 
@@ -40,9 +42,9 @@ rtems_task Init(
 
   setvbuf(stdout, 0, _IONBF, 0);
 
-  puts( "\n*** RTEMS SIZE PROGRAM ***" );
+  TEST_BEGIN();
   size_rtems( 1 );
-  puts( "*** END OF RTEMS SIZE PROGRAM ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 #if defined(HAVE_MENU)
   do {

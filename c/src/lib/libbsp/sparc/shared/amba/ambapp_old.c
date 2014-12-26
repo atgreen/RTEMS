@@ -6,7 +6,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <ambapp.h>
@@ -19,7 +19,7 @@ struct ambapp_dev_find_match_arg {
 };
 
 /* AMBA PP find routines */
-int ambapp_dev_find_match(struct ambapp_dev *dev, int index, void *arg)
+static int ambapp_dev_find_match(struct ambapp_dev *dev, int index, void *arg)
 {
   struct ambapp_dev_find_match_arg *p = arg;
 

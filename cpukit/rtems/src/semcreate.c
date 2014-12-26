@@ -6,12 +6,12 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2009.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -60,7 +60,7 @@ rtems_status_code rtems_semaphore_create(
   rtems_id            *id
 )
 {
-  register Semaphore_Control *the_semaphore;
+  Semaphore_Control          *the_semaphore;
   CORE_mutex_Attributes       the_mutex_attr;
   CORE_semaphore_Attributes   the_semaphore_attr;
   CORE_mutex_Status           mutex_status;
@@ -78,11 +78,18 @@ rtems_status_code rtems_semaphore_create(
       return RTEMS_MP_NOT_CONFIGURED;
 
     if ( _Attributes_Is_inherit_priority( attribute_set ) ||
-         _Attributes_Is_priority_ceiling( attribute_set ) )
+         _Attributes_Is_priority_ceiling( attribute_set ) ||
+         _Attributes_Is_multiprocessor_resource_sharing( attribute_set ) )
       return RTEMS_NOT_DEFINED;
 
   } else
 #endif
+
+  if ( _Attributes_Is_multiprocessor_resource_sharing( attribute_set ) &&
+       !( _Attributes_Is_binary_semaphore( attribute_set ) &&
+         !_Attributes_Is_priority( attribute_set ) ) ) {
+    return RTEMS_NOT_DEFINED;
+  }
 
   if ( _Attributes_Is_inherit_priority( attribute_set ) ||
               _Attributes_Is_priority_ceiling( attribute_set ) ) {
@@ -93,19 +100,26 @@ rtems_status_code rtems_semaphore_create(
 
   }
 
-  if ( _Attributes_Is_inherit_priority( attribute_set ) &&
-       _Attributes_Is_priority_ceiling( attribute_set ) )
+  if ( !_Attributes_Has_at_most_one_protocol( attribute_set ) )
     return RTEMS_NOT_DEFINED;
 
   if ( !_Attributes_Is_counting_semaphore( attribute_set ) && ( count > 1 ) )
     return RTEMS_INVALID_NUMBER;
 
-  _Thread_Disable_dispatch();             /* prevents deletion */
+#if !defined(RTEMS_SMP)
+  /*
+   * On uni-processor configurations the Multiprocessor Resource Sharing
+   * Protocol is equivalent to the Priority Ceiling Protocol.
+   */
+  if ( _Attributes_Is_multiprocessor_resource_sharing( attribute_set ) ) {
+    attribute_set |= RTEMS_PRIORITY_CEILING | RTEMS_PRIORITY;
+  }
+#endif
 
   the_semaphore = _Semaphore_Allocate();
 
   if ( !the_semaphore ) {
-    _Thread_Enable_dispatch();
+    _Objects_Allocator_unlock();
     return RTEMS_TOO_MANY;
   }
 
@@ -114,7 +128,7 @@ rtems_status_code rtems_semaphore_create(
        ! ( _Objects_MP_Allocate_and_open( &_Semaphore_Information, name,
                             the_semaphore->Object.id, false ) ) ) {
     _Semaphore_Free( the_semaphore );
-    _Thread_Enable_dispatch();
+    _Objects_Allocator_unlock();
     return RTEMS_TOO_MANY;
   }
 #endif
@@ -146,6 +160,22 @@ rtems_status_code rtems_semaphore_create(
       &the_semaphore_attr,
       count
     );
+#if defined(RTEMS_SMP)
+  } else if ( _Attributes_Is_multiprocessor_resource_sharing( attribute_set ) ) {
+    MRSP_Status mrsp_status = _MRSP_Initialize(
+      &the_semaphore->Core_control.mrsp,
+      priority_ceiling,
+      _Thread_Get_executing(),
+      count != 1
+    );
+
+    if ( mrsp_status != MRSP_SUCCESSFUL ) {
+      _Semaphore_Free( the_semaphore );
+      _Objects_Allocator_unlock();
+
+      return _Semaphore_Translate_MRSP_status_code( mrsp_status );
+    }
+#endif
   } else {
     /*
      *  It is either simple binary semaphore or a more powerful mutex
@@ -179,14 +209,14 @@ rtems_status_code rtems_semaphore_create(
 
     mutex_status = _CORE_mutex_Initialize(
       &the_semaphore->Core_control.mutex,
-      _Thread_Executing,
+      _Thread_Get_executing(),
       &the_mutex_attr,
-      (count == 1) ? CORE_MUTEX_UNLOCKED : CORE_MUTEX_LOCKED
+      count != 1
     );
 
     if ( mutex_status == CORE_MUTEX_STATUS_CEILING_VIOLATED ) {
       _Semaphore_Free( the_semaphore );
-      _Thread_Enable_dispatch();
+      _Objects_Allocator_unlock();
       return RTEMS_INVALID_PRIORITY;
     }
   }
@@ -212,6 +242,6 @@ rtems_status_code rtems_semaphore_create(
       0                          /* Not used */
     );
 #endif
-  _Thread_Enable_dispatch();
+  _Objects_Allocator_unlock();
   return RTEMS_SUCCESSFUL;
 }

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -19,6 +19,8 @@
 #include <mqueue.h>
 
 #include "test_support.h"
+
+const char rtems_test_name[] = "PSXMSGQ 3";
 
 /* forward declarations to avoid warnings */
 rtems_timer_service_routine mq_send_timer(rtems_id timer, void *arg);
@@ -50,7 +52,7 @@ void *POSIX_Init(
   rtems_id           timer;
   rtems_status_code  rc;
 
-  puts( "\n\n*** POSIX MESSAGE QUEUE TEST 3 ***" );
+  TEST_BEGIN();
 
   attr.mq_maxmsg  = 1;
   attr.mq_msgsize = sizeof(int);
@@ -106,7 +108,7 @@ void *POSIX_Init(
 
   puts( "Init - mq_send from ISR returned correct status" );
 
-  puts( "*** END OF POSIX MESSAGE QUEUE TEST 3 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 
   return NULL; /* just so the compiler thinks we returned something */

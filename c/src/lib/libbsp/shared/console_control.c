@@ -16,7 +16,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
@@ -26,6 +26,7 @@
 #include <termios.h>
 
 #include <rtems/termiostypes.h>
+#include <rtems/console.h>
 #include <libchip/serial.h>
 #include "console_private.h"
 

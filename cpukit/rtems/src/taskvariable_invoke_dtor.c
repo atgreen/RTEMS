@@ -6,18 +6,19 @@
  */
 
 /*
- *  COPYRIGHT (c) 1989-2007.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#if !defined(RTEMS_SMP)
 #include <rtems/rtems/tasksimpl.h>
 #include <rtems/score/threadimpl.h>
 #include <rtems/score/wkspace.h>
@@ -31,7 +32,7 @@ void _RTEMS_Tasks_Invoke_task_variable_dtor(
   void *value;
 
   dtor = tvp->dtor;
-  if (_Thread_Is_executing(the_thread)) {
+  if (_Thread_Get_executing() == the_thread) {
     value = *tvp->ptr;
     *tvp->ptr = tvp->gval;
   } else {
@@ -43,3 +44,4 @@ void _RTEMS_Tasks_Invoke_task_variable_dtor(
 
   _Workspace_Free(tvp);
 }
+#endif

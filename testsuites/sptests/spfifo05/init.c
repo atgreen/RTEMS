@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -23,6 +23,8 @@
 
 #include <rtems.h>
 #include <rtems/libio.h>
+
+const char rtems_test_name[] = "SPFIFO 5";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -134,7 +136,7 @@ rtems_task Init(
   uint32_t released = 0;
   int flag = 1;
 
-  puts("\n*** FIFO / PIPE TESTS - 5 ***");
+  TEST_BEGIN();
 
   memset( sendBuf, '1', SEND_RCV_BUFSIZ - 30 );
   memset( sendBuf, '2', 29 );
@@ -251,17 +253,18 @@ rtems_task Init(
   status = unlink("/fifo");
   rtems_test_assert(status == 0);
   
-  puts("*** END OF FIFO / PIPE OPEN TEST - 6 ***");
+  TEST_END();
   rtems_test_exit(0);
 }
 
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_DOES_NOT_NEED_CLOCK_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 6
 
 #define CONFIGURE_MAXIMUM_TASKS 3
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

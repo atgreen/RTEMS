@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (c) 2008-2013 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2008-2014 embedded brains GmbH.  All rights reserved.
  *
  *  embedded brains GmbH
  *  Dornierstr. 4
@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef LIBBSP_ARM_SHARED_LINKER_SYMBOLS_H
@@ -83,12 +83,6 @@ LINKER_SYMBOL(bsp_section_rodata_size)
 LINKER_SYMBOL(bsp_section_rodata_load_begin)
 LINKER_SYMBOL(bsp_section_rodata_load_end)
 
-LINKER_SYMBOL(bsp_section_armexidx_begin)
-LINKER_SYMBOL(bsp_section_armexidx_end)
-LINKER_SYMBOL(bsp_section_armexidx_size)
-LINKER_SYMBOL(bsp_section_armexidx_load_begin)
-LINKER_SYMBOL(bsp_section_armexidx_load_end)
-
 LINKER_SYMBOL(bsp_section_data_begin)
 LINKER_SYMBOL(bsp_section_data_end)
 LINKER_SYMBOL(bsp_section_data_size)
@@ -119,6 +113,12 @@ LINKER_SYMBOL(bsp_section_stack_begin)
 LINKER_SYMBOL(bsp_section_stack_end)
 LINKER_SYMBOL(bsp_section_stack_size)
 
+LINKER_SYMBOL(bsp_section_nocache_begin)
+LINKER_SYMBOL(bsp_section_nocache_end)
+LINKER_SYMBOL(bsp_section_nocache_size)
+LINKER_SYMBOL(bsp_section_nocache_load_begin)
+LINKER_SYMBOL(bsp_section_nocache_load_end)
+
 LINKER_SYMBOL(bsp_vector_table_begin)
 LINKER_SYMBOL(bsp_vector_table_end)
 LINKER_SYMBOL(bsp_vector_table_size)
@@ -130,9 +130,17 @@ LINKER_SYMBOL(bsp_start_vector_table_size)
 LINKER_SYMBOL(bsp_translation_table_base)
 LINKER_SYMBOL(bsp_translation_table_end)
 
+LINKER_SYMBOL(bsp_nocache_heap_begin)
+LINKER_SYMBOL(bsp_nocache_heap_end)
+LINKER_SYMBOL(bsp_nocache_heap_size)
+
 #define BSP_FAST_TEXT_SECTION __attribute__((section(".bsp_fast_text")))
 
 #define BSP_FAST_DATA_SECTION __attribute__((section(".bsp_fast_data")))
+
+#define BSP_NOCACHE_SECTION __attribute__((section(".bsp_nocache")))
+
+LINKER_SYMBOL(bsp_processor_count)
 
 /** @} */
 

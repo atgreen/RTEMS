@@ -1,8 +1,10 @@
 /*
- *  This include file contains all board IO definitions.
- *
  *  generic sh4 BSP
  *
+ *  This include file contains all board IO definitions.
+ */
+
+/*
  *  Copyright (C) 2001 OKTET Ltd., St.-Petersburg, Russia
  *  Author: Victor V. Vengerov <vvv@oktet.ru>
  *
@@ -21,7 +23,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  Minor adaptations for sh2 by:
  *  John M. Mills (jmills@tga.com)
@@ -38,34 +40,27 @@
 #ifndef _BSP_H
 #define _BSP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <rtems.h>
 #include <rtems/clockdrv.h>
 #include <rtems/console.h>
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
+#include <termios.h> /* for tcflag_t */
 
 #include "rtems/score/sh7750_regs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Constants */
-
-/*
- *  Simple spin delay in microsecond units for device drivers.
- *  This is very dependent on the clock speed of the target.
- */
-
-#define delay( microseconds ) CPU_delay(microseconds)
-#define sh_delay( microseconds ) CPU_delay( microseconds )
 
 /*
  * Defined in the linker script 'linkcmds'
  */
 
-extern void *CPU_Interrupt_stack_low ;
-extern void *CPU_Interrupt_stack_high ;
+extern void *CPU_Interrupt_stack_low;
+extern void *CPU_Interrupt_stack_high;
 
 /*
  * Defined in start.S
@@ -87,8 +82,16 @@ extern uint32_t   boot_mode;
       console_read, console_write, console_control }
 
 /*
- * NOTE: Use the standard Clock driver entry
+ * BSP methods that cross file boundaries.
  */
+void bsp_hw_init(void);
+void early_hw_init(void);
+void bsp_cache_on(void);
+extern int _sci_get_brparms(
+  tcflag_t      cflag,
+  unsigned char *smr,
+  unsigned char *brr
+);
 
 #ifdef __cplusplus
 }

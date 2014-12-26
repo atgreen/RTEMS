@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -637,7 +637,7 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  *
  *  H8300 Specific Information:
  *
- *  XXX
+ *  TODO: As of 8 October 2014, this method is not implemented for the SX.
  */
 
 #if defined(__H8300H__) || defined(__H8300S__)
@@ -649,7 +649,10 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
     (_isr_cookie) = __ccr; \
   } while (0)
 #else
-#define _CPU_ISR_Disable( _isr_cookie ) (_isr_cookie) = 0
+#define _CPU_ISR_Disable( _isr_cookie ) \
+  do { \
+    (_isr_cookie) = 0; \
+  } while (0)
 #endif
 
 
@@ -660,7 +663,7 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  *
  *  H8300 Specific Information:
  *
- *  XXX
+ *  TODO: As of 8 October 2014, this method is not implemented for the SX.
  */
 
 #if defined(__H8300H__) || defined(__H8300S__)
@@ -670,7 +673,10 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
     __asm__ volatile( "ldc %0, ccr" :  : "m" (__ccr) ); \
   } while (0)
 #else
-#define _CPU_ISR_Enable( _isr_cookie )
+#define _CPU_ISR_Enable( _isr_cookie ) \
+  do { \
+    (_isr_cookie) = (_isr_cookie); \
+  } while (0)
 #endif
 
 /*
@@ -681,7 +687,7 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  *
  *  H8300 Specific Information:
  *
- *  XXX
+ *  TODO: As of 8 October 2014, this method is not implemented for the SX.
  */
 
 #if defined(__H8300H__) || defined(__H8300S__)
@@ -691,7 +697,11 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
     __asm__ volatile( "ldc %0, ccr ; orc #0x80,ccr " :  : "m" (__ccr) ); \
   } while (0)
 #else
-#define _CPU_ISR_Flash( _isr_cookie )
+#define _CPU_ISR_Flash( _isr_cookie ) \
+  do { \
+    _CPU_ISR_Enable( _isr_cookie ); \
+    _CPU_ISR_Disable( _isr_cookie ); \
+  } while (0)
 #endif
 
 #endif /* end of old gcc */
@@ -756,7 +766,7 @@ uint32_t   _CPU_ISR_Get_level( void );
 #define CPU_CCR_INTERRUPTS_OFF 0x00
 
 #define _CPU_Context_Initialize( _the_context, _stack_base, _size, \
-                                   _isr, _entry_point, _is_fp ) \
+                                   _isr, _entry_point, _is_fp, _tls_area ) \
   /* Locate Me */ \
   do { \
     uintptr_t   _stack; \
@@ -764,6 +774,7 @@ uint32_t   _CPU_ISR_Get_level( void );
     if ( (_isr) ) (_the_context)->ccr = CPU_CCR_INTERRUPTS_OFF; \
     else          (_the_context)->ccr = CPU_CCR_INTERRUPTS_ON; \
     \
+    (void) _is_fp; /* to eliminate set but not used warning */ \
     _stack = ((uintptr_t)(_stack_base)) + (_size) - 4; \
     *((proc_ptr *)(_stack)) = (_entry_point); \
      (_the_context)->er7     = (void *) _stack; \
@@ -847,8 +858,8 @@ uint32_t   _CPU_ISR_Get_level( void );
  *  XXX
  */
 
-#define _CPU_Fatal_halt( _error ) \
- 	printk("Fatal Error %d Halted\n",_error); \
+#define _CPU_Fatal_halt( _source, _error ) \
+ 	printk("Fatal Error %d.%d Halted\n",_source, _error); \
 	for(;;)
 
 
@@ -858,7 +869,7 @@ uint32_t   _CPU_ISR_Get_level( void );
 
 /*
  *  This routine sets _output to the bit number of the first bit
- *  set in _value.  _value is of CPU dependent type Priority_bit_map_Control.
+ *  set in _value.  _value is of CPU dependent type Priority_bit_map_Word.
  *  This type may be either 16 or 32 bits wide although only the 16
  *  least significant bits will be used.
  *
@@ -1161,6 +1172,18 @@ static inline uint32_t   CPU_swap_u32(
 
 #define CPU_swap_u16( value ) \
   (((value&0xff) << 8) | ((value >> 8)&0xff))
+
+typedef uint32_t CPU_Counter_ticks;
+
+CPU_Counter_ticks _CPU_Counter_read( void );
+
+static inline CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  return second - first;
+}
 
 /* to be provided by the BSP */
 extern void H8BD_Install_IRQ(

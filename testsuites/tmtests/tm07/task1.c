@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,6 +13,8 @@
 
 #define CONFIGURE_INIT
 #include "system.h"
+
+const char rtems_test_name[] = "TIME TEST 7";
 
 rtems_id Task_id[ OPERATION_COUNT+1 ], task_index;
 
@@ -40,7 +42,7 @@ rtems_task Init(
 
   Print_Warning();
 
-  puts( "\n\n*** TIME TEST 7 ***" );
+  TEST_BEGIN();
 
   test_init();
 
@@ -98,7 +100,7 @@ rtems_task High_task(
   } else
     (void) rtems_task_suspend( RTEMS_SELF );
 
-  puts( "*** END OF TEST 7 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 

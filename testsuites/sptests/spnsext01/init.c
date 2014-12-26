@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -18,11 +18,13 @@
 
 #include <tmacros.h>
 
+const char rtems_test_name[] = "SPNSEXT 1";
+
 static rtems_task Init(rtems_task_argument argument)
 {
   rtems_status_code sc = RTEMS_SUCCESSFUL;
-  rtems_interrupt_lock lock = RTEMS_INTERRUPT_LOCK_INITIALIZER;
-  rtems_interrupt_level level;
+  rtems_interrupt_lock lock;
+  rtems_interrupt_lock_context lock_context;
   rtems_interval t0 = 0;
   rtems_interval t1 = 0;
   int i = 0;
@@ -30,7 +32,7 @@ static rtems_task Init(rtems_task_argument argument)
   struct timespec uptime;
   struct timespec new_uptime;
 
-  puts("\n\n*** TEST NANO SECONDS EXTENSION 1 ***");
+  TEST_BEGIN();
 
   /* Align with clock tick */
   t0 = rtems_clock_get_ticks_since_boot();
@@ -51,7 +53,8 @@ static rtems_task Init(rtems_task_argument argument)
 
   n = (3 * n) / 2;
 
-  rtems_interrupt_lock_acquire(&lock, level);
+  rtems_interrupt_lock_initialize(&lock, "test");
+  rtems_interrupt_lock_acquire(&lock, &lock_context);
   sc = rtems_clock_get_uptime(&uptime);
   rtems_test_assert(sc == RTEMS_SUCCESSFUL);
   for (i = 0; i < n; ++i) {
@@ -63,9 +66,10 @@ static rtems_task Init(rtems_task_argument argument)
     rtems_test_assert(!_Timespec_Less_than(&new_uptime, &uptime));
     uptime = new_uptime;
   }
-  rtems_interrupt_lock_release(&lock, level);
+  rtems_interrupt_lock_release(&lock, &lock_context);
+  rtems_interrupt_lock_destroy(&lock);
 
-  puts("*** END OF TEST NANO SECONDS EXTENSION 1 ***");
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -77,10 +81,10 @@ static rtems_task Init(rtems_task_argument argument)
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 #define CONFIGURE_MAXIMUM_TASKS 1
 #define CONFIGURE_MAXIMUM_DRIVERS 2
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

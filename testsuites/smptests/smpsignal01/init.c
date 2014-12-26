@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,6 +17,8 @@
 #endif
 
 #include "tmacros.h"
+
+const char rtems_test_name[] = "SMPSIGNAL 1";
 
 #define TEST_SIGNAL RTEMS_SIGNAL_0
 
@@ -84,14 +86,14 @@ static void signal_send(test_context *ctx, test_state new_state)
 static void check_consumer_processor(const test_context *ctx)
 {
   rtems_test_assert(
-    ctx->consumer_processor == rtems_smp_get_current_processor()
+    ctx->consumer_processor == rtems_get_current_processor()
   );
 }
 
 static void check_producer_processor(const test_context *ctx)
 {
   rtems_test_assert(
-    ctx->producer_processor == rtems_smp_get_current_processor()
+    ctx->producer_processor == rtems_get_current_processor()
   );
 }
 
@@ -99,7 +101,7 @@ static void producer(rtems_task_argument arg)
 {
   test_context *ctx = (test_context *) arg;
 
-  ctx->producer_processor = rtems_smp_get_current_processor();
+  ctx->producer_processor = rtems_get_current_processor();
 
   rtems_test_assert(ctx->consumer_processor != ctx->producer_processor);
 
@@ -124,7 +126,7 @@ static void test(void)
   rtems_mode mode;
 
   ctx->consumer = rtems_task_self();
-  ctx->consumer_processor = rtems_smp_get_current_processor();
+  ctx->consumer_processor = rtems_get_current_processor();
 
   sc = rtems_signal_catch(signal_handler, RTEMS_DEFAULT_MODES);
   rtems_test_assert(sc == RTEMS_SUCCESSFUL);
@@ -162,14 +164,13 @@ static void test(void)
 
 static void Init(rtems_task_argument arg)
 {
-  puts("\n\n*** TEST SMPSIGNAL 1 ***");
+  TEST_BEGIN();
 
-  if (rtems_smp_get_processor_count() >= 2) {
+  if (rtems_get_processor_count() >= 2) {
     test();
   }
 
-  puts("*** END OF TEST SMPSIGNAL 1 ***");
-
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -181,6 +182,8 @@ static void Init(rtems_task_argument arg)
 #define CONFIGURE_SMP_MAXIMUM_PROCESSORS 2
 
 #define CONFIGURE_MAXIMUM_TASKS 2
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

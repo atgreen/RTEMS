@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -50,4 +50,5 @@ void _Heap_Get_information(
   memset( the_info, 0, sizeof(*the_info) );
   _Heap_Protection_free_all_delayed_blocks( the_heap );
   _Heap_Iterate( the_heap, _Heap_Get_information_visitor, the_info );
+  the_info->Stats = the_heap->stats;
 }

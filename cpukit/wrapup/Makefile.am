@@ -8,6 +8,7 @@ project_lib_LIBRARIES = librtemscpu.a
 librtemscpu_a_SOURCES =
 
 TMP_LIBS =
+TMP_LIBS += ../dev/libdev.a
 TMP_LIBS += ../score/cpu/@RTEMS_CPU@/libscorecpu.a
 TMP_LIBS += ../score/libscore.a
 TMP_LIBS += ../sapi/libsapi.a
@@ -18,6 +19,7 @@ if LIBGNAT
 TMP_LIBS += ../libgnat/libgnat.a
 endif
 
+TMP_LIBS += ../libcrypt/libcrypt.a
 TMP_LIBS += ../libcsupport/libcsupport.a
 TMP_LIBS += ../libblock/libblock.a
 if LIBDOSFS
@@ -52,6 +54,7 @@ TMP_LIBS += ../libmisc/libdummy.a
 TMP_LIBS += ../libmisc/libfsmount.a
 TMP_LIBS += ../libmisc/libmouse.a
 TMP_LIBS += ../libmisc/libmw-fb.a
+TMP_LIBS += ../libmisc/libredirector.a
 TMP_LIBS += ../libmisc/libstringto.a
 
 if LIBUTF8PROC
@@ -75,6 +78,10 @@ endif
 
 if NEWLIB
 TMP_LIBS += ../libmd/libmd.a
+endif
+
+if LIBDL
+TMP_LIBS += ../libdl/libdl.a
 endif
 
 librtemscpu.a: $(TMP_LIBS)

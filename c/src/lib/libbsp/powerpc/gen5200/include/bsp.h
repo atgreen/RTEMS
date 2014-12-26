@@ -14,7 +14,7 @@
 | The license and distribution terms for this file may be         |
 | found in the file LICENSE in this distribution or at            |
 |                                                                 |
-| http://www.rtems.com/license/LICENSE.                           |
+| http://www.rtems.org/license/LICENSE.                           |
 |                                                                 |
 +-----------------------------------------------------------------+
 | this file contains board specific definitions                   |
@@ -141,11 +141,6 @@ LINKER_SYMBOL(MBAR);
 
 #ifndef ASM
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
 #include <rtems.h>
 #include <rtems/console.h>
 #include <rtems/clockdrv.h>
@@ -155,6 +150,10 @@ extern "C" {
 #include <bsp/vectors.h>
 #include <bsp/u-boot.h>
 #include <bsp/default-initial-extension.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Network driver configuration
@@ -254,23 +253,12 @@ void BSP_IRQ_Benchmarking_Report(void);
 
 void cpu_init(void);
 
-typedef enum {
-  MPC5200_FATAL_PCF8563_INVALID_YEAR,
-  MPC5200_FATAL_SLICETIMER_0_IRQ_INSTALL,
-  MPC5200_FATAL_SLICETIMER_1_IRQ_INSTALL,
-  MPC5200_FATAL_TM27_IRQ_INSTALL,
-  MPC5200_FATAL_MSCAN_A_INIT,
-  MPC5200_FATAL_MSCAN_B_INIT,
-  MPC5200_FATAL_MSCAN_A_SET_MODE,
-  MPC5200_FATAL_MSCAN_B_SET_MODE,
-  MPC5200_FATAL_ATA_DISK_IO_INIT,
-  MPC5200_FATAL_ATA_DISK_CREATE,
-  MPC5200_FATAL_ATA_DMA_SINGLE_IRQ_INSTALL,
-  MPC5200_FATAL_ATA_LOCK_CREATE,
-  MPC5200_FATAL_ATA_LOCK_DESTROY
-} mpc5200_fatal_code;
-
-void mpc5200_fatal(mpc5200_fatal_code code) RTEMS_COMPILER_NO_RETURN_ATTRIBUTE;
+int mpc5200_eth_mii_read(
+  int phyAddr,
+  void *arg,
+  unsigned regAddr,
+  uint32_t *retVal
+);
 
 #ifdef __cplusplus
 }

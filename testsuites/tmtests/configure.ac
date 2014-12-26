@@ -1,7 +1,7 @@
 ## Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([rtems-c-src-tests-tmtests],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-c-src-tests-tmtests],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([tm01])
 AC_CONFIG_HEADER([config.h])
 RTEMS_TOP([../..],[..])
@@ -10,7 +10,6 @@ RTEMS_CANONICAL_TARGET_CPU
 
 AM_INIT_AUTOMAKE([no-define foreign 1.12.2])
 AM_MAINTAINER_MODE
-
 
 RTEMS_ENV_RTEMSBSP
 RTEMS_CHECK_RTEMS_TEST_NO_PAUSE
@@ -28,6 +27,7 @@ AC_SUBST(OPERATION_COUNT)
 
 # Explicitly list all Makefiles here
 AC_CONFIG_FILES([Makefile
+tmcontext01/Makefile
 tmck/Makefile
 tmoverhd/Makefile
 tm01/Makefile
@@ -60,5 +60,11 @@ tm27/Makefile
 tm28/Makefile
 tm29/Makefile
 tm30/Makefile
+tm31/Makefile
+tm32/Makefile
+tm33/Makefile
+tm34/Makefile
+tm35/Makefile
+tm36/Makefile
 ])
 AC_OUTPUT

@@ -14,18 +14,16 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 
 #ifndef _BSP_H
 #define _BSP_H
 
-#include <libcpu/bf533.h>
+#ifndef ASM
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <libcpu/bf533.h>
 
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
@@ -35,6 +33,10 @@ extern "C" {
 #include <rtems/clockdrv.h>
 #include <rtems/score/bfin.h>
 #include <rtems/bfin/bf533.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @defgroup bfin_ezkit533 eZKit533 Support
@@ -101,15 +103,6 @@ extern "C" {
 #define FIFOLENGTH 0x100
 
 /**
- * @brief Simple spin delay in microsecond units for device drivers.
- *  This is very dependent on the clock speed of the target.
- */
-
-#define rtems_bsp_delay( microseconds ) \
-  { \
-  }
-
-/**
  * @name Constants
  * @{
  */
@@ -135,11 +128,32 @@ void setLED (uint8_t value);
  */
 uint8_t getLED (void);
 
-rtems_isr_entry set_vector(                     ///< @brief returns old vector */
-  rtems_isr_entry     handler,                  ///< @brief isr routine        */
-  rtems_vector_number vector,                   ///< @brief vector number      */
-  int                 type                      ///< @brief RTEMS or RAW intr  */
+/**
+ * @brief Install an interrupt handler
+ *
+ * This method installs an interrupt handle.
+ *
+ * @param[in] handler is the isr routine
+ * @param[in] vector is the vector number
+ * @param[in] type indicates whether RTEMS or RAW intr
+ *
+ * @return returns old vector
+ */
+rtems_isr_entry set_vector(
+  rtems_isr_entry     handler,
+  rtems_vector_number vector,
+  int                 type
 );
+
+/*
+ *  Internal BSP methods that are used across file boundaries
+ */
+void Init_RTC(void);
+
+/*
+ * Prototype for methods in .S files that are referenced from C.
+ */
+void bfin_null_isr(void);
 
 /** @} */
 
@@ -148,5 +162,7 @@ rtems_isr_entry set_vector(                     ///< @brief returns old vector *
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* !ASM */
 
 #endif

@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -25,6 +25,8 @@
 #include <pthread.h>
 
 #include <rtems.h>  /* for task creation */
+
+const char rtems_test_name[] = "PSXSPIN 1";
 
 /* forward declarations to avoid warnings */
 int test_main(void);
@@ -79,7 +81,7 @@ int main(
   rtems_status_code     rstatus;
   rtems_id              taskid;
 
-  puts( "\n\n*** POSIX SPINLOCK TEST 01 ***" );
+  TEST_BEGIN();
 
   puts( "pthread_spin_init( NULL, PTHREAD_PROCESS_PRIVATE ) -- EINVAL" );
   status = pthread_spin_init( NULL, PTHREAD_PROCESS_PRIVATE );
@@ -222,6 +224,6 @@ int main(
   rtems_test_assert( status == 0 );
 
   /*************** END OF TEST *****************/
-  puts( "*** END OF POSIX SPINLOCK TEST 01 ***" );
+  TEST_END();
   exit(0);
 }

@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -144,7 +144,7 @@ void _Rate_monotonic_Initiate_statistics(
     }
   #endif
 
-  _Scheduler_Release_job(the_period->owner, the_period->next_length);
+  _Scheduler_Release_job( the_period->owner, the_period->next_length );
 }
 
 static void _Rate_monotonic_Update_statistics(
@@ -340,7 +340,7 @@ rtems_status_code rtems_rate_monotonic_period(
         the_period->next_length = length;
 
         _Watchdog_Insert_ticks( &the_period->Timer, length );
-        _Scheduler_Release_job(the_period->owner, the_period->next_length);
+        _Scheduler_Release_job( the_period->owner, the_period->next_length );
         _Objects_Put( &the_period->Object );
         return RTEMS_TIMEOUT;
       }

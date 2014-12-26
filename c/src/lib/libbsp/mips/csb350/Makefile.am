@@ -16,6 +16,7 @@ include_bsp_HEADERS += include/irq.h
 
 nodist_include_HEADERS = include/bspopts.h
 nodist_include_bsp_HEADERS = ../../shared/include/bootcard.h
+nodist_include_bsp_HEADERS += ../../shared/include/console-polled.h
 DISTCLEANFILES = include/bspopts.h
 nodist_include_HEADERS += ../../shared/include/coverhd.h
 
@@ -57,7 +58,6 @@ libbsp_a_SOURCES += ../../shared/src/irq-shell.c
 libbsp_a_SOURCES += ../../shared/src/irq-server.c
 libbsp_a_SOURCES += ../shared/irq/vectorexceptions.c
 libbsp_a_SOURCES += ../shared/irq/irq.c
-libbsp_a_SOURCES += ../shared/irq/maxvectors.c
 libbsp_a_SOURCES += irq/vectorisrs.c
 libbsp_a_SOURCES += ../shared/irq/interruptmask.c
 

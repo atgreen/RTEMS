@@ -14,7 +14,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -51,6 +51,6 @@ rtems_task Task5(
   );
   puts( "TA5 - SM1 deleted by TA1" );
 
-  puts( "*** END OF TEST 12 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }

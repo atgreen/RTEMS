@@ -7,12 +7,12 @@
 /*
  *  Copyright (c) 2010 embedded brains GmbH.
  *
- *  COPYRIGHT (c) 1989-2006.
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CHAINIMPL_H
@@ -20,6 +20,7 @@
 
 #include <rtems/score/chain.h>
 #include <rtems/score/address.h>
+#include <rtems/score/assert.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -221,8 +222,8 @@ size_t _Chain_Node_count_unprotected( const Chain_Control *chain );
 /**
  * @brief Set off chain.
  *
- * This function sets the next and previous fields of the @a node to NULL
- * indicating the @a node is not part of a chain.
+ * This function sets the next field of the @a node to NULL indicating the @a
+ * node is not part of a chain.
  *
  * @param[in] node the node set to off chain.
  */
@@ -230,14 +231,14 @@ RTEMS_INLINE_ROUTINE void _Chain_Set_off_chain(
   Chain_Node *node
 )
 {
-  node->next = node->previous = NULL;
+  node->next = NULL;
 }
 
 /**
  * @brief Is the node off chain.
  *
- * This function returns true if the @a node is not on a chain. A @a node is
- * off chain if the next and previous fields are set to NULL.
+ * This function returns true if the @a node is not on a chain.  A @a node is
+ * off chain if the next field is set to NULL.
  *
  * @param[in] node is the node off chain.
  *
@@ -248,7 +249,7 @@ RTEMS_INLINE_ROUTINE bool _Chain_Is_node_off_chain(
   const Chain_Node *node
 )
 {
-  return (node->next == NULL) && (node->previous == NULL);
+  return node->next == NULL;
 }
 
 /**
@@ -269,23 +270,6 @@ RTEMS_INLINE_ROUTINE bool _Chain_Are_nodes_equal(
 )
 {
   return left == right;
-}
-
-/**
- * @brief Is this chain control pointer NULL.
- *
- * This function returns true if the_chain is NULL and false otherwise.
- *
- * @param[in] the_chain is the chain to be checked for empty status.
- *
- * @retval true @a the_chain is @c NULL.
- * @retval false @a the_chain is not @c NULL.
- */
-RTEMS_INLINE_ROUTINE bool _Chain_Is_null(
-  const Chain_Control *the_chain
-)
-{
-  return (the_chain == NULL);
 }
 
 /**
@@ -630,8 +614,13 @@ RTEMS_INLINE_ROUTINE void _Chain_Initialize_empty(
   Chain_Control *the_chain
 )
 {
-  Chain_Node *head = _Chain_Head( the_chain );
-  Chain_Node *tail = _Chain_Tail( the_chain );
+  Chain_Node *head;
+  Chain_Node *tail;
+
+  _Assert( the_chain != NULL );
+
+  head = _Chain_Head( the_chain );
+  tail = _Chain_Tail( the_chain );
 
   head->next = tail;
   head->previous = NULL;

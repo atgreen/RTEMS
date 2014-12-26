@@ -15,31 +15,26 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #define CONFIGURE_INIT
 #include "system.h"
 
-#if BSP_SMALL_MEMORY
-#include <stdio.h>
-#else
 #include <iostream>
-#endif
 
 #include <stdlib.h>
+
+const char rtems_test_name[] = "IOSTREAM";
 
 rtems_task Init(
   rtems_task_argument ignored
 )
 {
-#if BSP_SMALL_MEMORY
-  printf ("NO STDC++. MEMORY TOO SMALL");
-#else
-  std::cout << "\n\n*** HELLO WORLD TEST ***" << std::endl;
+  std::cout << std::endl << std::endl
+    << "*** BEGIN OF TEST " << rtems_test_name << " ***" << std::endl;
   std::cout << "Hello World" << std::endl;
-  std::cout << "*** END OF HELLO WORLD TEST ***" << std::endl;
-#endif
+  std::cout << "*** END OF TEST " << rtems_test_name << " ***" << std::endl;
   exit( 0 );
 }
 

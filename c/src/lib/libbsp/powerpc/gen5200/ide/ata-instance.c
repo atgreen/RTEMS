@@ -9,10 +9,11 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp/ata.h>
+#include <bsp/fatal.h>
 
 #include <libchip/ata.h>
 
@@ -33,7 +34,7 @@ rtems_status_code rtems_ata_initialize(
 
     ata_driver_dma_pio_single_create(&ata_driver_instance, "/dev/hda", TASK_PCI_TX);
   } else {
-    mpc5200_fatal(MPC5200_FATAL_ATA_DISK_IO_INIT);
+    bsp_fatal(MPC5200_FATAL_ATA_DISK_IO_INIT);
   }
 
   return sc;

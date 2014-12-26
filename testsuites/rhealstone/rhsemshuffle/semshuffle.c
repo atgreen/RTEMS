@@ -4,8 +4,10 @@
  * This file's license is 2-clause BSD as in this distribution's LICENSE file.
  */
 
-#include <rtems/timerdrv.h>
 #include <timesys.h>
+#include <rtems/btimer.h>
+
+const char rtems_test_name[] = "RHSEMSHUFFLE";
 
 #define BENCHMARKS 50000
 
@@ -32,7 +34,7 @@ rtems_task Init( rtems_task_argument ignored )
 
   Print_Warning();
 
-  puts( "*** START OF RHSEMSHUFFLE ***" );
+  TEST_BEGIN();
 
   sem_attr =  RTEMS_BINARY_SEMAPHORE | RTEMS_PRIORITY;
 
@@ -148,7 +150,7 @@ rtems_task Task02( rtems_task_argument ignored )
        tswitch_overhead,        /* Overhead of loop and task switches */
        0
     );
-    puts( "*** END OF RHSEMSHUFFLE ***" );
+    TEST_END();
     rtems_test_exit( 0 );
   }
 }

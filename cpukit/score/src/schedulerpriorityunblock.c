@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -22,11 +22,20 @@
 
 #include <rtems/score/schedulerpriorityimpl.h>
 
-void _Scheduler_priority_Unblock (
+Scheduler_Void_or_thread _Scheduler_priority_Unblock (
+  const Scheduler_Control *scheduler,
   Thread_Control          *the_thread
 )
 {
-  _Scheduler_priority_Ready_queue_enqueue(the_thread);
+  Scheduler_priority_Context *context =
+    _Scheduler_priority_Get_context( scheduler );
+  Scheduler_priority_Node *node = _Scheduler_priority_Thread_get_node( the_thread );
+
+  _Scheduler_priority_Ready_queue_enqueue(
+    &the_thread->Object.Node,
+    &node->Ready_queue,
+    &context->Bit_map
+  );
 
   /* TODO: flash critical section? */
 
@@ -48,4 +57,6 @@ void _Scheduler_priority_Unblock (
         the_thread->current_priority == 0 )
       _Thread_Dispatch_necessary = true;
   }
+
+  SCHEDULER_RETURN_VOID_OR_NULL;
 }

@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_POSIX_TIMERIMPL_H
@@ -121,18 +121,6 @@ RTEMS_INLINE_ROUTINE POSIX_Timer_Control *_POSIX_Timer_Get (
 {
   return (POSIX_Timer_Control *)
     _Objects_Get( &_POSIX_Timer_Information, (Objects_Id) id, location );
-}
-
-/**
- *  @brief POSIX Timer Is NULL
- *
- *  This function returns TRUE if the_timer is NULL and FALSE otherwise.
- */
-RTEMS_INLINE_ROUTINE bool _POSIX_Timer_Is_null (
-  POSIX_Timer_Control *the_timer
-)
-{
-  return (the_timer == NULL);
 }
 
 #ifdef __cplusplus

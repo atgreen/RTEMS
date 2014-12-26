@@ -1,15 +1,14 @@
 /*
- *  This routine starts the application.  It includes application,
- *  board, and monitor specific initialization and configuration.
- *  The generic CPU dependent initialization has been performed
- *  before this routine is invoked.
- *
+ *  This routine does the bulk of the system initialization.
+ */
+
+/*
  *  COPYRIGHT (c) 1989-2007.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  Modified to support the MCP750.
  *  Modifications Copyright (C) 1999 Eric Valette. valette@crf.canon.fr
@@ -18,7 +17,9 @@
 #include <string.h>
 
 #include <bsp.h>
+#include <bsp/bootcard.h>
 #include <rtems/bspIo.h>
+#include <rtems/counter.h>
 #include <bsp/consoleIo.h>
 #include <libcpu/spr.h>
 #include <bsp/residual.h>
@@ -99,16 +100,17 @@ void _BSP_Fatal_error(unsigned int v)
  *  Use the shared implementations of the following routines
  */
 
-char * save_boot_params(
-  RESIDUAL *r3,
-  void     *r4,
-  void     *r5,
-  char     *additional_boot_options
+char *save_boot_params(
+  void *r3,
+  void *r4,
+  void *r5,
+  char *cmdline_start,
+  char *cmdline_end
 )
 {
 
-  residualCopy = *r3;
-  strncpy(loaderParam, additional_boot_options, MAX_LOADER_ADD_PARM);
+  residualCopy = *(RESIDUAL *)r3;
+  strncpy(loaderParam, cmdline_start, MAX_LOADER_ADD_PARM);
   loaderParam[MAX_LOADER_ADD_PARM - 1] ='\0';
   return loaderParam;
 }
@@ -121,9 +123,9 @@ unsigned int EUMBBAR;
  * Register (EUMBBAR) as read from the processor configuration register using
  * Processor Address Map B (CHRP).
  */
-unsigned int get_eumbbar(void) {
-  out_le32( (volatile unsigned *)0xfec00000, 0x80000078 );
-  return in_le32( (volatile unsigned *)0xfee00000 );
+static unsigned int get_eumbbar(void) {
+  out_le32( (volatile uint32_t *)0xfec00000, 0x80000078 );
+  return in_le32( (volatile uint32_t *)0xfee00000 );
 }
 #endif
 
@@ -140,8 +142,6 @@ void bsp_start( void )
 #endif
   uintptr_t intrStackStart;
   uintptr_t intrStackSize;
-/*  ppc_cpu_id_t myCpu; */
-/*  ppc_cpu_revision_t myCpuRevision; */
   prep_t boardManufacturer;
   motorolaBoard myBoard;
   Triv121PgTbl	pt=0;
@@ -151,8 +151,8 @@ void bsp_start( void )
    * function store the result in global variables so that it can be used
    * later...
    */
-  /* myCpu 	= */ get_ppc_cpu_type();
-  /* myCpuRevision = */ get_ppc_cpu_revision();
+  get_ppc_cpu_type();
+  get_ppc_cpu_revision();
 
   /*
    * Init MMU block address translation to enable hardware access
@@ -231,11 +231,7 @@ void bsp_start( void )
   /*
    * Initialize default raw exception handlers.
    */
-  ppc_exc_initialize(
-    PPC_INTERRUPT_DISABLE_MASK_DEFAULT,
-    intrStackStart,
-    intrStackSize
-  );
+  ppc_exc_initialize(intrStackStart, intrStackSize);
 
   boardManufacturer   =  checkPrepBoardType(&residualCopy);
   if (boardManufacturer != PREP_Motorola) {
@@ -342,6 +338,9 @@ void bsp_start( void )
    *  initialize the device driver parameters
    */
   bsp_clicks_per_usec 	 = BSP_bus_frequency/(BSP_time_base_divisor * 1000);
+  rtems_counter_initialize_converter(
+    BSP_bus_frequency / (BSP_time_base_divisor / 1000)
+  );
 
   /*
    * Initalize RTEMS IRQ system

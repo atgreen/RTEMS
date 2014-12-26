@@ -9,12 +9,13 @@
  *  16.1.2 Thread Creation, P1003.1c/Draft 10, p. 144
  */
 
-/*  COPYRIGHT (c) 1989-2008.
+/*
+ *  COPYRIGHT (c) 1989-2014.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -27,10 +28,13 @@
 #include <rtems/posix/priorityimpl.h>
 #include <rtems/posix/pthreadimpl.h>
 #include <rtems/posix/time.h>
+#include <rtems/score/cpusetimpl.h>
 #include <rtems/score/threadimpl.h>
 #include <rtems/score/apimutex.h>
 #include <rtems/score/stackimpl.h>
 #include <rtems/score/watchdogimpl.h>
+#include <rtems/score/schedulerimpl.h>
+
 
 static inline size_t _POSIX_Threads_Ensure_minimum_stack (
   size_t size
@@ -56,6 +60,7 @@ int pthread_create(
   bool                                is_fp;
   bool                                status;
   Thread_Control                     *the_thread;
+  Thread_Control                     *executing;
   POSIX_API_Control                  *api;
   int                                 schedpolicy = SCHED_RR;
   struct sched_param                  schedparam;
@@ -85,6 +90,8 @@ int pthread_create(
     rtems_set_errno_and_return_minus_one( ENOSYS );
   #endif
 
+  executing = _Thread_Get_executing();
+
   /*
    *  P1003.1c/Draft 10, p. 121.
    *
@@ -95,7 +102,7 @@ int pthread_create(
    */
   switch ( the_attr->inheritsched ) {
     case PTHREAD_INHERIT_SCHED:
-      api = _Thread_Get_executing()->API_Extensions[ THREAD_API_POSIX ];
+      api = executing->API_Extensions[ THREAD_API_POSIX ];
       schedpolicy = api->schedpolicy;
       schedparam  = api->schedparam;
       break;
@@ -136,6 +143,14 @@ int pthread_create(
   if ( rc )
     return rc;
 
+#if defined(RTEMS_SMP)
+#if __RTEMS_HAVE_SYS_CPUSET_H__
+  status = _CPU_set_Is_valid( the_attr->affinityset, the_attr->affinitysetsize );
+  if ( !status )
+    return EINVAL;
+#endif
+#endif
+
   /*
    *  Currently all POSIX threads are floating point if the hardware
    *  supports it.
@@ -147,18 +162,13 @@ int pthread_create(
   #endif
 
   /*
-   *  Lock the allocator mutex for protection
-   */
-  _RTEMS_Lock_allocator();
-
-  /*
    *  Allocate the thread control block.
    *
    *  NOTE:  Global threads are not currently supported.
    */
   the_thread = _POSIX_Threads_Allocate();
   if ( !the_thread ) {
-    _RTEMS_Unlock_allocator();
+    _Objects_Allocator_unlock();
     return EAGAIN;
   }
 
@@ -169,6 +179,7 @@ int pthread_create(
   status = _Thread_Initialize(
     &_POSIX_Threads_Information,
     the_thread,
+    _Scheduler_Get( executing ),
     the_attr->stackaddr,
     _POSIX_Threads_Ensure_minimum_stack(the_attr->stacksize),
     is_fp,
@@ -179,19 +190,31 @@ int pthread_create(
     0,                    /* isr level */
     name                  /* posix threads don't have a name */
   );
-
   if ( !status ) {
     _POSIX_Threads_Free( the_thread );
-    _RTEMS_Unlock_allocator();
+    _Objects_Allocator_unlock();
     return EAGAIN;
   }
+
+#if defined(RTEMS_SMP) && __RTEMS_HAVE_SYS_CPUSET_H__
+   status = _Scheduler_Set_affinity(
+     the_thread,
+     the_attr->affinitysetsize,
+     the_attr->affinityset
+   );
+   if ( !status ) {
+     _POSIX_Threads_Free( the_thread );
+     _RTEMS_Unlock_allocator();
+     return EINVAL;
+   }
+#endif
 
   /*
    *  finish initializing the per API structure
    */
   api = the_thread->API_Extensions[ THREAD_API_POSIX ];
 
-  api->Attributes  = *the_attr;
+  _POSIX_Threads_Copy_attributes( &api->Attributes, the_attr );
   api->detachstate = the_attr->detachstate;
   api->schedpolicy = schedpolicy;
   api->schedparam  = schedparam;
@@ -220,7 +243,7 @@ int pthread_create(
     if ( !status ) {
       _Thread_Enable_dispatch();
       _POSIX_Threads_Free( the_thread );
-      _RTEMS_Unlock_allocator();
+      _Objects_Allocator_unlock();
       return EINVAL;
     }
   #endif
@@ -239,6 +262,6 @@ int pthread_create(
    */
   *thread = the_thread->Object.id;
 
-  _RTEMS_Unlock_allocator();
+  _Objects_Allocator_unlock();
   return 0;
 }

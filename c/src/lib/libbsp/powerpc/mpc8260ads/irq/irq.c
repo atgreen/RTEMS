@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
@@ -211,7 +211,7 @@ volatile unsigned int maxLoop = 0;
 /*
  * High level IRQ handler called from shared_raw_irq_code_entry
  */
-int C_dispatch_irq_handler (BSP_Exception_frame *frame, unsigned excNum)
+static int C_dispatch_irq_handler (BSP_Exception_frame *frame, unsigned excNum)
 {
   register unsigned int irq;
 #if 0
@@ -310,7 +310,7 @@ int C_dispatch_irq_handler (BSP_Exception_frame *frame, unsigned excNum)
 /*
  * Initialize CPM interrupt management
  */
-void
+static void
 BSP_CPM_irq_init(void)
 {
    m8260.simr_l = 0;

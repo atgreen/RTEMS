@@ -16,7 +16,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_RBTREEIMPL_H
@@ -77,18 +77,18 @@ RTEMS_INLINE_ROUTINE RBTree_Direction _RBTree_Opposite_direction(
 }
 
 /**
- * @brief Is this RBTree control pointer NULL.
+ * @brief Returns the direction of the node.
  *
- * This function returns true if @a the_rbtree is NULL and false otherwise.
- *
- * @retval true @a the_rbtree is @c NULL.
- * @retval false @a the_rbtree is not @c NULL.
+ * @param[in] the_node The node of interest.
+ * @param[in] parent The parent of the node.  The parent must exist, thus it is
+ * invalid to use this function for the root node.
  */
-RTEMS_INLINE_ROUTINE bool _RBTree_Is_null(
-    const RBTree_Control *the_rbtree
-    )
+RTEMS_INLINE_ROUTINE RBTree_Direction _RBTree_Direction(
+  const RBTree_Node *the_node,
+  const RBTree_Node *parent
+)
 {
-  return (the_rbtree == NULL);
+  return (RBTree_Direction) ( the_node != parent->child[ 0 ] );
 }
 
 /**
@@ -107,104 +107,102 @@ RTEMS_INLINE_ROUTINE bool _RBTree_Is_red(
 }
 
 /**
- * @brief Return a pointer to node's grandparent.
+ * @brief Returns the sibling of the node.
  *
- * This function returns a pointer to the grandparent of @a the_node if it
- * exists, and NULL if not.
- */
-RTEMS_INLINE_ROUTINE RBTree_Node *_RBTree_Grandparent(
-  const RBTree_Node *the_node
-)
-{
-  if(!the_node) return NULL;
-  if(!(the_node->parent)) return NULL;
-  if(!(the_node->parent->parent)) return NULL;
-  if(!(the_node->parent->parent->parent)) return NULL;
-  return(the_node->parent->parent);
-}
-
-/**
- * @brief Return a pointer to node's sibling.
+ * @param[in] the_node The node of interest.
+ * @param[in] parent The parent of the node.  The parent must exist, thus it is
+ * invalid to use this function for the root node.
  *
- * This function returns a pointer to the sibling of @a the_node if it
- * exists, and NULL if not.
+ * @retval NULL No sibling exists.
+ * @retval sibling The sibling of the node.
  */
 RTEMS_INLINE_ROUTINE RBTree_Node *_RBTree_Sibling(
-  const RBTree_Node *the_node
+  const RBTree_Node *the_node,
+  const RBTree_Node *parent
 )
 {
-  if(!the_node) return NULL;
-  if(!(the_node->parent)) return NULL;
-  if(!(the_node->parent->parent)) return NULL;
+  RBTree_Node *left_child = parent->child[ RBT_LEFT ];
 
-  if(the_node == the_node->parent->child[RBT_LEFT])
-    return the_node->parent->child[RBT_RIGHT];
-  else
-    return the_node->parent->child[RBT_LEFT];
+  return the_node == left_child ? parent->child[ RBT_RIGHT ] : left_child;
 }
 
-/**
- * @brief Return a pointer to node's parent's sibling.
- *
- * This function returns a pointer to the sibling of the parent of
- * @a the_node if it exists, and NULL if not.
- */
-RTEMS_INLINE_ROUTINE RBTree_Node *_RBTree_Parent_sibling(
-  const RBTree_Node *the_node
+RTEMS_INLINE_ROUTINE bool _RBTree_Is_equal(
+  RBTree_Compare_result compare_result
 )
-{
-  if(!the_node) return NULL;
-  if(_RBTree_Grandparent(the_node) == NULL) return NULL;
-
-  return _RBTree_Sibling(the_node->parent);
-}
-
-RTEMS_INLINE_ROUTINE bool _RBTree_Is_equal( int compare_result )
 {
   return compare_result == 0;
 }
 
 RTEMS_INLINE_ROUTINE bool _RBTree_Is_greater(
-  int compare_result
+  RBTree_Compare_result compare_result
 )
 {
   return compare_result > 0;
 }
 
 RTEMS_INLINE_ROUTINE bool _RBTree_Is_lesser(
-  int compare_result
+  RBTree_Compare_result compare_result
 )
 {
   return compare_result < 0;
 }
 
 /**
- * @brief Rotate the_node in the direction passed as second argument.
+ * @brief Rotates the node in the specified direction.
  *
- * This routine rotates @a the_node to the direction @a dir, swapping
- * @a the_node with its child\[@a dir\].
+ * The node is swapped with its child in the opposite direction if it exists.
+ *
+ * Sub-tree before rotation:
+ * @dot
+ * digraph state {
+ *   parent -> the_node;
+ *   the_node -> sibling [label="dir"];
+ *   the_node -> child [label="opp_dir"];
+ *   child -> grandchild [label="dir"];
+ *   child -> grandchildsibling [label="opp_dir"];
+ * }
+ * @enddot
+ *
+ * Sub-tree after rotation:
+ * @dot
+ * digraph state {
+ *   parent -> child;
+ *   the_node -> sibling [label="dir"];
+ *   the_node -> grandchild [label="opp_dir"];
+ *   child -> the_node [label="dir"];
+ *   child -> grandchildsibling [label="opp_dir"];
+ * }
+ * @enddot
+ *
+ * @param[in] the_node The node to rotate.
+ * @param[in] dir The rotation direction.
  */
 RTEMS_INLINE_ROUTINE void _RBTree_Rotate(
-    RBTree_Node *the_node,
-    RBTree_Direction dir
-    )
+  RBTree_Node      *the_node,
+  RBTree_Direction  dir
+)
 {
-  RBTree_Node *c;
-  if (the_node == NULL) return;
-  if (the_node->child[_RBTree_Opposite_direction(dir)] == NULL) return;
+  RBTree_Direction  opp_dir = _RBTree_Opposite_direction( dir );
+  RBTree_Node      *child = the_node->child[ opp_dir ];
+  RBTree_Node      *grandchild;
+  RBTree_Node      *parent;
 
-  c = the_node->child[_RBTree_Opposite_direction(dir)];
-  the_node->child[_RBTree_Opposite_direction(dir)] = c->child[dir];
+  if ( child == NULL)
+    return;
 
-  if (c->child[dir])
-    c->child[dir]->parent = the_node;
+  grandchild = child->child[ dir ];
+  the_node->child[ opp_dir ] = grandchild;
 
-  c->child[dir] = the_node;
+  if ( grandchild != NULL )
+    grandchild->parent = the_node;
 
-  the_node->parent->child[the_node != the_node->parent->child[0]] = c;
+  child->child[ dir ] = the_node;
 
-  c->parent = the_node->parent;
-  the_node->parent = c;
+  parent = _RBTree_Parent( the_node );
+  parent->child[ _RBTree_Direction( the_node, parent ) ] = child;
+
+  child->parent = parent;
+  the_node->parent = child;
 }
 
 /** @} */

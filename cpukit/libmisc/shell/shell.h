@@ -17,6 +17,8 @@
 #ifndef __RTEMS_SHELL_H__
 #define __RTEMS_SHELL_H__
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <rtems.h>
 #include <stdio.h>
 #include <termios.h>
@@ -82,6 +84,9 @@ struct rtems_shell_cmd_tt {
   rtems_shell_command_t  command;
   rtems_shell_cmd_t     *alias;
   rtems_shell_cmd_t     *next;
+  mode_t                 mode;
+  uid_t                  uid;
+  gid_t                  gid;
 };
 
 typedef struct {
@@ -199,14 +204,28 @@ typedef struct {
   bool output_append;
   rtems_id wake_on_end;
   rtems_shell_login_check_t login_check;
+
+  /**
+   * @brief The real and effective UID of the shell task in case no login check
+   * is present.
+   */
+  uid_t uid;
+
+  /**
+   * @brief The real and effective GID of the shell task in case no login check
+   * is present.
+   */
+  gid_t gid;
 } rtems_shell_env_t;
 
 bool rtems_shell_main_loop(
   rtems_shell_env_t *rtems_shell_env
 );
 
-extern rtems_shell_env_t  rtems_global_shell_env;
-extern rtems_shell_env_t *rtems_current_shell_env;
+extern const rtems_shell_env_t rtems_global_shell_env;
+
+rtems_shell_env_t *rtems_shell_get_current_env(void);
+void rtems_shell_dup_current_env(rtems_shell_env_t *);
 
 /*
  * The types of file systems we can mount. We have them broken out
@@ -305,6 +324,13 @@ extern rtems_status_code rtems_shell_wait_for_input(
 
 extern int rtems_shell_main_monitor(int argc, char **argv);
 
+/*
+ * Provide these commands for application use, as their implementation
+ * is tedious.
+ */
+int rtems_shell_main_mv(int argc, char *argv[]);
+int rtems_shell_main_cp(int argc, char *argv[]);
+int rtems_shell_main_rm(int argc, char *argv[]);
 
 #ifdef __cplusplus
 }

@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems/bspIo.h>
@@ -98,6 +98,10 @@ static interrupt_gate_descriptor	idtEntry;
 
 static rtems_raw_irq_global_settings raw_initial_config;
 
+
+/*
+ *  This method is called from irq_asm.S and cannot be static.
+ */
 void raw_idt_notify(void)
 {
   printk("raw_idt_notify has been called \n");

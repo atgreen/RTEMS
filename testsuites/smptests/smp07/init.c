@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -14,13 +14,23 @@
 #include <tmacros.h>
 #include "test_support.h"
 
+const char rtems_test_name[] = "SMP 7";
+
 volatile bool TaskRan = false;
 volatile bool TSRFired = false;
 rtems_id      Semaphore; 
 
+rtems_task Init(
+  rtems_task_argument argument
+);
+
+rtems_task Test_task(
+  rtems_task_argument argument
+);
+
 static void success(void)
 {
-  locked_printf( "*** END OF TEST SMP07 ***\n" );
+  rtems_test_end_with_plugin(locked_printf_plugin, NULL);
   rtems_test_exit( 0 );
 }
 
@@ -38,7 +48,7 @@ rtems_task Test_task(
   rtems_test_assert( p != NULL );
 
    /* Get the CPU Number */
-  cpu_num = rtems_smp_get_current_processor();
+  cpu_num = rtems_get_current_processor();
 
   /* Print that the task is up and running. */
   locked_printf(" CPU %" PRIu32 " runnng Task %s and blocking\n", cpu_num, name);
@@ -63,7 +73,7 @@ rtems_task Test_task(
 }
 
 
-rtems_timer_service_routine TimerMethod(
+static rtems_timer_service_routine TimerMethod(
   rtems_id  timer,
   void     *arg
 )
@@ -88,9 +98,9 @@ rtems_task Init(
   rtems_id           Timer;
 
   locked_print_initialize();
-  locked_printf( "\n\n*** TEST SMP07 ***\n" );
+  rtems_test_begin_with_plugin(locked_printf_plugin, NULL);
 
-  if ( rtems_smp_get_processor_count() == 1 ) {
+  if ( rtems_get_processor_count() == 1 ) {
     success();
   }
 
@@ -121,7 +131,7 @@ rtems_task Init(
   );
   directive_failed( status, "task create" );
 
-  cpu_num = rtems_smp_get_current_processor();
+  cpu_num = rtems_get_current_processor();
   locked_printf(" CPU %d start task TA1\n", cpu_num );
   status = rtems_task_start( id, Test_task, 1 );
   directive_failed( status, "task start" );
@@ -171,6 +181,8 @@ rtems_task Init(
 #define CONFIGURE_MAXIMUM_TIMERS           1
 
 #define CONFIGURE_MAXIMUM_TASKS            2
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 #define CONFIGURE_MAXIMUM_SEMAPHORES       2
 

@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,6 +35,8 @@
 #include "files.h"
 
 #include <errno.h>
+
+const char rtems_test_name[] = "FSDOSFSNAME 1";
 
 #define PRINT_DISK_IMAGE 0
 
@@ -1287,12 +1289,11 @@ static void test( void )
 
 static void Init( rtems_task_argument arg )
 {
-  puts( "\n\n*** TEST fsdosfsname01 ***" );
+  TEST_BEGIN();
 
   test();
 
-  puts( "*** END OF TEST fsdosfsname01 ***" );
-
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -1313,8 +1314,6 @@ size_t rtems_ramdisk_configuration_size = RTEMS_ARRAY_SIZE(rtems_ramdisk_configu
 
 #define CONFIGURE_APPLICATION_NEEDS_LIBBLOCK
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 #define CONFIGURE_FILESYSTEM_DOSFS
 
 /* 2 RAM disk device files + 2 mount_dir + stdin + stdout + stderr +
@@ -1322,6 +1321,8 @@ size_t rtems_ramdisk_configuration_size = RTEMS_ARRAY_SIZE(rtems_ramdisk_configu
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS ( 7 + 2 + ( 4 * 2 ) )
 
 #define CONFIGURE_MAXIMUM_TASKS 1
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

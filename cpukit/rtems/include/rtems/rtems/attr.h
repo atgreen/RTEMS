@@ -15,7 +15,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_RTEMS_ATTR_H
@@ -138,6 +138,20 @@ typedef uint32_t   rtems_attribute;
  *  @note The semaphore instance must be a binary semaphore.
  */
 #define RTEMS_PRIORITY_CEILING        0x00000080
+
+/**
+ *  This attribute constant indicates that the Classic API Semaphore instance
+ *  created will NOT use the Multiprocessor Resource Sharing Protocol.
+ */
+#define RTEMS_NO_MULTIPROCESSOR_RESOURCE_SHARING 0x00000000
+
+/**
+ *  This attribute constant indicates that the Classic API Semaphore instance
+ *  created will use the Multiprocessor Resource Sharing Protocol.
+ *
+ *  @note The semaphore instance must be a binary semaphore.
+ */
+#define RTEMS_MULTIPROCESSOR_RESOURCE_SHARING 0x00000100
 
 /******************** RTEMS Barrier Specific Attributes ********************/
 

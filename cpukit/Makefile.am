@@ -5,12 +5,15 @@ include $(top_srcdir)/automake/multilib.am
 
 # librtemscpu
 SUBDIRS = . score rtems sapi posix
+SUBDIRS += dev
+SUBDIRS += libcrypt
 SUBDIRS += libcsupport libblock libfs
 SUBDIRS += libnetworking librpc
 SUBDIRS += libi2c
 SUBDIRS += libmisc
 SUBDIRS += libmd
 SUBDIRS += libgnat
+SUBDIRS += libdl
 SUBDIRS += wrapup
 
 SUBDIRS += zlib
@@ -41,14 +44,13 @@ include_uuid_HEADERS = libmisc/uuid/uuid.h
 include_utf8procdir = $(includedir)/utf8proc
 include_utf8proc_HEADERS = libmisc/utf8proc/utf8proc.h
 
-if NEWLIB
 include_sysdir = $(includedir)/sys
 include_sys_HEADERS =
 
+include_HEADERS += include/crypt.h
 include_HEADERS += include/memory.h
-include_HEADERS += libmd/md4.h
-include_HEADERS += libmd/md5.h
 
+include_sys_HEADERS += posix/include/sys/mman.h
 include_sys_HEADERS += libcsupport/include/sys/ioccom.h
 include_sys_HEADERS += libcsupport/include/sys/event.h
 include_sys_HEADERS += libcsupport/include/sys/filio.h
@@ -60,6 +62,7 @@ include_sys_HEADERS += libcsupport/include/sys/ttycom.h
 include_sys_HEADERS += libcsupport/include/sys/termios.h
 include_sys_HEADERS += libcsupport/include/sys/utsname.h
 
+include_sys_HEADERS += include/sys/endian.h
 include_sys_HEADERS += include/sys/uio.h
 include_sys_HEADERS += include/sys/_iovec.h
 include_sys_HEADERS += include/sys/priority.h
@@ -69,6 +72,24 @@ include_rtems_bsdnetdir = $(includedir)/rtems/bsdnet
 include_rtems_bsdnet_HEADERS = libnetworking/rtems/bsdnet/servers.h
 include_rtems_bsdnet_HEADERS += libnetworking/rtems/bsdnet/_types.h
 endif
+
+if LIBDL
+include_HEADERS += libdl/dlfcn.h
+include_HEADERS += libdl/include/link.h
+include_HEADERS += libdl/include/link_elf.h
+include_sys_HEADERS += libdl/include/sys/cdefs_elf.h
+include_sys_HEADERS += libdl/include/sys/exec_elf.h
+include_arch_machinedir = $(includedir)/machine
+include_arch_machine_HEADERS =
+include_arch_machine_HEADERS += libdl/include/arch/@RTEMS_CPU@/machine/elf_machdep.h
+include_rtems_rtldir = $(includedir)/rtems/rtl
+include_rtems_rtl_HEADERS =
+include_rtems_rtl_HEADERS += libdl/dlfcn-shell.h
+include_rtems_rtl_HEADERS += libdl/rtl.h libdl/rtl-allocator.h libdl/rtl-obj-fwd.h
+include_rtems_rtl_HEADERS += libdl/rtl-fwd.h libdl/rtl-obj.h libdl/rtl-obj-cache.h
+include_rtems_rtl_HEADERS += libdl/rtl-obj-comp.h libdl/rtl-unresolved.h
+include_rtems_rtl_HEADERS += libdl/rtl-indirect-ptr.h libdl/rtl-sym.h
+include_rtems_rtl_HEADERS += libdl/rap.h libdl/rap-shell.h
 endif
 
 include_rtems_HEADERS += include/rtems/bspIo.h
@@ -149,6 +170,7 @@ include_rtems_HEADERS += libmisc/bspcmdline/bspcmdline.h
 ## capture
 include_rtems_HEADERS += libmisc/capture/capture.h
 include_rtems_HEADERS += libmisc/capture/capture-cli.h
+include_rtems_HEADERS += libmisc/capture/captureimpl.h
 
 ## cpuuse
 include_rtems_HEADERS += libmisc/cpuuse/cpuuse.h
@@ -174,6 +196,8 @@ include_rtems_HEADERS += libmisc/mouse/serial_mouse.h
 ## libqos
 include_rtems_HEADERS += libqos/qreslib.h
 
+## redirector
+include_rtems_HEADERS += libmisc/redirector/stdio-redirect.h
 ## shell
 if LIBSHELL
 include_rtems_HEADERS += libmisc/shell/shell.h

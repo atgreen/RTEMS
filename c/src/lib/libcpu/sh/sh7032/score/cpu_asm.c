@@ -20,7 +20,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  */
 
@@ -35,6 +35,7 @@
 #include <rtems/score/isr.h>
 #include <rtems/score/threaddispatch.h>
 #include <rtems/score/sh.h>
+#include <rtems/score/ispsh7032.h>
 
 #include <rtems/score/ispsh7032.h>
 #include <rtems/score/iosh7032.h>

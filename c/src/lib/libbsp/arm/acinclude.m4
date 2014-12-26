@@ -2,6 +2,10 @@
 AC_DEFUN([RTEMS_CHECK_BSPDIR],
 [
   case "$1" in
+  altera-cyclone-v )
+    AC_CONFIG_SUBDIRS([altera-cyclone-v]);;
+  beagle )
+    AC_CONFIG_SUBDIRS([beagle]);;
   csb336 )
     AC_CONFIG_SUBDIRS([csb336]);;
   csb337 )
@@ -18,6 +22,8 @@ AC_DEFUN([RTEMS_CHECK_BSPDIR],
     AC_CONFIG_SUBDIRS([gumstix]);;
   lm3s69xx )
     AC_CONFIG_SUBDIRS([lm3s69xx]);;
+  lpc176x )
+    AC_CONFIG_SUBDIRS([lpc176x]);;
   lpc24xx )
     AC_CONFIG_SUBDIRS([lpc24xx]);;
   lpc32xx )
@@ -34,6 +40,8 @@ AC_DEFUN([RTEMS_CHECK_BSPDIR],
     AC_CONFIG_SUBDIRS([smdk2410]);;
   stm32f4 )
     AC_CONFIG_SUBDIRS([stm32f4]);;
+  tms570 )
+    AC_CONFIG_SUBDIRS([tms570]);;
   xilinx-zynq )
     AC_CONFIG_SUBDIRS([xilinx-zynq]);;
   *)

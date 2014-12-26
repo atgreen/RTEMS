@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+const char rtems_test_name[] = "SP 44";
+
 rtems_task Init(rtems_task_argument ignored);
 rtems_task TaskAB_entry(rtems_task_argument me);
 
@@ -60,12 +62,13 @@ rtems_task TaskAB_entry(rtems_task_argument me)
           me,
           1 - me
       );
-      turn = 1 - me;
 
       if ( ++iterations == 10 ) {
-        puts( "*** END OF SP44 TEST ***" );
+        TEST_END();
         exit( 0 );
       }
+
+      turn = 1 - me;
     }
   }
 }
@@ -74,7 +77,7 @@ rtems_task Init(rtems_task_argument ignored)
 {
   static rtems_status_code status;
 
-  puts( "\n\n*** SP44 TEST ***" );
+  TEST_BEGIN();
 
   /* Create Task A */
   status = rtems_task_create(
@@ -123,6 +126,8 @@ rtems_task Init(rtems_task_argument ignored)
 #define CONFIGURE_MICROSECONDS_PER_TICK 1000
 #define CONFIGURE_TICKS_PER_TIMESLICE   10
 #define CONFIGURE_MAXIMUM_TASKS         3
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

@@ -16,7 +16,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -26,6 +26,8 @@
 #include <tmacros.h>
 
 #include <rtems/rtems/timerimpl.h>
+
+const char rtems_test_name[] = "SP 68";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -383,7 +385,7 @@ rtems_task Init(rtems_task_argument argument)
   void *new_region_item = NULL;
   size_t i = 0;
 
-  puts("\n\n*** TEST 68 ***");
+  TEST_BEGIN();
 
   for (i = 0; i < TIMER_COUNT; ++i) {
     sc = rtems_timer_create(
@@ -456,7 +458,7 @@ rtems_task Init(rtems_task_argument argument)
     ++rt;
   }
 
-  puts("*** END OF TEST 68 ***");
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -468,8 +470,12 @@ rtems_task Init(rtems_task_argument argument)
 #define CONFIGURE_MAXIMUM_TIMERS TIMER_COUNT
 #define CONFIGURE_MAXIMUM_SEMAPHORES 2
 #define CONFIGURE_MAXIMUM_MESSAGE_QUEUES 1
+#define CONFIGURE_MESSAGE_BUFFER_MEMORY \
+  CONFIGURE_MESSAGE_BUFFERS_FOR_QUEUE(1, 1)
 #define CONFIGURE_MAXIMUM_REGIONS 1
 #define CONFIGURE_MAXIMUM_BARRIERS 1
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

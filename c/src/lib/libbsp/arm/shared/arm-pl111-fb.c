@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <errno.h>
@@ -22,6 +22,7 @@
 
 #include <bsp.h>
 #include <bsp/arm-pl111-fb.h>
+#include <bsp/fatal.h>
 
 typedef struct {
   rtems_id semaphore;
@@ -80,6 +81,8 @@ static rtems_status_code pl111_fb_initialize(pl111_fb_context *ctx)
   if (ctx->frame_buffer != NULL) {
     volatile pl111 *regs = cfg->regs;
 
+    (*cfg->set_up)(cfg);
+
     regs->lcd.upbase = (uint32_t) ctx->frame_buffer;
 
     regs->lcd.timing0 = cfg->timing0;
@@ -88,7 +91,7 @@ static rtems_status_code pl111_fb_initialize(pl111_fb_context *ctx)
     regs->lcd.timing3 = cfg->timing3;
     regs->lcd.control = cfg->control;
 
-    arm_pl111_fb_pins_set_up(cfg);
+    (*cfg->pins_set_up)(cfg);
 
     regs->lcd.control = cfg->control
       | PL111_LCD_CONTROL_LCD_EN;
@@ -119,7 +122,8 @@ static void pl111_fb_destroy(const pl111_fb_context *ctx)
 
   regs->lcd.control = cfg->control;
 
-  arm_pl111_fb_pins_tear_down(cfg);
+  (*cfg->pins_tear_down)(cfg);
+  (*cfg->tear_down)(cfg);
 }
 
 static void pl111_fb_get_fix_screen_info(struct fb_fix_screeninfo *info)
@@ -151,10 +155,7 @@ static void pl111_fb_release(const pl111_fb_context *ctx)
 {
   rtems_status_code sc = rtems_semaphore_release(ctx->semaphore);
   if (sc != RTEMS_SUCCESSFUL) {
-    rtems_fatal(
-      RTEMS_FATAL_SOURCE_BSP_SPECIFIC,
-      BSP_ARM_PL111_FATAL_SEM_RELEASE
-    );
+    bsp_fatal(BSP_ARM_PL111_FATAL_SEM_RELEASE);
   }
 }
 
@@ -169,10 +170,7 @@ rtems_device_driver frame_buffer_initialize(
 
   sc = rtems_io_register_name(FRAMEBUFFER_DEVICE_0_NAME, major, 0);
   if (sc != RTEMS_SUCCESSFUL) {
-    rtems_fatal(
-      RTEMS_FATAL_SOURCE_BSP_SPECIFIC,
-      BSP_ARM_PL111_FATAL_REGISTER_DEV
-    );
+    bsp_fatal(BSP_ARM_PL111_FATAL_REGISTER_DEV);
   }
 
   sc = rtems_semaphore_create(
@@ -183,10 +181,7 @@ rtems_device_driver frame_buffer_initialize(
     &ctx->semaphore
   );
   if (sc != RTEMS_SUCCESSFUL) {
-    rtems_fatal(
-      RTEMS_FATAL_SOURCE_BSP_SPECIFIC,
-      BSP_ARM_PL111_FATAL_SEM_CREATE
-    );
+    bsp_fatal(BSP_ARM_PL111_FATAL_SEM_CREATE);
   }
 
   return sc;

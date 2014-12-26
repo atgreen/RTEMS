@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -19,6 +19,7 @@
 #endif
 
 #include <rtems/score/objectimpl.h>
+#include <rtems/score/assert.h>
 #include <rtems/score/chainimpl.h>
 #include <rtems/score/wkspace.h>
 
@@ -29,6 +30,8 @@ void _Objects_Shrink_information(
   uint32_t          block_count;
   uint32_t          block;
   uint32_t          index_base;
+
+  _Assert( _Debug_Is_owner_of_allocator() );
 
   /*
    * Search the list to find block or chunk with all objects inactive.
@@ -55,7 +58,7 @@ void _Objects_Shrink_information(
         node = _Chain_Next( node );
 
         if ( index >= index_base && index < index_end ) {
-          _Chain_Extract( &object->Node );
+          _Chain_Extract_unprotected( &object->Node );
         }
       }
 

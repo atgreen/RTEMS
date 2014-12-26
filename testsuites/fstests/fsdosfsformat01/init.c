@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file_name may be
  * found in the file_name LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -27,6 +27,8 @@
 #include <rtems/sparse-disk.h>
 
 #include <bsp.h>
+
+const char rtems_test_name[] = "FSDOSFSFORMAT 1";
 
 #define MAX_PATH_LENGTH 100 /* Maximum number of characters per path */
 #define SECTOR_SIZE 512 /* sector size (bytes) */
@@ -471,12 +473,11 @@ static void test( void )
 
 static void Init( rtems_task_argument arg )
 {
-  puts( "\n\n*** TEST FSDOSFSFORMAT 1 ***" );
+  TEST_BEGIN();
 
   test();
 
-  puts( "*** END OF TEST FSDOSFSFORMAT 1 ***" );
-
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -487,14 +488,14 @@ static void Init( rtems_task_argument arg )
 /* one active file + stdin + stdout + stderr + device file when mounted */
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 5
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 #define CONFIGURE_FILESYSTEM_DOSFS
 
 #define CONFIGURE_MAXIMUM_TASKS 1
 #define CONFIGURE_MAXIMUM_SEMAPHORES 1
 
 #define CONFIGURE_INIT_TASK_STACK_SIZE ( 32 * 1024 )
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

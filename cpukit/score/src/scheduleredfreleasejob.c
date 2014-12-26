@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -23,11 +23,14 @@
 #include <rtems/score/watchdogimpl.h>
 
 void _Scheduler_EDF_Release_job(
-  Thread_Control    *the_thread,
-  uint32_t           deadline
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread,
+  uint32_t                 deadline
 )
 {
   Priority_Control new_priority;
+
+  (void) scheduler;
 
   if (deadline) {
     /* Initializing or shifting deadline. */

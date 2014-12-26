@@ -10,7 +10,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 
@@ -18,6 +18,7 @@
 #include "config.h"
 #endif
 
+#include <sys/param.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,9 +29,6 @@
 #include <rtems/score/statesimpl.h>
 
 #include "pipe.h"
-
-
-#define MIN(a, b) ((a) < (b)? (a): (b))
 
 #define LIBIO_ACCMODE(_iop) ((_iop)->flags & LIBIO_FLAGS_READ_WRITE)
 #define LIBIO_NODELAY(_iop) ((_iop)->flags & LIBIO_FLAGS_NO_DELAY)
@@ -214,6 +212,7 @@ static int pipe_new(
   pipe_control_t *pipe;
   int err = 0;
 
+  _Assert( pipep );
   err = pipe_lock();
   if (err)
     return err;
@@ -225,7 +224,7 @@ static int pipe_new(
       goto out;
   }
 
-  if (! PIPE_LOCK(pipe))
+  if (!PIPE_LOCK(pipe))
     err = -EINTR;
 
   if (*pipep == NULL) {

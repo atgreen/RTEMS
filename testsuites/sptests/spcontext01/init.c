@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,6 +17,8 @@
 #endif
 
 #include "tmacros.h"
+
+const char rtems_test_name[] = "SPCONTEXT 1";
 
 #define ITERATION_COUNT 2000
 
@@ -158,15 +160,56 @@ static void test(test_context *self)
   wait_for_finish();
 }
 
+static void test_context_is_executing(void)
+{
+#if defined(RTEMS_SMP)
+  /*
+   * Provide a stack area, since on some architectures the top/bottom of stack
+   * is initialized by _CPU_Context_Initialize().
+   */
+  static char stack[1024];
+
+  Context_Control context;
+  bool is_executing;
+
+  memset(&context, 0, sizeof(context));
+
+  is_executing = _CPU_Context_Get_is_executing(&context);
+  rtems_test_assert(!is_executing);
+
+  _CPU_Context_Set_is_executing(&context, true);
+  is_executing = _CPU_Context_Get_is_executing(&context);
+  rtems_test_assert(is_executing);
+
+  _CPU_Context_Set_is_executing(&context, false);
+  is_executing = _CPU_Context_Get_is_executing(&context);
+  rtems_test_assert(!is_executing);
+
+  _CPU_Context_Set_is_executing(&context, true);
+  _CPU_Context_Initialize(
+    &context,
+    (void *) &stack[0],
+    sizeof(stack),
+    0,
+    NULL,
+    false,
+    NULL
+  );
+  is_executing = _CPU_Context_Get_is_executing(&context);
+  rtems_test_assert(is_executing);
+#endif
+}
+
 static void Init(rtems_task_argument arg)
 {
   test_context *self = &test_instance;
 
-  puts("\n\n*** TEST SPCONTEXT 1 ***");
+  TEST_BEGIN();
 
+  test_context_is_executing();
   test(self);
 
-  puts("*** END OF TEST SPCONTEXT 1 ***");
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -176,10 +219,10 @@ static void Init(rtems_task_argument arg)
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 #define CONFIGURE_MAXIMUM_TASKS 3
 #define CONFIGURE_MAXIMUM_TIMERS 1
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

@@ -1,16 +1,22 @@
 /**
  * @file
+ *
  * @ingroup sparc_leon2
+ *
  * @brief Support for gnat/rtems iterrupts and exception handling
  */
 
 /*
+ * COPYRIGHT (c) 1999.
+ * European Space Agency.
  *
- * Support for gnat/rtems interrupts and exception handling.
- * Jiri Gaisler, ESA/ESTEC, 17-02-1999.
+ * The license and distribution terms for this file may be
+ * found in the file LICENSE in this distribution or at
+ * http://www.rtems.org/license/LICENSE.
+ *
  */
 
-void __gnat_install_handler_common (int t1, int t2);
+#include <bsp/gnatcommon.h>
 
 /*
  *  Avoid trap 0x18 which is used by the clock tick, and

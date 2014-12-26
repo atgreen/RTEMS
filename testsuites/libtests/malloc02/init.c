@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -12,6 +12,8 @@
 #endif
 
 #include <tmacros.h>
+
+const char rtems_test_name[] = "MALLOC 2";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -40,7 +42,7 @@ rtems_task Init(
   rtems_id              timer;
   void                 *pointer2;
 
-  puts( "\n\n*** TEST MALLOC 02 ***" );
+  TEST_BEGIN();
 
   puts( "malloc memory to free from ISR" );
   Pointer1 = malloc( 20 );
@@ -73,7 +75,7 @@ rtems_task Init(
   pointer2 = malloc(20);
   rtems_test_assert( pointer2 );
 
-  puts( "*** END OF TEST MALLOC 02 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -83,6 +85,8 @@ rtems_task Init(
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 
 #define CONFIGURE_MALLOC_DIRTY
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 #define CONFIGURE_MAXIMUM_TASKS             1

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -15,6 +15,8 @@
 #include <rtems/devnull.h>
 #include <rtems/devzero.h>
 #include <rtems/libio.h>
+
+const char rtems_test_name[] = "SP 21";
 
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
@@ -27,8 +29,7 @@ void do_test_zero_driver(void);
 #define STUB_DRIVER_MAJOR     0x2
 #define ZERO_DRIVER_MAJOR     0x3
 #define NO_DRIVER_MAJOR       0x4
-#define INVALID_DRIVER_MAJOR  \
-     (rtems_configuration_get_number_of_device_drivers() + 1)
+#define INVALID_DRIVER_MAJOR  UINT32_MAX
 
 /* driver entries to use with io_register */
 rtems_driver_address_table GoodDriver = DEVNULL_DRIVER_TABLE_ENTRY;
@@ -253,7 +254,7 @@ rtems_task Init(
   rtems_task_argument argument
 )
 {
-  puts( "\n\n*** TEST 21 ***" );
+  TEST_BEGIN();
 
   do_test_io_manager();
 
@@ -261,7 +262,7 @@ rtems_task Init(
 
   do_test_zero_driver();
 
-  puts( "*** END OF TEST 21 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -274,6 +275,8 @@ rtems_task Init(
 #define CONFIGURE_APPLICATION_NEEDS_NULL_DRIVER
 
 #define CONFIGURE_MAXIMUM_TASKS             1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
+
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT

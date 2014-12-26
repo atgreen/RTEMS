@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -21,13 +21,13 @@
 #include <sched.h>
 
 #include <rtems/score/percpu.h>
-#include <rtems/score/schedulerimpl.h>
 #include <rtems/score/threaddispatch.h>
+#include <rtems/score/threadimpl.h>
 
 int sched_yield( void )
 {
   _Thread_Disable_dispatch();
-    _Scheduler_Yield( _Thread_Executing );
+    _Thread_Yield( _Thread_Executing );
   _Thread_Enable_dispatch();
   return 0;
 }

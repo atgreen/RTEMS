@@ -14,7 +14,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_WKSPACE_H
@@ -70,6 +70,17 @@ void _Workspace_Handler_initialization(
 void *_Workspace_Allocate(
   size_t   size
 );
+
+/**
+ * @brief Allocate aligned memory from workspace.
+ *
+ * @param[in] size The size of the requested memory.
+ * @param[in] alignment The alignment of the requested memory.
+ *
+ * @retval NULL Not enough resources.
+ * @retval other The memory area begin.
+ */
+void *_Workspace_Allocate_aligned( size_t size, size_t alignment );
 
 /**
  * @brief Free memory to the workspace.

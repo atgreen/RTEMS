@@ -1,8 +1,20 @@
 /**
- * @file
  * @defgroup leon2_rasta Rasta Handler
  * @ingroup sparc_leon2
+ *
+ * @file
+ * @ingroup leon2_rasta
  * @brief Handles Rasta
+ */
+
+/*
+ * COPYRIGHT (c) 2007.
+ * Aeroflex Gaisler AB.
+ *
+ * The license and distribution terms for this file may be
+ * found in the file LICENSE in this distribution or at
+ * http://www.rtems.org/license/LICENSE.
+ *
  */
 
 #ifndef __RASTA_H__
@@ -88,12 +100,18 @@ struct uart_reg {
 
 
 void uart_register(unsigned int baseaddr);
-rtems_device_driver uart_initialize(rtems_device_major_number  major, rtems_device_minor_number  minor, void *arg);
-rtems_device_driver uart_open(rtems_device_major_number major, rtems_device_minor_number minor, void *arg);
-rtems_device_driver uart_close(rtems_device_major_number major, rtems_device_minor_number minor, void *arg);
-rtems_device_driver uart_read(rtems_device_major_number major, rtems_device_minor_number minor, void *arg);
-rtems_device_driver uart_write(rtems_device_major_number major, rtems_device_minor_number minor, void *arg);
-rtems_device_driver uart_control(rtems_device_major_number major, rtems_device_minor_number minor, void *arg);
+rtems_device_driver uart_initialize(rtems_device_major_number major,
+    rtems_device_minor_number  minor, void *arg);
+rtems_device_driver uart_open(rtems_device_major_number major,
+    rtems_device_minor_number minor, void *arg);
+rtems_device_driver uart_close(rtems_device_major_number major,
+    rtems_device_minor_number minor, void *arg);
+rtems_device_driver uart_read(rtems_device_major_number major,
+    rtems_device_minor_number minor, void *arg);
+rtems_device_driver uart_write(rtems_device_major_number major,
+    rtems_device_minor_number minor, void *arg);
+rtems_device_driver uart_control(rtems_device_major_number major,
+    rtems_device_minor_number minor, void *arg);
 
 
 struct gpio_reg {

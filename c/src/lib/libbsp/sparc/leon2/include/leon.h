@@ -1,11 +1,10 @@
 /**
- * @file
  * @defgroup leon1 Leon-1 Handler
  * @ingroup sparc_leon2
+ *
+ * @file
+ * @ingroup leon1
  * @brief Handlers Leon-1
- */
-
-/*  erc32.h
  *
  *  This include file contains information pertaining to the LEON-1.
  *  The LEON-1 is a custom SPARC V7 implementation.
@@ -22,12 +21,15 @@
  *           + Memory Control Register
  *           + Interrupt Control
  *
+ */
+
+/*
  *  COPYRIGHT (c) 1989-1998.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  Ported to LEON implementation of the SPARC by On-Line Applications
  *  Research Corporation (OAR) under contract to the European Space
@@ -100,49 +102,49 @@ extern "C" {
  */
 
 typedef struct {
-	volatile unsigned int Memory_Config_1;
-	volatile unsigned int Memory_Config_2;
-	volatile unsigned int Edac_Control;
-	volatile unsigned int Failed_Address;
-	volatile unsigned int Memory_Status;
-	volatile unsigned int Cache_Control;
-	volatile unsigned int Power_Down;
-	volatile unsigned int Write_Protection_1;
-	volatile unsigned int Write_Protection_2;
-	volatile unsigned int Leon_Configuration;
-	volatile unsigned int dummy2;
-	volatile unsigned int dummy3;
-	volatile unsigned int dummy4;
-	volatile unsigned int dummy5;
-	volatile unsigned int dummy6;
-	volatile unsigned int dummy7;
-	volatile unsigned int Timer_Counter_1;
-	volatile unsigned int Timer_Reload_1;
-	volatile unsigned int Timer_Control_1;
-	volatile unsigned int Watchdog;
-	volatile unsigned int Timer_Counter_2;
-	volatile unsigned int Timer_Reload_2;
-	volatile unsigned int Timer_Control_2;
-	volatile unsigned int dummy8;
-	volatile unsigned int Scaler_Counter;
-	volatile unsigned int Scaler_Reload;
-	volatile unsigned int dummy9;
-	volatile unsigned int dummy10;
-	volatile unsigned int UART_Channel_1;
-	volatile unsigned int UART_Status_1;
-	volatile unsigned int UART_Control_1;
-	volatile unsigned int UART_Scaler_1;
-	volatile unsigned int UART_Channel_2;
-	volatile unsigned int UART_Status_2;
-	volatile unsigned int UART_Control_2;
-	volatile unsigned int UART_Scaler_2;
-	volatile unsigned int Interrupt_Mask;
-	volatile unsigned int Interrupt_Pending;
-	volatile unsigned int Interrupt_Force;
-	volatile unsigned int Interrupt_Clear;
-	volatile unsigned int PIO_Data;
-	volatile unsigned int PIO_Direction;
-	volatile unsigned int PIO_Interrupt;
+  volatile unsigned int Memory_Config_1;
+  volatile unsigned int Memory_Config_2;
+  volatile unsigned int Edac_Control;
+  volatile unsigned int Failed_Address;
+  volatile unsigned int Memory_Status;
+  volatile unsigned int Cache_Control;
+  volatile unsigned int Power_Down;
+  volatile unsigned int Write_Protection_1;
+  volatile unsigned int Write_Protection_2;
+  volatile unsigned int Leon_Configuration;
+  volatile unsigned int dummy2;
+  volatile unsigned int dummy3;
+  volatile unsigned int dummy4;
+  volatile unsigned int dummy5;
+  volatile unsigned int dummy6;
+  volatile unsigned int dummy7;
+  volatile unsigned int Timer_Counter_1;
+  volatile unsigned int Timer_Reload_1;
+  volatile unsigned int Timer_Control_1;
+  volatile unsigned int Watchdog;
+  volatile unsigned int Timer_Counter_2;
+  volatile unsigned int Timer_Reload_2;
+  volatile unsigned int Timer_Control_2;
+  volatile unsigned int dummy8;
+  volatile unsigned int Scaler_Counter;
+  volatile unsigned int Scaler_Reload;
+  volatile unsigned int dummy9;
+  volatile unsigned int dummy10;
+  volatile unsigned int UART_Channel_1;
+  volatile unsigned int UART_Status_1;
+  volatile unsigned int UART_Control_1;
+  volatile unsigned int UART_Scaler_1;
+  volatile unsigned int UART_Channel_2;
+  volatile unsigned int UART_Status_2;
+  volatile unsigned int UART_Control_2;
+  volatile unsigned int UART_Scaler_2;
+  volatile unsigned int Interrupt_Mask;
+  volatile unsigned int Interrupt_Pending;
+  volatile unsigned int Interrupt_Force;
+  volatile unsigned int Interrupt_Clear;
+  volatile unsigned int PIO_Data;
+  volatile unsigned int PIO_Direction;
+  volatile unsigned int PIO_Interrupt;
 } LEON_Register_Map;
 
 #endif
@@ -224,11 +226,11 @@ typedef struct {
  */
 
 #define LEON_REG_TIMER_CONTROL_EN    0x00000001  /* 1 = enable counting */
-                                                 /* 0 = hold scalar and counter */
+                                              /* 0 = hold scalar and counter */
 #define LEON_REG_TIMER_CONTROL_RL    0x00000002  /* 1 = reload at 0 */
-                                                 /* 0 = stop at 0 */
+                                              /* 0 = stop at 0 */
 #define LEON_REG_TIMER_CONTROL_LD    0x00000004  /* 1 = load counter */
-                                                 /* 0 = no function */
+                                              /* 0 = no function */
 
 /*
  *  The following defines the bits in the UART Control Registers.
@@ -305,7 +307,7 @@ static __inline__ int bsp_irq_fixup(int irq)
   (LEON_REG.Interrupt_Pending & (1 << (_source)))
 
 #define LEON_Is_interrupt_masked( _source ) \
-  (LEON_REG.Interrupt_Masked & (1 << (_source)))
+  (!(LEON_REG.Interrupt_Mask & (1 << (_source))))
 
 #define LEON_Mask_interrupt( _source ) \
   do { \
@@ -360,6 +362,18 @@ static __inline__ int bsp_irq_fixup(int irq)
 #define BSP_Restore_interrupt(_source, _previous) \
         LEON_Restore_interrupt(_source, _previous)
 
+/* Make all SPARC BSPs have common macros for interrupt handling on any CPU */
+#define BSP_Cpu_Is_interrupt_masked(_source, _cpu) \
+        BSP_Is_interrupt_masked(_source)
+#define BSP_Cpu_Unmask_interrupt(_source, _cpu) \
+        BSP_Unmask_interrupt(_source)
+#define BSP_Cpu_Mask_interrupt(_source, _cpu) \
+        BSP_Mask_interrupt(_source)
+#define BSP_Cpu_Disable_interrupt(_source, _previous, _cpu) \
+        BSP_Disable_interrupt(_source, _prev)
+#define BSP_Cpu_Restore_interrupt(_source, _previous, _cpu) \
+        BSP_Cpu_Restore_interrupt(_source, _previous)
+
 /*
  *  Each timer control register is organized as follows:
  *
@@ -394,9 +408,9 @@ static __inline__ int bsp_irq_fixup(int irq)
 /* Load 32-bit word by forcing a cache-miss */
 static inline unsigned int leon_r32_no_cache(uintptr_t addr)
 {
-	unsigned int tmp;
-	asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr));
-	return tmp;
+  unsigned int tmp;
+  __asm__ volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr));
+  return tmp;
 }
 
 #endif /* !ASM */

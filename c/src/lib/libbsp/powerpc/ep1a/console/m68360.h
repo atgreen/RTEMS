@@ -21,7 +21,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef __MC68360_h
@@ -933,9 +933,9 @@ typedef struct m360_ {
 } m360_t;
 
 struct bdregions_t {
-  char            *base;
-  unsigned int    size;
-  unsigned int    used;
+  volatile unsigned char  *base;
+  unsigned int             size;
+  unsigned int             used;
 };
 
 #define M68360_RX_BUF_SIZE        1
@@ -974,9 +974,5 @@ void M360SetupMemory( M68360_t ptr );
 void *M360AllocateBufferDescriptors (M68360_t ptr, int count);
 void M360ExecuteRISC( volatile m360_t *m360, uint16_t command);
 int mc68360_scc_create_chip( PPMCQ1BoardData BoardData, uint8_t int_vector );
-
-#if 0
-extern volatile m360_t *m360;
-#endif
 
 #endif /* __MC68360_h */

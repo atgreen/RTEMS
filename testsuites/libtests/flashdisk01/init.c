@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,8 +17,6 @@
 #endif
 
 #include "tmacros.h"
-
-#if !BSP_SMALL_MEMORY
 
 #include <sys/stat.h>
 #include <errno.h>
@@ -33,6 +31,8 @@
 #include <rtems/rtems-rfs-format.h>
 
 #include "test-file-system.h"
+
+const char rtems_test_name[] = "FLASHDISK 1";
 
 /* forward declarations to avoid warnings */
 static rtems_task Init(rtems_task_argument argument);
@@ -149,11 +149,11 @@ static void test(void)
 
 static void Init(rtems_task_argument arg)
 {
-  puts("\n\n*** TEST FLASHDISK 1 ***");
+  TEST_BEGIN();
 
   test();
 
-  puts("*** END OF TEST FLASHDISK 1 ***");
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -341,7 +341,6 @@ uint32_t rtems_flashdisk_configuration_size = FLASHDISK_CONFIG_COUNT;
 
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 6
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 #define CONFIGURE_FILESYSTEM_RFS
 
 #define CONFIGURE_MAXIMUM_TASKS 2
@@ -351,31 +350,10 @@ uint32_t rtems_flashdisk_configuration_size = FLASHDISK_CONFIG_COUNT;
 
 #define CONFIGURE_EXTRA_TASK_STACKS (8 * 1024)
 
-#define CONFIGURE_RTEMS_INIT_TASKS_TABLE
-
-#define CONFIGURE_INIT
-
-#include <rtems/confdefs.h>
-
-#else /* BSP_SMALL_MEMORY */
-
-static void Init(rtems_task_argument arg)
-{
-  puts("\n\n*** TEST FLASHDISK 1 ***");
-  puts("NOT ENOUGH MEMORY TO RUN TEST");
-
-  rtems_test_exit(0);
-}
-
-#define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
-#define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
-
-#define CONFIGURE_MAXIMUM_TASKS 1
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 #define CONFIGURE_INIT
 
 #include <rtems/confdefs.h>
-
-#endif /* BSP_SMALL_MEMORY */

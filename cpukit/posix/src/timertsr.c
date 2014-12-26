@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -73,7 +73,14 @@ void _POSIX_Timer_TSR(
    */
 
   if ( pthread_kill ( ptimer->thread_id, ptimer->inf.sigev_signo ) ) {
-    /* XXX error handling */
+    _Assert( FALSE );
+    /*
+     * TODO: What if an error happens at run-time? This should never
+     *       occur because the timer should be canceled if the thread
+     *       is deleted. This method is being invoked from the Clock
+     *       Tick ISR so even if we decide to take action on an error,
+     *       we don't have many options. We shouldn't shut the system down.
+     */
   }
 
   /* After the signal handler returns, the count of expirations of the

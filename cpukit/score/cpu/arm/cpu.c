@@ -19,7 +19,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,12 +32,29 @@
 #include <rtems/score/isr.h>
 #include <rtems/score/wkspace.h>
 #include <rtems/score/thread.h>
+#include <rtems/score/tls.h>
 #include <rtems/score/cpu.h>
 
-#ifdef ARM_MULTILIB_VFP_D32
+#ifdef ARM_MULTILIB_VFP
   RTEMS_STATIC_ASSERT(
     offsetof( Context_Control, register_d8 ) == ARM_CONTEXT_CONTROL_D8_OFFSET,
     ARM_CONTEXT_CONTROL_D8_OFFSET
+  );
+#endif
+
+#ifdef ARM_MULTILIB_HAS_THREAD_ID_REGISTER
+  RTEMS_STATIC_ASSERT(
+    offsetof( Context_Control, thread_id )
+      == ARM_CONTEXT_CONTROL_THREAD_ID_OFFSET,
+    ARM_CONTEXT_CONTROL_THREAD_ID_OFFSET
+  );
+#endif
+
+#ifdef RTEMS_SMP
+  RTEMS_STATIC_ASSERT(
+    offsetof( Context_Control, is_executing )
+      == ARM_CONTEXT_CONTROL_IS_EXECUTING_OFFSET,
+    ARM_CONTEXT_CONTROL_IS_EXECUTING_OFFSET
   );
 #endif
 
@@ -71,13 +88,22 @@ void _CPU_Context_Initialize(
   size_t stack_area_size,
   uint32_t new_level,
   void (*entry_point)( void ),
-  bool is_fp
+  bool is_fp,
+  void *tls_area
 )
 {
   the_context->register_sp = (uint32_t) stack_area_begin + stack_area_size;
   the_context->register_lr = (uint32_t) entry_point;
   the_context->register_cpsr = ( ( new_level != 0 ) ? ARM_PSR_I : 0 )
     | arm_cpu_mode;
+
+#ifdef ARM_MULTILIB_HAS_THREAD_ID_REGISTER
+  the_context->thread_id = (uint32_t) tls_area;
+#endif
+
+  if ( tls_area != NULL ) {
+    _TLS_TCB_at_area_begin_initialize( tls_area );
+  }
 }
 
 /* Preprocessor magic for stringification of x */

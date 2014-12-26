@@ -10,11 +10,12 @@ include_rtems_score_HEADERS += rtems/score/armv4.h
 include_rtems_score_HEADERS += rtems/score/armv7m.h
 include_rtems_score_HEADERS += rtems/score/types.h
 include_rtems_score_HEADERS += rtems/score/cpuatomic.h
-include_rtems_score_HEADERS += rtems/score/cpusmplock.h
 
 noinst_LIBRARIES = libscorecpu.a
 libscorecpu_a_CPPFLAGS = $(AM_CPPFLAGS)
 libscorecpu_a_SOURCES =
+libscorecpu_a_SOURCES += __aeabi_read_tp.c
+libscorecpu_a_SOURCES += __tls_get_addr.c
 libscorecpu_a_SOURCES += cpu.c
 libscorecpu_a_SOURCES += cpu_asm.S
 libscorecpu_a_SOURCES += arm-context-validate.S

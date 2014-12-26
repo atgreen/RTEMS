@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <bsp.h>
@@ -19,14 +19,9 @@
 #include <s3c24xx.h>
 
 /*
- * External Prototypes
- */
-extern void rtems_exception_init_mngt(void);
-
-/*
  *  BSP Specific Initialization in C
  */
-void bsp_start_default( void )
+static void bsp_start_default( void )
 {
   uint32_t cr;
   uint32_t pend,last;
@@ -78,6 +73,7 @@ void bsp_start_default( void )
   /*
    * Init rtems exceptions management
    */
+  /* FIXME: Use shared start.S */
   rtems_exception_init_mngt();
 
   /*
@@ -90,5 +86,4 @@ void bsp_start_default( void )
  *  By making this a weak alias for bsp_start_default, a brave soul
  *  can override the actual bsp_start routine used.
  */
-
 void bsp_start (void) __attribute__ ((weak, alias("bsp_start_default")));

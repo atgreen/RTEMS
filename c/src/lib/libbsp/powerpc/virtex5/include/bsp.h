@@ -1,7 +1,9 @@
-/*  bsp.h
+/*  @file
  *
  *  This include file contains all GEN405 board IO definitions.
- *
+ */
+
+/*
  * derived from helas403/include/bsp.h:
  *  Id: bsp.h,v 1.4 2001/06/18 17:01:48 joel Exp
  *  Author:	Thomas Doerfler <td@imd.m.isar.de>
@@ -34,16 +36,12 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  */
 
 #ifndef _BSP_H
 #define _BSP_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <bspopts.h>
 
@@ -64,10 +62,43 @@ extern "C" {
 #include <rtems/iosupp.h>
 #include <bsp/default-initial-extension.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* miscellaneous stuff assumed to exist */
 extern bool bsp_timer_internal_clock;   /* TRUE, when timer runs with CPU clk */
 
-extern rtems_configuration_table BSP_Configuration;     /* owned by BSP */
+/*
+ * Bus Frequency
+ */
+extern unsigned int BSP_bus_frequency;
+/*
+ * Processor Clock Frequency
+ */
+extern unsigned int BSP_processor_frequency;
+/*
+ * Time base divisior (how many tick for 1 second).
+ */
+extern unsigned int BSP_time_base_divisor;
+
+/*
+ * Macro used by shared MPC6xx timer driver
+ */
+#define BSP_Convert_decrementer( _value ) \
+  ((unsigned long long) ((((unsigned long long)BSP_time_base_divisor) * 1000000ULL) /((unsigned long long) BSP_bus_frequency)) * ((unsigned long long) (_value)))
+
+/*
+ *  Interfaces to required Clock Driver support methods
+ */
+int BSP_disconnect_clock_handler(void);
+int BSP_connect_clock_handler(void);
+
+/*
+ * Prototypes for BSP methods shared across file boundaries
+ */
+void zero_bss(void);
+
 #endif /* ASM */
 
 void BSP_ask_for_reset(void);

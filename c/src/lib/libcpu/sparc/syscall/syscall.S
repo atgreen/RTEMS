@@ -19,60 +19,116 @@
 #include <rtems/asm.h>
 #include "syscall.h"
 
-        .seg    "text"
-        /*
-         *  system call
-         *
-         *  On entry:
-         *
-         *    l0 = psr (from trap table)
-         *    l1 = pc
-         *    l2 = npc
-         *    g1 = system call id
-         */
+	.seg    "text"
+	/*
+	 *  system call - halt
+	 *
+	 *  On entry:
+	 *
+	 *    l0 = psr (from trap table)
+	 *    l1 = pc
+	 *    l2 = npc
+	 *    g1 = system call id (1)
+	 *
+	 *  System Call 1 (exit):
+	 *    g2 = additional exit code 1
+	 *    g3 = additional exit code 2
+	 */
 
-        PUBLIC(syscall)
+	PUBLIC(syscall)
 
 SYM(syscall):
+	ta	0			! syscall 1, halt with %g1,%g2,%g3 info
 
-	subcc   %g1, 2, %g0		! syscall 2, disable interrupts
-	bne 	3f
-	or    	%l0, 0x0f00, %l4	! set PIL=15
-	mov   	%l4, %psr
-	or	%l0, SPARC_PSR_ET_MASK, %i0	! return old psr with ET=1
-	ba,a	9f
-3:
-	subcc   %g1, 3, %g0		! syscall 3, enable interrupts
-	bne 	1f
-	and	%i0, SPARC_PSR_PIL_MASK, %l4
-	andn	%l0, SPARC_PSR_PIL_MASK, %l5
-	or	%l5, %l4, %l4
-	mov   	%l4, %psr
-	ba,a	9f
+	PUBLIC(sparc_syscall_exit)
 
-1:
-	ta	0			! halt
-9:					! leave
-	mov	0, %g1			! clear %g1
-        jmpl    %l2, %g0
-        rett    %l2 + 4
+SYM(sparc_syscall_exit):
 
-        PUBLIC(sparc_disable_interrupts)
+	mov	SYS_exit, %g1
+	mov	%o0, %g2	! Additional exit code 1
+	mov	%o1, %g3	! Additional exit code 2
+	ta	SPARC_SWTRAP_SYSCALL
 
-SYM(sparc_disable_interrupts):
+	/*
+	 *  system call - Interrupt Disable
+	 *
+	 *  On entry:
+	 *
+	 *    l0 = psr (from trap table)
+	 *    l1 = pc
+	 *    l2 = npc
+	 *    l3 = psr | SPARC_PSR_PIL_MASK
+	 *
+	 *  On exit:
+	 *    g1 = old psr (to user)
+	 */
 
-	mov	SYS_irqdis, %g1
-	ta	0
+.align 32				! Align to 32-byte cache-line
+	PUBLIC(syscall_irqdis)
+
+SYM(syscall_irqdis):
+	mov	%l3, %psr			! Set PSR. Write delay 3 instr
+	or	%l0, SPARC_PSR_ET_MASK, %g1	! return old PSR with ET=1
+	nop					! PSR write delay
+	jmp	%l2				! Return to after TA 9.
+	 rett	%l2 + 4
+
+	/*
+	 *  system call - Interrupt Enable
+	 *
+	 *  On entry:
+	 *
+	 *    l0 = psr (from trap table)
+	 *    l1 = pc
+	 *    l2 = npc
+	 *    l3 = psr & ~0x0f00
+	 *    g1 = new PIL to write (from user)
+	 */
+
+.align 32				! Align to 32-byte cache-line
+	PUBLIC(syscall_irqen)
+
+SYM(syscall_irqen):
+	and	%g1, SPARC_PSR_PIL_MASK, %l4	! %l4 = (%g1 & 0xf00)
+	wr	%l3, %l4, %psr			! PSR = (PSR & ~0xf00) ^ %l4
+	nop; nop				! PSR write delay;
+	jmp	%l2				! Return to after TA 10.
+	 rett	%l2 + 4
+
+#if defined(RTEMS_PARAVIRT)
+
+        PUBLIC(_SPARC_Get_PSR)
+
+SYM(_SPARC_Get_PSR):
+
 	retl
+	 rd     %psr, %o0
+
+        PUBLIC(_SPARC_Set_PSR)
+
+SYM(_SPARC_Set_PSR):
+
+	mov     %o0, %psr
 	nop
-
-        PUBLIC(sparc_enable_interrupts)
-
-SYM(sparc_enable_interrupts):
-
-	mov	SYS_irqen, %g1
-	ta	0
+	nop
+	nop
 	retl
-	nop
+	 nop
+
+        PUBLIC(_SPARC_Get_TBR)
+
+SYM(_SPARC_Get_TBR):
+
+	retl
+	 rd    %tbr, %o0
+
+        PUBLIC(_SPARC_Set_TBR)
+
+SYM(_SPARC_Set_TBR):
+
+	retl
+	 wr    %o0, 0, %tbr
+
+#endif /* defined(RTEMS_PARAVIRT) */
 
 /* end of file */

@@ -8,15 +8,15 @@ endif
 PREINSTALL_DIRS =
 DISTCLEANFILES += $(PREINSTALL_DIRS)
 
-all-local: $(TMPINSTALL_FILES)
-
-TMPINSTALL_FILES =
-CLEANFILES += $(TMPINSTALL_FILES)
-
 all-am: $(PREINSTALL_FILES)
 
 PREINSTALL_FILES =
 CLEANFILES += $(PREINSTALL_FILES)
+
+all-local: $(TMPINSTALL_FILES)
+
+TMPINSTALL_FILES =
+CLEANFILES += $(TMPINSTALL_FILES)
 
 $(PROJECT_LIB)/$(dirstamp):
 	@$(MKDIR_P) $(PROJECT_LIB)
@@ -65,6 +65,10 @@ $(PROJECT_INCLUDE)/bsp/tty_drv.h: ../../i386/shared/comm/tty_drv.h $(PROJECT_INC
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/tty_drv.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/tty_drv.h
 
+$(PROJECT_INCLUDE)/bsp/realmode_int.h: ../../i386/shared/realmode_int/realmode_int.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/realmode_int.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/realmode_int.h
+
 $(PROJECT_INCLUDE)/bsp/irq-generic.h: ../../shared/include/irq-generic.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/irq-generic.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/irq-generic.h
@@ -80,6 +84,10 @@ PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/rtd316.h
 $(PROJECT_INCLUDE)/bsp/exar17d15x.h: console/exar17d15x.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/exar17d15x.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/exar17d15x.h
+
+$(PROJECT_INCLUDE)/bsp/tblsizes.h: include/tblsizes.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/tblsizes.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/tblsizes.h
 
 if HAS_SMP
 $(PROJECT_INCLUDE)/bsp/apic.h: ../../i386/shared/irq/apic.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
@@ -139,6 +147,21 @@ $(PROJECT_INCLUDE)/i386_io.h: ../../i386/shared/comm/i386_io.h $(PROJECT_INCLUDE
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/i386_io.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/i386_io.h
 
+if USE_VBE_RM
+$(PROJECT_INCLUDE)/bsp/vbe3.h: include/vbe3.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/vbe3.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/vbe3.h
+
+$(PROJECT_INCLUDE)/edid.h: include/edid.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/edid.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/edid.h
+
+$(PROJECT_INCLUDE)/bsp/fb_vesa.h: include/fb_vesa.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/fb_vesa.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/fb_vesa.h
+
+else
+endif
 $(PROJECT_INCLUDE)/pcibios.h: ../../i386/shared/pci/pcibios.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/pcibios.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/pcibios.h

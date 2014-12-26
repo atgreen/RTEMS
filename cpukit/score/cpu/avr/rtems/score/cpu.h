@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_CPU_H
@@ -685,14 +685,13 @@ SCORE_EXTERN Context_Control_fp  _CPU_Null_fp_context;
  *
  *  AVR Specific Information:
  *
- *  XXX document implementation including references if appropriate
+ *  TODO: As of 8 October 2014, this method is not implemented.
  */
-
-#define _CPU_ISR_Set_level( new_level ) \
-  { \
-  }
-
 #ifndef ASM
+static inline void _CPU_ISR_Set_level( unsigned int new_level )
+{
+}
+
 
 uint32_t   _CPU_ISR_Get_level( void );
 
@@ -814,7 +813,7 @@ uint32_t   _CPU_ISR_Get_level( void );
  *  XXX document implementation including references if appropriate
  */
 
-#define _CPU_Fatal_halt( _error ) \
+#define _CPU_Fatal_halt( _source, _error ) \
   { \
   }
 
@@ -824,7 +823,7 @@ uint32_t   _CPU_ISR_Get_level( void );
 
 /*
  *  This routine sets _output to the bit number of the first bit
- *  set in _value.  _value is of CPU dependent type Priority_bit_map_Control.
+ *  set in _value.  _value is of CPU dependent type Priority_bit_map_Word.
  *  This type may be either 16 or 32 bits wide although only the 16
  *  least significant bits will be used.
  *
@@ -963,7 +962,8 @@ void _CPU_Context_Initialize(
   uint32_t          size,
   uint32_t          new_level,
   void             *entry_point,
-  bool              is_fp
+  bool              is_fp,
+  void             *tls_area
 );
 
 /*
@@ -1178,6 +1178,18 @@ static inline uint32_t CPU_swap_u32(
 
 #define CPU_swap_u16( value ) \
   (((value&0xff) << 8) | ((value >> 8)&0xff))
+
+typedef uint32_t CPU_Counter_ticks;
+
+CPU_Counter_ticks _CPU_Counter_read( void );
+
+static inline CPU_Counter_ticks _CPU_Counter_difference(
+  CPU_Counter_ticks second,
+  CPU_Counter_ticks first
+)
+{
+  return second - first;
+}
 
 #endif /* ASM */
 

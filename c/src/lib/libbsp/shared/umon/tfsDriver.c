@@ -16,7 +16,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <stdio.h>
@@ -450,7 +450,7 @@ static int rtems_tfs_open(
 static ssize_t rtems_tfs_read(
   rtems_libio_t *iop,
   void          *buffer,
-  uint32_t       count
+  size_t         count
 )
 {
   int  ret, fd;
@@ -511,7 +511,7 @@ static int rtems_tfs_close(
 static ssize_t rtems_tfs_write(
   rtems_libio_t *iop,
   const void    *buffer,
-  uint32_t       count
+  size_t         count
 )
 {
   int  ret, fd;

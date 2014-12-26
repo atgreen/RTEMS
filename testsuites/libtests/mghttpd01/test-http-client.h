@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef TEST_WEB_CLIENT_H
@@ -36,7 +36,7 @@ void httpc_init_context(
 
 bool httpc_open_connection(
   httpc_context *ctx,
-  char *targethost,
+  const char *targethost,
   int targetport
 );
 
@@ -45,8 +45,19 @@ bool httpc_close_connection(
 );
 
 bool httpc_send_request(
-  httpc_context *ctx,
-  char *request,
+  const httpc_context *ctx,
+  const char *request,
+  char *response,
+  int responsesize
+);
+
+bool httpc_ws_open_connection(
+  const httpc_context *ctx
+);
+
+bool httpc_ws_send_request(
+  const httpc_context *ctx,
+  const char *request,
   char *response,
   int responsesize
 );

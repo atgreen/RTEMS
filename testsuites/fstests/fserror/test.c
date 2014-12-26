@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -22,7 +22,10 @@
 #include <unistd.h>
 
 #include "fstest.h"
+#include "fs_config.h"
 #include "pmacros.h"
+
+const char rtems_test_name[] = "FSERROR " FILESYSTEM;
 
 static void open_mkdir_error (void)
 {
@@ -386,11 +389,9 @@ static void rdwr_error (void)
 void test (void)
 {
 
-  puts ("\n\n*** ERROR TEST ***");
   open_mkdir_error ();
   rename_error ();
   truncate_error ();
   rmdir_unlink_error ();
   rdwr_error ();
-  puts ("*** END OF ERROR TEST ***");
 }

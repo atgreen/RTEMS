@@ -84,6 +84,7 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/cpuset.h>
 
 #include "rpcio.h"
 
@@ -407,6 +408,10 @@ static rtems_interval	ticksPerSec;		/* cached system clock rate (WHO IS ASSUMED 
 											 */
 
 rtems_task_priority		rpciodPriority = 0;
+#ifdef RTEMS_SMP
+const cpu_set_t			*rpciodCpuset = 0;
+size_t				rpciodCpusetSize = 0;
+#endif
 
 #if (DEBUG) & DEBUG_MALLOC
 /* malloc wrappers for debugging */
@@ -983,6 +988,15 @@ struct sockwakeup	wkup;
 											&rpciod);
 			assert( status == RTEMS_SUCCESSFUL );
 
+#ifdef RTEMS_SMP
+			if ( rpciodCpuset == 0 ) {
+				rpciodCpuset = rtems_bsdnet_config.network_task_cpuset;
+				rpciodCpusetSize = rtems_bsdnet_config.network_task_cpuset_size;
+			}
+			if ( rpciodCpuset != 0 )
+				rtems_task_set_affinity( rpciod, rpciodCpusetSize, rpciodCpuset );
+#endif
+
 			wkup.sw_pfn = rxWakeupCB;
 			wkup.sw_arg = &rpciod;
 			assert( 0==setsockopt(ourSock, SOL_SOCKET, SO_RCVWAKEUP, &wkup, sizeof(wkup)) );
@@ -1334,9 +1348,7 @@ rtems_status_code	status;
 					fprintf(stderr,"RPCIO XACT timed out; waking up requestor\n");
 #endif
 					if ( rtems_event_send(xact->requestor, RTEMS_RPC_EVENT) ) {
-						rtems_panic("RPCIO PANIC file %s line: %i, requestor id was 0x%08x",
-									__FILE__,
-									__LINE__,
+						rtems_panic("RPCIO PANIC: requestor id was 0x%08x",
 									xact->requestor);
 					}
 

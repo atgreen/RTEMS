@@ -9,7 +9,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -27,6 +27,8 @@
 #include <rtems/libio.h>
 #include <rtems/rtems_bsdnet.h>
 
+const char rtems_test_name[] = "SYSCALL 1";
+
 /* forward declarations to avoid warnings */
 static rtems_task Init(rtems_task_argument argument);
 
@@ -39,16 +41,36 @@ static void test(void)
   int rv;
   char buf [1];
   ssize_t n;
-  int fd = open(open_driver_path, O_RDWR);
+  int fd;
+
+  fd = open(open_driver_path, O_RDWR);
   rtems_test_assert(fd >= 0);
 
+  errno = 0;
   n = send(fd, buf, sizeof(buf), 0);
   rtems_test_assert(n == -1);
   rtems_test_assert(errno == ENOTSOCK);
 
+  errno = 0;
   n = recv(fd, buf, sizeof(buf), 0);
   rtems_test_assert(n == -1);
   rtems_test_assert(errno == ENOTSOCK);
+
+  rv = close(fd);
+  rtems_test_assert(rv == 0);
+
+  fd = socket(PF_INET, SOCK_DGRAM, 0);
+  rtems_test_assert(fd >= 0);
+
+  errno = 0;
+  rv = fsync(fd);
+  rtems_test_assert(rv == -1);
+  rtems_test_assert(errno == EINVAL);
+
+  errno = 0;
+  rv = fdatasync(fd);
+  rtems_test_assert(rv == -1);
+  rtems_test_assert(errno == EINVAL);
 
   rv = close(fd);
   rtems_test_assert(rv == 0);
@@ -58,14 +80,14 @@ static void Init(rtems_task_argument arg)
 {
   int rv;
 
-  puts("\n\n*** TEST SYSCALL 1 ***");
+  TEST_BEGIN();
 
   rv = rtems_bsdnet_initialize_network();
   rtems_test_assert(rv == 0);
 
   test();
 
-  puts("*** END OF TEST SYSCALL 1 ***");
+  TEST_END();
 
   rtems_test_exit(0);
 }
@@ -105,11 +127,11 @@ static rtems_device_driver open_driver_open(
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_EXTRA_DRIVERS OPEN_DRIVER
 
-#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
-
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 4
 
 #define CONFIGURE_MAXIMUM_TASKS 2
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

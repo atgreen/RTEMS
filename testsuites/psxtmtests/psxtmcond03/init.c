@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,7 +17,9 @@
 #include "test_support.h"
 #include <pthread.h>
 #include <sched.h>
-#include <rtems/timerdrv.h>
+#include <rtems/btimer.h>
+
+const char rtems_test_name[] = "PSXTMCOND 03";
 
 /* forward declarations to avoid warnings */
 void *POSIX_Init(void *argument);
@@ -50,11 +52,11 @@ void *POSIX_Init(
 {
   int        status;
   pthread_t  threadId;
-  long       end_time;
+  uint32_t   end_time;
   struct sched_param param;
   int policy;
 
-  puts( "\n\n*** POSIX TIME TEST PSXTMCOND03 ***" );
+  TEST_BEGIN();
 
   status = pthread_create( &threadId, NULL, Blocker, NULL );
   rtems_test_assert( status == 0 );
@@ -92,7 +94,7 @@ void *POSIX_Init(
     0
   );
 
-  puts( "*** END OF POSIX TIME TEST PSXTMCOND03 ***" );
+  TEST_END();
   rtems_test_exit( 0 );
 
   return NULL;

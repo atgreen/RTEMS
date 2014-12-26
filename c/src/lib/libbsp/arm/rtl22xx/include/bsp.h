@@ -11,14 +11,10 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
 */
 #ifndef _BSP_H
 #define _BSP_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <bspopts.h>
 #include <bsp/default-initial-extension.h>
@@ -30,12 +26,14 @@ extern "C" {
  * @{
  */
 
-#define BSP_SMALL_MEMORY 1
-
 #include <rtems.h>
 #include <rtems/iosupp.h>
 #include <rtems/console.h>
 #include <rtems/clockdrv.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define BSP_FEATURE_IRQ_EXTENSION
 
@@ -216,6 +214,11 @@ int cs8900_driver_attach (struct rtems_bsdnet_ifconfig *config,
 #define RTEMS_BSP_NETWORK_DRIVER_ATTACH	cs8900_driver_attach
 
 /** @} */
+
+/*
+ * Prototypes for methods used across file boundaries in the BSP.
+ */
+extern void  UART0_Ini(void);
 
 /** @} */
 

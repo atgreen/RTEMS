@@ -1,23 +1,9 @@
-/**
- * @file
- *
- * @brief SMP Scheduler Start Idle Operation
- *
- * @ingroup ScoreSchedulerSMP
- */
-
 /*
- * Copyright (c) 2013 embedded brains GmbH.  All rights reserved.
- *
- *  embedded brains GmbH
- *  Dornierstr. 4
- *  82178 Puchheim
- *  Germany
- *  <rtems@embedded-brains.de>
+ * Copyright (c) 2013-2014 embedded brains GmbH
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -25,16 +11,20 @@
 #endif
 
 #include <rtems/score/schedulersmpimpl.h>
-#include <rtems/score/chainimpl.h>
 
 void _Scheduler_SMP_Start_idle(
+  const Scheduler_Control *scheduler,
   Thread_Control *thread,
   Per_CPU_Control *cpu
 )
 {
-  Scheduler_SMP_Control *self = _Scheduler_SMP_Instance();
+  Scheduler_Context *context = _Scheduler_Get_context( scheduler );
+  Scheduler_SMP_Context *self = _Scheduler_SMP_Get_self( context );
+  Scheduler_SMP_Node *node = _Scheduler_SMP_Thread_get_node( thread );
 
-  thread->is_scheduled = true;
-  thread->cpu = cpu;
-  _Chain_Append_unprotected( &self->scheduled, &thread->Object.Node );
+  node->state = SCHEDULER_SMP_NODE_SCHEDULED;
+
+  _Thread_Set_CPU( thread, cpu );
+  _Chain_Append_unprotected( &self->Scheduled, &node->Base.Node );
+  _Chain_Prepend_unprotected( &self->Idle_threads, &thread->Object.Node );
 }

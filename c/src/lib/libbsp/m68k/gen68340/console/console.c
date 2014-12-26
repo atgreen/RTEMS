@@ -1,6 +1,8 @@
 /*
  *  68340/68349 console serial I/O.
- *
+ */
+
+/*
  *  Author:
  *  Geoffroy Montel
  *  France Telecom - CNET/DSM/TAM/CAT
@@ -15,7 +17,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <termios.h>
@@ -295,9 +297,8 @@ dbugInitialise (void)
 
 	if (USE_INTERRUPTS_A) {
 	   rtems_isr_entry old_handler;
-	   rtems_status_code sc;
 
-	   sc = rtems_interrupt_catch (InterruptHandler,
+	   (void) rtems_interrupt_catch (InterruptHandler,
 	  			       CONSOLE_VECTOR,
 				       &old_handler);
 
@@ -379,9 +380,8 @@ dbugInitialise (void)
 	if ((USE_INTERRUPTS_B && !(CHANNEL_ENABLED_A))
 	   || (USE_INTERRUPTS_B && CHANNEL_ENABLED_A && !USE_INTERRUPTS_A)) {
 	   rtems_isr_entry old_handler;
-	   rtems_status_code sc;
 
-	   sc = rtems_interrupt_catch (InterruptHandler,
+	   (void) rtems_interrupt_catch (InterruptHandler,
 	  			       CONSOLE_VECTOR,
 				       &old_handler);
 

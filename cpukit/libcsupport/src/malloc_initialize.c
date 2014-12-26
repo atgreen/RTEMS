@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -22,8 +22,6 @@
 #include "malloc_p.h"
 
 #ifdef RTEMS_NEWLIB
-rtems_malloc_statistics_t rtems_malloc_statistics;
-
 void RTEMS_Malloc_Initialize(
   const Heap_Area *areas,
   size_t area_count,
@@ -52,22 +50,13 @@ void RTEMS_Malloc_Initialize(
     }
 
     if ( init_or_extend == _Heap_Initialize ) {
-      _Internal_error_Occurred(
+      _Terminate(
         INTERNAL_ERROR_CORE,
         true,
         INTERNAL_ERROR_NO_MEMORY_FOR_HEAP
       );
     }
   }
-
-  /*
-   *  If configured, initialize the statistics support
-   */
-  if ( rtems_malloc_statistics_helpers != NULL ) {
-    (*rtems_malloc_statistics_helpers->initialize)();
-  }
-
-  MSBUMP( space_available, _Protected_heap_Get_size( heap ) );
 }
 #else
 void RTEMS_Malloc_Initialize(

@@ -42,13 +42,13 @@ $(PROJECT_INCLUDE)/rtems/rtc.h: include/rtc.h $(PROJECT_INCLUDE)/rtems/$(dirstam
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/rtems/rtc.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/rtems/rtc.h
 
+$(PROJECT_INCLUDE)/rtems/tod.h: include/rtems/tod.h $(PROJECT_INCLUDE)/rtems/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/rtems/tod.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/rtems/tod.h
+
 $(PROJECT_INCLUDE)/rtems/spurious.h: include/spurious.h $(PROJECT_INCLUDE)/rtems/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/rtems/spurious.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/rtems/spurious.h
-
-$(PROJECT_INCLUDE)/rtems/timerdrv.h: include/timerdrv.h $(PROJECT_INCLUDE)/rtems/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/rtems/timerdrv.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/rtems/timerdrv.h
 
 $(PROJECT_INCLUDE)/rtems/vmeintr.h: include/vmeintr.h $(PROJECT_INCLUDE)/rtems/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/rtems/vmeintr.h

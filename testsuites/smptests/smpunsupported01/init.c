@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2013 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2014 On-Line Applications Research Corporation (OAR).
+ * Copyright (c) 2013-2014 embedded brains GmbH.  All rights reserved.
  *
  *  embedded brains GmbH
  *  Dornierstr. 4
@@ -9,7 +10,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -18,12 +19,7 @@
 
 #include "tmacros.h"
 
-static void some_task(rtems_task_argument arg)
-{
-  (void) arg;
-
-  while (1);
-}
+const char rtems_test_name[] = "SMPUNSUPPORTED 1";
 
 static void test(void)
 {
@@ -32,18 +28,6 @@ static void test(void)
   rtems_id id;
 
   rtems_test_assert(rtems_configuration_is_smp_enabled());
-
-  sc = rtems_task_delete(RTEMS_SELF);
-  rtems_test_assert(sc == RTEMS_NOT_IMPLEMENTED);
-
-  sc = rtems_task_variable_add(RTEMS_SELF, NULL, NULL);
-  rtems_test_assert(sc == RTEMS_NOT_IMPLEMENTED);
-
-  sc = rtems_task_variable_delete(RTEMS_SELF, NULL);
-  rtems_test_assert(sc == RTEMS_NOT_IMPLEMENTED);
-
-  sc = rtems_task_variable_get(RTEMS_SELF, NULL, NULL);
-  rtems_test_assert(sc == RTEMS_NOT_IMPLEMENTED);
 
   sc = rtems_task_mode(RTEMS_NO_PREEMPT, RTEMS_PREEMPT_MASK, &mode);
   rtems_test_assert(sc == RTEMS_NOT_IMPLEMENTED);
@@ -57,32 +41,15 @@ static void test(void)
     &id
   );
   rtems_test_assert(sc == RTEMS_UNSATISFIED);
-
-  sc = rtems_task_create(
-    rtems_build_name('T', 'A', 'S', 'K'),
-    RTEMS_MAXIMUM_PRIORITY,
-    RTEMS_MINIMUM_STACK_SIZE,
-    RTEMS_DEFAULT_MODES,
-    RTEMS_DEFAULT_ATTRIBUTES,
-    &id
-  );
-  rtems_test_assert(sc == RTEMS_SUCCESSFUL);
-
-  sc = rtems_task_start(id, some_task, 0);
-  rtems_test_assert(sc == RTEMS_SUCCESSFUL);
-
-  sc = rtems_task_restart(id, 0);
-  rtems_test_assert(sc == RTEMS_INCORRECT_STATE);
 }
 
 static void Init(rtems_task_argument arg)
 {
-  puts("\n\n*** TEST SMPUNSUPPORTED 1 ***");
+  TEST_BEGIN();
 
   test();
 
-  puts("*** END OF TEST SMPUNSUPPORTED 1 ***");
-
+  TEST_END();
   rtems_test_exit(0);
 }
 
@@ -94,6 +61,8 @@ static void Init(rtems_task_argument arg)
 #define CONFIGURE_SMP_MAXIMUM_PROCESSORS 1
 
 #define CONFIGURE_MAXIMUM_TASKS 2
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

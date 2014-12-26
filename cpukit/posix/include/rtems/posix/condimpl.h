@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_POSIX_CONDIMPL_H
@@ -93,20 +93,6 @@ POSIX_Condition_variables_Control *_POSIX_Condition_variables_Get (
   pthread_cond_t    *cond,
   Objects_Locations *location
 );
-
-/**
- *  @brief POSIX Condition Variable Is NULL
- *
- *  This function returns TRUE if @a the_condition variable is NULL
- *  and FALSE otherwise.
- */
-RTEMS_INLINE_ROUTINE bool _POSIX_Condition_variables_Is_null (
-  POSIX_Condition_variables_Control *the_condition_variable
-)
-{
-  return !the_condition_variable;
-}
-
 
 /**
  * @brief Implements wake up version of the "signal" operation.

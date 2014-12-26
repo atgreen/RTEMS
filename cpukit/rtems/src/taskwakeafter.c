@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -20,7 +20,6 @@
 
 #include <rtems/rtems/tasks.h>
 #include <rtems/score/threadimpl.h>
-#include <rtems/score/schedulerimpl.h>
 #include <rtems/score/watchdogimpl.h>
 
 rtems_status_code rtems_task_wake_after(
@@ -37,14 +36,14 @@ rtems_status_code rtems_task_wake_after(
     executing = _Thread_Executing;
 
     if ( ticks == 0 ) {
-      _Scheduler_Yield( executing );
+      _Thread_Yield( executing );
     } else {
       _Thread_Set_state( executing, STATES_DELAYING );
       _Watchdog_Initialize(
         &executing->Timer,
         _Thread_Delay_ended,
-        executing->Object.id,
-        NULL
+        0,
+        executing
       );
       _Watchdog_Insert_ticks( &executing->Timer, ticks );
     }

@@ -6,18 +6,13 @@
  * @brief Global BSP definitions.
  */
 
-/*  bsp.h
- *
- *  This include file contains all board IO definitions.
- *
- *  XXX : put yours in here
- *
+/*
  *  COPYRIGHT (c) 1989-1999.
  *  On-Line Applications Research Corporation (OAR).
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  Jukka Pietarinen <jukka.pietarinen@mrf.fi>, 2008,
  *  Micro-Research Finland Oy
@@ -74,23 +69,19 @@ extern int rtems_tsmac_driver_attach(struct rtems_bsdnet_ifconfig *config,
 #define TSMAC_FORCE_10BASET
 #endif
 
-  /*
-   *  Simple spin delay in microsecond units for device drivers.
-   *  This is very dependent on the clock speed of the target.
-   */
-
-#define rtems_bsp_delay( microseconds ) \
-  { \
-  }
-
 /* functions */
-#if 0
 rtems_isr_entry set_vector(                     /* returns old vector */
   rtems_isr_entry     handler,                  /* isr routine        */
   rtems_vector_number vector,                   /* vector number      */
   int                 type                      /* RTEMS or RAW intr  */
 );
-#endif
+
+/*
+ * Prototypes for BSP methods that cross file boundaries
+ */
+void BSP_uart_polled_write(char ch);
+int BSP_uart_polled_read( void );
+char BSP_uart_is_character_ready(char *ch);
 
 #ifdef __cplusplus
 }

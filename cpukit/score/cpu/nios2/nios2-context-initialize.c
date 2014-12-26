@@ -8,7 +8,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -27,7 +27,8 @@ void _CPU_Context_Initialize(
   size_t stack_area_size,
   uint32_t new_level,
   void (*entry_point)( void ),
-  bool is_fp
+  bool is_fp,
+  void *tls_area
 )
 {
   const Nios2_MPU_Configuration *mpu_config = _Nios2_MPU_Get_configuration();
@@ -61,7 +62,7 @@ void _CPU_Context_Initialize(
 
     if ( !ok ) {
       /* The task stack allocator must ensure that the stack area is valid */
-      _Internal_error_Occurred( INTERNAL_ERROR_CORE, false, 0xdeadbeef );
+      _Terminate( INTERNAL_ERROR_CORE, false, 0xdeadbeef );
     }
   }
 }

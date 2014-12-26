@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,15 +32,16 @@ rtems_task Application_task(
 {
   rtems_id          tid;
   rtems_status_code status;
+  unsigned int      a = (unsigned int) argument;
 
   status = rtems_task_ident( RTEMS_SELF, RTEMS_SEARCH_ALL_NODES, &tid );
   directive_failed( status, "ident" );
 
   printf(
-    "Application task was invoked with argument (%" PRIdrtems_task_argument ") "
-    "and has id of 0x%" PRIxrtems_id "\n", argument, tid
+    "Application task was invoked with argument (%d) "
+    "and has id of 0x%" PRIxrtems_id "\n", a, tid
   );
 
-  printf( "*** END OF SAMPLE SINGLE PROCESSOR APPLICATION ***\n" );
+  TEST_END();
   exit( 0 );
 }

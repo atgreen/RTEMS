@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -40,7 +40,7 @@ rtems_status_code rtems_rate_monotonic_cancel(
       }
       (void) _Watchdog_Remove( &the_period->Timer );
       the_period->state = RATE_MONOTONIC_INACTIVE;
-      _Scheduler_Release_job(the_period->owner, 0);
+      _Scheduler_Release_job( the_period->owner, 0 );
       _Objects_Put( &the_period->Object );
       return RTEMS_SUCCESSFUL;
 

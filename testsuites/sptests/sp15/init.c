@@ -16,7 +16,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -26,13 +26,15 @@
 #define CONFIGURE_INIT
 #include "system.h"
 
+const char rtems_test_name[] = "SP 15";
+
 rtems_task Init(
   rtems_task_argument argument
 )
 {
   rtems_status_code status;
 
-  puts( "\n\n*** TEST 15 ***" );
+  TEST_BEGIN();
 
   Task_name[ 1 ] =  rtems_build_name( 'T', 'A', '1', ' ' );
 

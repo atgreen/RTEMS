@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -16,6 +16,8 @@
 #include <tmacros.h>
 #include <timesys.h>
 #include "test_support.h"
+
+const char rtems_test_name[] = "TIME TEST 30";
 
 rtems_id barrier[ OPERATION_COUNT ];
 
@@ -66,7 +68,7 @@ rtems_task Init(
   rtems_task_argument argument
 )
 {
-  puts( "\n\n*** TIME TEST 30 ***" );
+  TEST_BEGIN();
 
   rtems_time_test_measure_operation(
     "rtems_barrier_create: only case",
@@ -92,7 +94,7 @@ rtems_task Init(
     0
   );
   
-  puts( "*** END OF TIME TEST 30 ***" );
+  TEST_END();
 
   rtems_test_exit(0);
 }

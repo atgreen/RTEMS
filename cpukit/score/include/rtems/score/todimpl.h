@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_TODIMPL_H
@@ -176,11 +176,11 @@ typedef struct {
 
 SCORE_EXTERN TOD_Control _TOD;
 
-#define _TOD_Acquire( _tod, _isr_cookie ) \
-  _ISR_lock_ISR_disable_and_acquire( &( _tod )->lock, _isr_cookie )
+#define _TOD_Acquire( _tod, lock_context ) \
+  _ISR_lock_ISR_disable_and_acquire( &( _tod )->lock, lock_context )
 
-#define _TOD_Release( _tod, _isr_cookie ) \
-  _ISR_lock_Release_and_ISR_enable( &( _tod )->lock, _isr_cookie )
+#define _TOD_Release( _tod, lock_context ) \
+  _ISR_lock_Release_and_ISR_enable( &( _tod )->lock, lock_context )
 
 /**
  *  @brief Initializes the time of day handler.
@@ -322,6 +322,23 @@ RTEMS_INLINE_ROUTINE void _TOD_Get_timeval(
   _Timestamp_To_timeval( snapshot_as_timestamp_ptr, time );
 }
 
+/**
+ * @brief Adjust the Time of Time
+ *
+ * This method is used to adjust the current time of day by the
+ * specified amount.
+ *
+ * @param[in] delta is the amount to adjust
+ */
+void _TOD_Adjust(
+  const Timestamp_Control timestamp
+);
+
+/**
+ * @brief Install the BSP's nanoseconds since clock tick handler
+ *
+ * @param[in] routine is the BSP's nanoseconds since clock tick method 
+ */
 RTEMS_INLINE_ROUTINE void _TOD_Set_nanoseconds_since_last_tick_handler(
   TOD_Nanoseconds_since_last_tick_routine routine
 )
@@ -329,6 +346,11 @@ RTEMS_INLINE_ROUTINE void _TOD_Set_nanoseconds_since_last_tick_handler(
   _TOD.nanoseconds_since_last_tick = routine;
 }
 
+/**
+ * @brief Check if the TOD is Set
+ *
+ * @return TRUE is the time is set. FALSE otherwise.
+ */
 RTEMS_INLINE_ROUTINE bool _TOD_Is_set( void )
 {
   return _TOD.is_set;

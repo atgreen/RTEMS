@@ -5,7 +5,7 @@
   All rights reserved Objective Design Systems Pty Ltd, 2002
   Chris Johns (ccj@acm.org)
 
-  COPYRIGHT (c) 1989-2009.
+  COPYRIGHT (c) 1989-2014.
   On-Line Applications Research Corporation (OAR).
 
   The license and distribution terms for this file may be
@@ -27,9 +27,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <rtems/rtems/tasksimpl.h>
 
-#include "capture.h"
+#include "captureimpl.h"
+#include "capture_buffer.h"
 
 #include <rtems/score/statesimpl.h>
 #include <rtems/score/todimpl.h>
@@ -51,40 +51,60 @@
                                       RTEMS_CAPTURE_DELETED_BY_EVENT | \
                                       RTEMS_CAPTURE_DELETED_EVENT | \
                                       RTEMS_CAPTURE_BEGIN_EVENT | \
-                                      RTEMS_CAPTURE_EXITTED_EVENT)
+                                      RTEMS_CAPTURE_EXITTED_EVENT | \
+                                      RTEMS_CAPTURE_TERMINATED_EVENT | \
+                                      RTEMS_CAPTURE_AUTOGEN_ENTRY_EVENT | \
+                                      RTEMS_CAPTURE_AUTOGEN_EXIT_EVENT)
 #else
 #define RTEMS_CAPTURE_RECORD_EVENTS  (0)
 #endif
 
-/*
- * Global capture flags.
- */
-#define RTEMS_CAPTURE_ON             (1U << 0)
-#define RTEMS_CAPTURE_NO_MEMORY      (1U << 1)
-#define RTEMS_CAPTURE_OVERFLOW       (1U << 2)
-#define RTEMS_CAPTURE_TRIGGERED      (1U << 3)
-#define RTEMS_CAPTURE_READER_ACTIVE  (1U << 4)
-#define RTEMS_CAPTURE_READER_WAITING (1U << 5)
-#define RTEMS_CAPTURE_GLOBAL_WATCH   (1U << 6)
-#define RTEMS_CAPTURE_ONLY_MONITOR   (1U << 7)
+typedef struct {
+  rtems_capture_buffer_t   records;
+  uint32_t                 count;
+  rtems_id                 reader;
+  rtems_interrupt_lock     lock;
+  uint32_t                 flags;
+} rtems_capture_per_cpu_data;
+
+typedef struct {
+  uint32_t                 flags;
+  rtems_capture_control_t* controls;
+  int                      extension_index;
+  rtems_capture_timestamp  timestamp;
+  rtems_task_priority      ceiling;
+  rtems_task_priority      floor;
+  rtems_interrupt_lock     lock;
+} rtems_capture_global_data;
+
+static rtems_capture_per_cpu_data  *capture_per_cpu = NULL;
+
+static rtems_capture_global_data capture_global;
 
 /*
  * RTEMS Capture Data.
  */
-static rtems_capture_record_t*  capture_records;
-static uint32_t                 capture_size;
-static uint32_t                 capture_count;
-static rtems_capture_record_t*  capture_in;
-static uint32_t                 capture_out;
-static uint32_t                 capture_flags;
-static rtems_capture_task_t*    capture_tasks;
-static rtems_capture_control_t* capture_controls;
-static int                      capture_extension_index;
-static rtems_id                 capture_id;
-static rtems_capture_timestamp  capture_timestamp;
-static rtems_task_priority      capture_ceiling;
-static rtems_task_priority      capture_floor;
-static rtems_id                 capture_reader;
+#define capture_per_cpu_get( _cpu ) \
+   ( &capture_per_cpu[ _cpu ] )
+
+#define capture_records_on_cpu( _cpu ) capture_per_cpu[ _cpu ].records
+#define capture_count_on_cpu( _cpu )   capture_per_cpu[ _cpu ].count
+#define capture_flags_on_cpu( _cpu )   capture_per_cpu[ _cpu ].flags
+#define capture_reader_on_cpu( _cpu )  capture_per_cpu[ _cpu ].reader
+#define capture_lock_on_cpu( _cpu )    capture_per_cpu[ _cpu ].lock
+
+#define capture_records          capture_records_on_cpu( _SMP_Get_current_processor() )
+#define capture_count            capture_count_on_cpu(  _SMP_Get_current_processor() )
+#define capture_flags_per_cpu    capture_flags_on_cpu( _SMP_Get_current_processor() )
+#define capture_flags_global     capture_global.flags
+#define capture_controls         capture_global.controls
+#define capture_extension_index  capture_global.extension_index
+#define capture_timestamp        capture_global.timestamp
+#define capture_ceiling          capture_global.ceiling
+#define capture_floor            capture_global.floor
+#define capture_reader           capture_reader_on_cpu(  _SMP_Get_current_processor() )
+#define capture_lock_per_cpu     capture_lock_on_cpu( _SMP_Get_current_processor() )
+#define capture_lock_global      capture_global.lock
 
 /*
  * RTEMS Event text.
@@ -99,6 +119,7 @@ static const char* capture_event_text[] =
   "RESTARTED",
   "DELETED_BY",
   "DELETED",
+  "TERMINATED",
   "BEGIN",
   "EXITTED",
   "SWITCHED_OUT",
@@ -106,15 +127,31 @@ static const char* capture_event_text[] =
   "TIMESTAMP"
 };
 
+void rtems_capture_set_extension_index(int index)
+{
+  capture_extension_index = index;
+}
+
+int  rtems_capture_get_extension_index(void)
+{
+  return capture_extension_index;
+}
+
+uint32_t rtems_capture_get_flags(void)
+{
+  return capture_flags_global;
+}
+
+void rtems_capture_set_flags(uint32_t mask)
+{
+  capture_flags_global |= mask;
+}
+
 /*
- * rtems_capture_get_time
- *
- *  DESCRIPTION:
- *
  * This function returns the current time. If a handler is provided
  * by the user get the time from that.
  */
-static inline void
+void
 rtems_capture_get_time (rtems_capture_time_t* time)
 {
   if (capture_timestamp)
@@ -126,14 +163,9 @@ rtems_capture_get_time (rtems_capture_time_t* time)
 }
 
 /*
- * rtems_capture_match_names
- *
- *  DESCRIPTION:
- *
  * This function compares rtems_names. It protects the
  * capture engine from a change to the way names are supported
  * in RTEMS.
- *
  */
 static inline bool
 rtems_capture_match_names (rtems_name lhs, rtems_name rhs)
@@ -142,14 +174,9 @@ rtems_capture_match_names (rtems_name lhs, rtems_name rhs)
 }
 
 /*
- * rtems_capture_match_id
- *
- *  DESCRIPTION:
- *
  * This function compares rtems_ids. It protects the
  * capture engine from a change to the way id are supported
  * in RTEMS.
- *
  */
 static inline bool
 rtems_capture_match_ids (rtems_id lhs, rtems_id rhs)
@@ -158,10 +185,6 @@ rtems_capture_match_ids (rtems_id lhs, rtems_id rhs)
 }
 
 /*
- * rtems_capture_match_name_id
- *
- *  DESCRIPTION:
- *
  * This function matches a name and/or id.
  */
 static inline bool
@@ -184,14 +207,9 @@ rtems_capture_match_name_id (rtems_name lhs_name,
 }
 
 /*
- * rtems_capture_dup_name
- *
- *  DESCRIPTION:
- *
  * This function duplicates an rtems_names. It protects the
  * capture engine from a change to the way names are supported
  * in RTEMS.
- *
  */
 static inline void
 rtems_capture_dup_name (rtems_name* dst, rtems_name src)
@@ -200,18 +218,13 @@ rtems_capture_dup_name (rtems_name* dst, rtems_name src)
 }
 
 /*
- * rtems_capture_by_in_to
- *
- *  DESCRIPTION:
- *
  * This function sees if a BY control is in the BY names. The use
  * of the valid_mask in this way assumes the number of trigger
  * tasks is the number of bits in uint32_t.
- *
  */
 static inline bool
 rtems_capture_by_in_to (uint32_t                 events,
-                        rtems_capture_task_t*    by,
+                        rtems_tcb*               by,
                         rtems_capture_control_t* to)
 {
   uint32_t valid_mask = RTEMS_CAPTURE_CONTROL_FROM_MASK (0);
@@ -239,7 +252,8 @@ rtems_capture_by_in_to (uint32_t                 events,
        * not set.
        */
       if (rtems_capture_match_name_id (to->by[i].name, to->by[i].id,
-                                       by->name, by->id))
+                                       rtems_capture_task_name( by ),
+                                       by->Object.id))
         return 1;
     }
 
@@ -251,67 +265,7 @@ rtems_capture_by_in_to (uint32_t                 events,
 }
 
 /*
- * rtems_capture_refcount_up
- *
- *  DESCRIPTION:
- *
- * This function raises the reference count.
- *
- */
-static inline void
-rtems_capture_refcount_up (rtems_capture_task_t* task)
-{
-  task->refcount++;
-}
-
-/*
- * rtems_capture_refcount_down
- *
- *  DESCRIPTION:
- *
- * This function lowers the reference count and if the count
- * reaches 0 the task control block is returned to the heap.
- *
- */
-static inline void
-rtems_capture_refcount_down (rtems_capture_task_t* task)
-{
-  if (task->refcount)
-    task->refcount--;
-}
-
-/*
- * rtems_capture_init_stack_usage
- *
- *  DESCRIPTION:
- *
- * This function setups a stack so its usage can be monitored.
- */
-static inline void
-rtems_capture_init_stack_usage (rtems_capture_task_t* task)
-{
-  if (task->tcb)
-  {
-    uint32_t* s;
-    uint32_t  i;
-
-    task->stack_size  = task->tcb->Start.Initial_stack.size;
-    task->stack_clean = task->stack_size;
-
-    s = task->tcb->Start.Initial_stack.area;
-
-    for (i = 0; i < (task->stack_size - 128); i += 4)
-      *(s++) = 0xdeaddead;
-  }
-}
-
-/*
- * rtems_capture_find_control
- *
- *  DESCRIPTION:
- *
  * This function searches for a trigger given a name.
- *
  */
 static inline rtems_capture_control_t*
 rtems_capture_find_control (rtems_name name, rtems_id id)
@@ -325,19 +279,34 @@ rtems_capture_find_control (rtems_name name, rtems_id id)
 }
 
 /*
- * rtems_capture_create_control
- *
- *  DESCRIPTION:
- *
+ * This function checks if a new control structure matches
+ * the given task and sets the control if it does.
+ */
+static void
+rtems_capture_initialize_control (rtems_tcb *tcb)
+{
+  rtems_name                   name;
+  rtems_capture_control_t*     control;
+
+  /*
+   * We need to scan the default control list to initialise
+   * this control.
+   */
+  rtems_object_get_classic_name( tcb->Object.id, &name );
+  control = capture_controls;
+  if (rtems_capture_match_name_id (control->name, control->id,
+                                   name, tcb->Object.id))
+    tcb->Capture.control = control;
+}
+
+/*
  * This function creates a capture control for the capture engine.
- *
  */
 static inline rtems_capture_control_t*
 rtems_capture_create_control (rtems_name name, rtems_id id)
 {
-  rtems_interrupt_level    level;
-  rtems_capture_control_t* control;
-  rtems_capture_task_t*    task;
+  rtems_interrupt_lock_context lock_context;
+  rtems_capture_control_t*     control;
 
   if ((name == 0) && (id == 0))
     return NULL;
@@ -346,11 +315,11 @@ rtems_capture_create_control (rtems_name name, rtems_id id)
 
   if (control == NULL)
   {
-    bool ok = rtems_workspace_allocate (sizeof (*control), (void **) &control);
+    control = malloc( sizeof (*control));
 
-    if (!ok)
+    if (!control)
     {
-      capture_flags |= RTEMS_CAPTURE_NO_MEMORY;
+      capture_flags_global |= RTEMS_CAPTURE_NO_MEMORY;
       return NULL;
     }
 
@@ -363,229 +332,174 @@ rtems_capture_create_control (rtems_name name, rtems_id id)
 
     memset (control->by, 0, sizeof (control->by));
 
-    rtems_interrupt_disable (level);
+    rtems_interrupt_lock_acquire (&capture_lock_global, &lock_context);
 
     control->next    = capture_controls;
     capture_controls = control;
+    rtems_iterate_over_all_threads (rtems_capture_initialize_control);
 
-    /*
-     * We need to scan the task list as set the control to the
-     * tasks.
-     */
-    for (task = capture_tasks; task != NULL; task = task->forw)
-      if (rtems_capture_match_name_id (name, id, task->name, task->id))
-        task->control = control;
-
-    rtems_interrupt_enable (level);
+    rtems_interrupt_lock_release (&capture_lock_global, &lock_context);
   }
 
   return control;
 }
 
-/*
- * rtems_capture_create_capture_task
- *
- *  DESCRIPTION:
- *
- * This function create the task control.
- *
- */
-static inline rtems_capture_task_t*
-rtems_capture_create_capture_task (rtems_tcb* new_task)
+void rtems_capture_initialize_task( rtems_tcb* tcb )
 {
-  rtems_interrupt_level    level;
-  rtems_capture_task_t*    task;
-  rtems_capture_control_t* control;
-  rtems_name               name;
-  rtems_capture_time_t     time;
-  bool                     ok;
+  rtems_capture_control_t*     control;
+  rtems_name                   name;
+  rtems_interrupt_lock_context lock_context;
 
-  ok = rtems_workspace_allocate (sizeof (*task), (void **) &task);
+  /*
+   * We need to scan the default control list to initialize
+   * this control if it is a new task.
+   */
 
-  if (!ok)
-  {
-    capture_flags |= RTEMS_CAPTURE_NO_MEMORY;
-    return NULL;
+  rtems_object_get_classic_name( tcb->Object.id, &name );
+
+  rtems_interrupt_lock_acquire (&capture_lock_global, &lock_context);
+  if (tcb->Capture.control == NULL) {
+    for (control = capture_controls; control != NULL; control = control->next)
+      if (rtems_capture_match_name_id (control->name, control->id,
+                                       name, tcb->Object.id))
+        tcb->Capture.control = control;
   }
 
-  /*
-   * Get the current time.
-   */
-  rtems_capture_get_time (&time);
+  tcb->Capture.flags |= RTEMS_CAPTURE_INIT_TASK;
+  rtems_interrupt_lock_release (&capture_lock_global, &lock_context);
+}
+
+void rtems_capture_record_task( rtems_tcb* tcb )
+{
+  rtems_capture_task_record_t rec;
+  void*                       ptr;
+  rtems_interrupt_lock_context lock_context;
+
+  rtems_object_get_classic_name( tcb->Object.id, &rec.name );
+
+  rec.stack_size = tcb->Start.Initial_stack.size;
+  rec.start_priority = _RTEMS_tasks_Priority_from_Core(
+    tcb->Start.initial_priority
+  );
+
+  rtems_interrupt_lock_acquire (&capture_lock_global, &lock_context);
+  tcb->Capture.flags |= RTEMS_CAPTURE_RECORD_TASK;
+  rtems_interrupt_lock_release (&capture_lock_global, &lock_context);
 
   /*
-   * Check the type of name the object has.
+   *  Log the task information. The first time a task is
+   *  seen a record is logged.  This record can be identified
+   *  by a 0 in the event identifier.
    */
-
-  rtems_object_get_classic_name( new_task->Object.id, &name );
-
-  rtems_capture_dup_name (&task->name, name);
-
-  task->id               = new_task->Object.id;
-  task->flags            = 0;
-  task->in               = 0;
-  task->refcount         = 0;
-  task->out              = 0;
-  task->tcb              = new_task;
-  task->time             = 0;
-  task->time_in          = time;
-  task->control          = 0;
-  task->last_time        = 0;
-
-  task->tcb->extensions[capture_extension_index] = task;
-
-  task->start_priority = _RTEMS_tasks_Priority_from_Core(
-                           new_task->Start.initial_priority
-                         );
-  task->stack_size     = new_task->Start.Initial_stack.size;
-  task->stack_clean    = task->stack_size;
-
-  rtems_interrupt_disable (level);
-
-  task->forw    = capture_tasks;
-  if (task->forw)
-    task->forw->back = task;
-  task->back    = NULL;
-  capture_tasks = task;
-
-  rtems_interrupt_enable (level);
-
-  /*
-   * We need to scan the default control list to initialise
-   * this control.
-   */
-
-  for (control = capture_controls; control != NULL; control = control->next)
-    if (rtems_capture_match_name_id (control->name, control->id,
-                                     task->name, task->id))
-      task->control = control;
-
-  return task;
+  rtems_capture_begin_add_record (tcb, 0, sizeof(rec), &ptr);
+  ptr = rtems_capture_append_to_record(
+    ptr,
+    &rec.name,
+    sizeof( rec.name )
+  );
+  ptr = rtems_capture_append_to_record(
+    ptr,
+    &rec.start_priority,
+    sizeof( rec.start_priority)
+  );
+  ptr = rtems_capture_append_to_record(
+    ptr,
+    &rec.stack_size,
+    sizeof( rec.stack_size)
+  );
+  rtems_capture_end_add_record ( ptr );
 }
 
 /*
- * rtems_capture_destroy_capture_task
- *
- *  DESCRIPTION:
- *
- * This function destroy the task structure if the reference count
- * is 0 and the tcb has been cleared signalling the task has been
- * deleted.
- *
+ * This function indicates if data should be filtered from the
+ * log.
  */
-static inline void
-rtems_capture_destroy_capture_task (rtems_capture_task_t* task)
+bool rtems_capture_filter( rtems_tcb*            tcb,
+                           uint32_t              events)
 {
-  if (task)
-  {
-    rtems_interrupt_level level;
-
-    rtems_interrupt_disable (level);
-
-    if (task->tcb || task->refcount)
-      task = 0;
-
-    if (task)
-    {
-      if (task->forw)
-        task->forw->back = task->back;
-      if (task->back)
-        task->back->forw = task->forw;
-      else
-        capture_tasks = task->forw;
-    }
-
-    rtems_interrupt_enable (level);
-
-    rtems_workspace_free (task);
-  }
-}
-
-/*
- * rtems_capture_record
- *
- *  DESCRIPTION:
- *
- * This function records a capture record into the capture buffer.
- *
- */
-static inline void
-rtems_capture_record (rtems_capture_task_t* task,
-                      uint32_t              events)
-{
-  /*
-   * Check the watch state if we have a task control, and
-   * the task's real priority is lower or equal to the ceiling.
-   */
-  if (task &&
-      ((capture_flags &
+  if (tcb &&
+      ((capture_flags_global &
         (RTEMS_CAPTURE_TRIGGERED | RTEMS_CAPTURE_ONLY_MONITOR)) ==
        RTEMS_CAPTURE_TRIGGERED))
   {
     rtems_capture_control_t* control;
 
-    control = task->control;
+    control = tcb->Capture.control;
 
     /*
-     * Capure the record if we have an event that is always
+     * Capture the record if we have an event that is always
      * captured, or the task's real priority is greater than the
      * watch ceiling, and the global watch or task watch is enabled.
      */
-
     if ((events & RTEMS_CAPTURE_RECORD_EVENTS) ||
-        ((task->tcb->real_priority >= capture_ceiling) &&
-         (task->tcb->real_priority <= capture_floor) &&
-         ((capture_flags & RTEMS_CAPTURE_GLOBAL_WATCH) ||
+        ((tcb->real_priority >= capture_ceiling) &&
+         (tcb->real_priority <= capture_floor) &&
+         ((capture_flags_global & RTEMS_CAPTURE_GLOBAL_WATCH) ||
           (control && (control->flags & RTEMS_CAPTURE_WATCH)))))
     {
-      rtems_interrupt_level level;
-
-      rtems_interrupt_disable (level);
-
-      if (capture_count < capture_size)
-      {
-        capture_count++;
-        capture_in->task   = task;
-        capture_in->events = (events |
-                              (task->tcb->real_priority) |
-                              (task->tcb->current_priority << 8));
-
-        if ((events & RTEMS_CAPTURE_RECORD_EVENTS) == 0)
-          task->flags |= RTEMS_CAPTURE_TRACED;
-
-        rtems_capture_get_time (&capture_in->time);
-
-        if (capture_in == &capture_records[capture_size - 1])
-          capture_in = capture_records;
-        else
-          capture_in++;
-
-        rtems_capture_refcount_up (task);
-      }
-      else
-        capture_flags |= RTEMS_CAPTURE_OVERFLOW;
-      rtems_interrupt_enable (level);
+      return false;
     }
   }
+
+  return true;
 }
 
 /*
- * rtems_capture_trigger
- *
- *  DESCRIPTION:
- *
+ * This function records a capture record into the capture buffer.
+ */
+void *
+rtems_capture_record_open (rtems_tcb*                    tcb,
+                           uint32_t                      events,
+                           size_t                        size,
+                           rtems_interrupt_lock_context* lock_context)
+{
+  uint8_t*                     ptr;
+  rtems_capture_record_t*      capture_in;
+
+  rtems_interrupt_lock_acquire (&capture_lock_per_cpu, lock_context);
+
+  ptr = rtems_capture_buffer_allocate(&capture_records, size);
+  capture_in = (rtems_capture_record_t *) ptr;
+  if ( capture_in )
+  {
+    capture_count++;
+    capture_in->size    = size;
+    capture_in->task_id = tcb->Object.id;
+    capture_in->events  = (events |
+                          (tcb->real_priority) |
+                          (tcb->current_priority << 8));
+
+    if ((events & RTEMS_CAPTURE_RECORD_EVENTS) == 0)
+      tcb->Capture.flags |= RTEMS_CAPTURE_TRACED;
+
+    rtems_capture_get_time (&capture_in->time);
+
+    ptr = ptr + sizeof(*capture_in);
+  }
+  else
+    capture_flags_per_cpu |= RTEMS_CAPTURE_OVERFLOW;
+
+  return ptr;
+}
+
+void rtems_capture_record_close( void *rec, rtems_interrupt_lock_context* lock_context)
+{
+  rtems_interrupt_lock_release (&capture_lock_per_cpu, lock_context);
+}
+
+/*
  * See if we have triggered and if not see if this event is a
  * cause of a trigger.
  */
-static bool
-rtems_capture_trigger (rtems_capture_task_t* ft,
-                       rtems_capture_task_t* tt,
-                       uint32_t              events)
+bool
+rtems_capture_trigger (rtems_tcb* ft,
+                       rtems_tcb* tt,
+                       uint32_t   events)
 {
   /*
    * If we have not triggered then see if this is a trigger condition.
    */
-  if (!(capture_flags & RTEMS_CAPTURE_TRIGGERED))
+  if (!(capture_flags_global & RTEMS_CAPTURE_TRIGGERED))
   {
     rtems_capture_control_t* fc = NULL;
     rtems_capture_control_t* tc = NULL;
@@ -595,14 +509,14 @@ rtems_capture_trigger (rtems_capture_task_t* ft,
 
     if (ft)
     {
-      fc = ft->control;
+      fc = ft->Capture.control;
       if (fc)
         from_events = fc->from_triggers & events;
     }
 
     if (tt)
     {
-      tc = tt->control;
+      tc = tt->Capture.control;
       if (tc)
       {
         to_events = tc->to_triggers & events;
@@ -620,7 +534,7 @@ rtems_capture_trigger (rtems_capture_task_t* ft,
      */
     if (from_events || to_events)
     {
-      capture_flags |= RTEMS_CAPTURE_TRIGGERED;
+      capture_flags_global |= RTEMS_CAPTURE_TRIGGERED;
       return 1;
     }
 
@@ -631,7 +545,7 @@ rtems_capture_trigger (rtems_capture_task_t* ft,
     {
       if (rtems_capture_by_in_to (events, ft, tc))
       {
-        capture_flags |= RTEMS_CAPTURE_TRIGGERED;
+        capture_flags_global |= RTEMS_CAPTURE_TRIGGERED;
         return 1;
       }
     }
@@ -643,452 +557,99 @@ rtems_capture_trigger (rtems_capture_task_t* ft,
 }
 
 /*
- * rtems_capture_create_task
- *
- *  DESCRIPTION:
- *
- * This function is called when a task is created.
- *
- */
-static bool
-rtems_capture_create_task (rtems_tcb* current_task,
-                           rtems_tcb* new_task)
-{
-  rtems_capture_task_t* ct;
-  rtems_capture_task_t* nt;
-
-  ct = current_task->extensions[capture_extension_index];
-
-  /*
-   * The task pointers may not be known as the task may have
-   * been created before the capture engine was open. Add them.
-   */
-
-  if (ct == NULL)
-    ct = rtems_capture_create_capture_task (current_task);
-
-  /*
-   * Create the new task's capture control block.
-   */
-  nt = rtems_capture_create_capture_task (new_task);
-
-  if (rtems_capture_trigger (ct, nt, RTEMS_CAPTURE_CREATE))
-  {
-    rtems_capture_record (ct, RTEMS_CAPTURE_CREATED_BY_EVENT);
-    rtems_capture_record (nt, RTEMS_CAPTURE_CREATED_EVENT);
-  }
-
-  return 1 == 1;
-}
-
-/*
- * rtems_capture_start_task
- *
- *  DESCRIPTION:
- *
- * This function is called when a task is started.
- *
- */
-static void
-rtems_capture_start_task (rtems_tcb* current_task,
-                          rtems_tcb* started_task)
-{
-  /*
-   * Get the capture task control block so we can trace this
-   * event.
-   */
-  rtems_capture_task_t* ct;
-  rtems_capture_task_t* st;
-
-  ct = current_task->extensions[capture_extension_index];
-  st = started_task->extensions[capture_extension_index];
-
-  /*
-   * The task pointers may not be known as the task may have
-   * been created before the capture engine was open. Add them.
-   */
-
-  if (ct == NULL)
-    ct = rtems_capture_create_capture_task (current_task);
-
-  if (st == NULL)
-    st = rtems_capture_create_capture_task (started_task);
-
-  if (rtems_capture_trigger (ct, st, RTEMS_CAPTURE_START))
-  {
-    rtems_capture_record (ct, RTEMS_CAPTURE_STARTED_BY_EVENT);
-    rtems_capture_record (st, RTEMS_CAPTURE_STARTED_EVENT);
-  }
-
-  rtems_capture_init_stack_usage (st);
-}
-
-/*
- * rtems_capture_restart_task
- *
- *  DESCRIPTION:
- *
- * This function is called when a task is restarted.
- *
- */
-static void
-rtems_capture_restart_task (rtems_tcb* current_task,
-                            rtems_tcb* restarted_task)
-{
-  /*
-   * Get the capture task control block so we can trace this
-   * event.
-   */
-  rtems_capture_task_t* ct;
-  rtems_capture_task_t* rt;
-
-  ct = current_task->extensions[capture_extension_index];
-  rt = restarted_task->extensions[capture_extension_index];
-
-  /*
-   * The task pointers may not be known as the task may have
-   * been created before the capture engine was open. Add them.
-   */
-
-  if (ct == NULL)
-    ct = rtems_capture_create_capture_task (current_task);
-
-  if (rt == NULL)
-    rt = rtems_capture_create_capture_task (restarted_task);
-
-  if (rtems_capture_trigger (ct, rt, RTEMS_CAPTURE_RESTART))
-  {
-    rtems_capture_record (ct, RTEMS_CAPTURE_RESTARTED_BY_EVENT);
-    rtems_capture_record (rt, RTEMS_CAPTURE_RESTARTED_EVENT);
-  }
-
-  rtems_capture_task_stack_usage (rt);
-  rtems_capture_init_stack_usage (rt);
-}
-
-/*
- * rtems_capture_delete_task
- *
- *  DESCRIPTION:
- *
- * This function is called when a task is deleted.
- *
- */
-static void
-rtems_capture_delete_task (rtems_tcb* current_task,
-                           rtems_tcb* deleted_task)
-{
-  /*
-   * Get the capture task control block so we can trace this
-   * event.
-   */
-  rtems_capture_task_t* ct;
-  rtems_capture_task_t* dt;
-
-  /*
-   * The task pointers may not be known as the task may have
-   * been created before the capture engine was open. Add them.
-   */
-
-  ct = current_task->extensions[capture_extension_index];
-  dt = deleted_task->extensions[capture_extension_index];
-
-  if (ct == NULL)
-    ct = rtems_capture_create_capture_task (current_task);
-
-  if (dt == NULL)
-    dt = rtems_capture_create_capture_task (deleted_task);
-
-  if (rtems_capture_trigger (ct, dt, RTEMS_CAPTURE_DELETE))
-  {
-    rtems_capture_record (ct, RTEMS_CAPTURE_DELETED_BY_EVENT);
-    rtems_capture_record (dt, RTEMS_CAPTURE_DELETED_EVENT);
-  }
-
-  rtems_capture_task_stack_usage (dt);
-
-  /*
-   * This task's tcb will be invalid. This signals the
-   * task has been deleted.
-   */
-  dt->tcb = 0;
-
-  rtems_capture_destroy_capture_task (dt);
-}
-
-/*
- * rtems_capture_begin_task
- *
- *  DESCRIPTION:
- *
- * This function is called when a task is begun.
- *
- */
-static void
-rtems_capture_begin_task (rtems_tcb* begin_task)
-{
-  /*
-   * Get the capture task control block so we can trace this
-   * event.
-   */
-  rtems_capture_task_t* bt;
-
-  bt = begin_task->extensions[capture_extension_index];
-
-  /*
-   * The task pointers may not be known as the task may have
-   * been created before the capture engine was open. Add them.
-   */
-
-  if (bt == NULL)
-    bt = rtems_capture_create_capture_task (begin_task);
-
-  if (rtems_capture_trigger (NULL, bt, RTEMS_CAPTURE_BEGIN))
-    rtems_capture_record (bt, RTEMS_CAPTURE_BEGIN_EVENT);
-}
-
-/*
- * rtems_capture_exitted_task
- *
- *  DESCRIPTION:
- *
- * This function is called when a task is exitted. That is
- * returned rather than was deleted.
- *
- */
-static void
-rtems_capture_exitted_task (rtems_tcb* exitted_task)
-{
-  /*
-   * Get the capture task control block so we can trace this
-   * event.
-   */
-  rtems_capture_task_t* et;
-
-  et = exitted_task->extensions[capture_extension_index];
-
-  /*
-   * The task pointers may not be known as the task may have
-   * been created before the capture engine was open. Add them.
-   */
-
-  if (et == NULL)
-    et = rtems_capture_create_capture_task (exitted_task);
-
-  if (rtems_capture_trigger (NULL, et, RTEMS_CAPTURE_EXITTED))
-    rtems_capture_record (et, RTEMS_CAPTURE_EXITTED_EVENT);
-
-  rtems_capture_task_stack_usage (et);
-}
-
-/*
- * rtems_capture_switch_task
- *
- *  DESCRIPTION:
- *
- * This function is called when a context is switched.
- *
- */
-static void
-rtems_capture_switch_task (rtems_tcb* current_task,
-                           rtems_tcb* heir_task)
-{
-  /*
-   * Only perform context switch trace processing if tracing is
-   * enabled.
-   */
-  if (capture_flags & RTEMS_CAPTURE_ON)
-  {
-    rtems_capture_time_t time;
-
-    /*
-     * Get the cpature task control block so we can update the
-     * reference and perform any watch or trigger functions.
-     * The task pointers may not be known as the task may have
-     * been created before the capture engine was open. Add them.
-     */
-    rtems_capture_task_t* ct;
-    rtems_capture_task_t* ht;
-
-
-    if (_States_Is_transient (current_task->current_state)
-     || _States_Is_dormant (current_task->current_state))
-    {
-      rtems_id ct_id = current_task->Object.id;
-
-      for (ct = capture_tasks; ct; ct = ct->forw)
-        if (ct->id == ct_id)
-          break;
-    }
-    else
-    {
-      ct = current_task->extensions[capture_extension_index];
-
-      if (ct == NULL)
-        ct = rtems_capture_create_capture_task (current_task);
-    }
-
-    ht = heir_task->extensions[capture_extension_index];
-
-    if (ht == NULL)
-      ht = rtems_capture_create_capture_task (heir_task);
-
-    /*
-     * Update the execution time. Assume the time will not overflow
-     * for now. This may need to change.
-     */
-    rtems_capture_get_time (&time);
-
-    /*
-     * We could end up with null pointers for both the current task
-     * and the heir task.
-     */
-
-    if (ht)
-    {
-      ht->in++;
-      ht->time_in = time;
-    }
-
-    if (ct)
-    {
-      ct->out++;
-      if (ct->time_in)
-        ct->time += time - ct->time_in;
-    }
-
-    if (rtems_capture_trigger (ct, ht, RTEMS_CAPTURE_SWITCH))
-    {
-      rtems_capture_record (ct, RTEMS_CAPTURE_SWITCHED_OUT_EVENT);
-      rtems_capture_record (ht, RTEMS_CAPTURE_SWITCHED_IN_EVENT);
-    }
-  }
-}
-
-/*
- * rtems_capture_open
- *
- *  DESCRIPTION:
- *
  * This function initialises the realtime capture engine allocating the trace
- * buffer. It is assumed we have a working heap at stage of initialisation.
- *
+ * buffer. It is assumed we have a working heap at stage of initialization.
  */
 rtems_status_code
 rtems_capture_open (uint32_t   size, rtems_capture_timestamp timestamp __attribute__((unused)))
 {
-  rtems_extensions_table capture_extensions;
-  rtems_name             name;
-  rtems_status_code      sc;
+  rtems_status_code       sc = RTEMS_SUCCESSFUL;
+  size_t                  count;
+  uint32_t                i;
+  rtems_capture_buffer_t* buff;
 
   /*
    * See if the capture engine is already open.
    */
 
-  if (capture_records)
+  if ((capture_flags_global & RTEMS_CAPTURE_INIT) == RTEMS_CAPTURE_INIT) {
     return RTEMS_RESOURCE_IN_USE;
+  }
 
-  capture_records = malloc (size * sizeof (rtems_capture_record_t));
+  count = rtems_get_processor_count();
+  if (capture_per_cpu == NULL) {
+    capture_per_cpu = calloc( count, sizeof(rtems_capture_per_cpu_data) );
+  }
 
-  if (capture_records == NULL)
-    return RTEMS_NO_MEMORY;
+  for (i=0; i<count; i++) {
+    buff = &capture_records_on_cpu(i);
+    rtems_capture_buffer_create( buff, size );
+    if (buff->buffer == NULL) {
+      sc = RTEMS_NO_MEMORY;
+      break;
+    }
 
-  capture_size    = size;
-  capture_count   = 0;
-  capture_in      = capture_records;
-  capture_out     = 0;
-  capture_flags   = 0;
-  capture_tasks   = NULL;
+    capture_count_on_cpu(i) = 0;
+    capture_flags_on_cpu(i) = 0;
+  }
+
+  capture_flags_global   = 0;
   capture_ceiling = 0;
   capture_floor   = 255;
-
-  /*
-   * Create the extension table. This is copied so we
-   * can create it as a local.
-   */
-  capture_extensions.thread_create  = rtems_capture_create_task;
-  capture_extensions.thread_start   = rtems_capture_start_task;
-  capture_extensions.thread_restart = rtems_capture_restart_task;
-  capture_extensions.thread_delete  = rtems_capture_delete_task;
-  capture_extensions.thread_switch  = rtems_capture_switch_task;
-  capture_extensions.thread_begin   = rtems_capture_begin_task;
-  capture_extensions.thread_exitted = rtems_capture_exitted_task;
-  capture_extensions.fatal          = NULL;
-
-  /*
-   * Register the user extension handlers for the CAPture Engine.
-   */
-  name = rtems_build_name ('C', 'A', 'P', 'E');
-  sc   = rtems_extension_create (name, &capture_extensions, &capture_id);
+  if (sc == RTEMS_SUCCESSFUL)
+    sc = rtems_capture_user_extension_open();
 
   if (sc != RTEMS_SUCCESSFUL)
   {
-    capture_id = 0;
-    free (capture_records);
-    capture_records = NULL;
+    for (i=0; i<count; i++)
+      rtems_capture_buffer_destroy( &capture_records_on_cpu(i));
+  }  else {
+    capture_flags_global |= RTEMS_CAPTURE_INIT;
   }
-  else
-  {
-    capture_extension_index = rtems_object_id_get_index (capture_id);
-  }
-
-  /*
-   * Iterate over the list of existing tasks.
-   */
 
   return sc;
 }
 
 /*
- * rtems_capture_close
- *
- *  DESCRIPTION:
- *
  * This function shutdowns the capture engine and release any claimed
- * resources.
+ * resources.  Capture control must be disabled prior to calling a close.
  */
 rtems_status_code
 rtems_capture_close (void)
 {
-  rtems_interrupt_level    level;
-  rtems_capture_task_t*    task;
-  rtems_capture_control_t* control;
-  rtems_status_code        sc;
+  rtems_interrupt_lock_context lock_context;
+  rtems_capture_control_t*     control;
+  rtems_status_code            sc;
+  uint32_t                     cpu;
 
-  rtems_interrupt_disable (level);
+  rtems_interrupt_lock_acquire (&capture_lock_global, &lock_context);
 
-  if (!capture_records)
+  if ((capture_flags_global & RTEMS_CAPTURE_INIT) != RTEMS_CAPTURE_INIT)
   {
-    rtems_interrupt_enable (level);
+    rtems_interrupt_lock_release (&capture_lock_global, &lock_context);
     return RTEMS_SUCCESSFUL;
   }
 
-  capture_flags &= ~(RTEMS_CAPTURE_ON | RTEMS_CAPTURE_ONLY_MONITOR);
+  if ( (capture_flags_global & RTEMS_CAPTURE_ON) != 0 )
+  {
+    rtems_interrupt_lock_release (&capture_lock_global, &lock_context);
+    return RTEMS_UNSATISFIED;
+  }
 
-  capture_records = NULL;
+  capture_flags_global &=
+    ~(RTEMS_CAPTURE_ON | RTEMS_CAPTURE_ONLY_MONITOR | RTEMS_CAPTURE_INIT);
 
-  rtems_interrupt_enable (level);
+  rtems_interrupt_lock_release (&capture_lock_global, &lock_context);
 
   /*
    * Delete the extension first. This means we are now able to
    * release the resources we have without them being used.
    */
 
-  sc = rtems_extension_delete (capture_id);
+  sc = rtems_capture_user_extension_close();
 
   if (sc != RTEMS_SUCCESSFUL)
     return sc;
-
-  task = capture_tasks;
-
-  while (task)
-  {
-    rtems_capture_task_t* delete = task;
-    task = task->forw;
-    rtems_workspace_free (delete);
-  }
-
-  capture_tasks = NULL;
 
   control = capture_controls;
 
@@ -1096,63 +657,46 @@ rtems_capture_close (void)
   {
     rtems_capture_control_t* delete = control;
     control = control->next;
-    rtems_workspace_free (delete);
+    free (delete);
   }
 
   capture_controls = NULL;
-
-  if (capture_records)
-  {
-    free (capture_records);
-    capture_records = NULL;
+  for (cpu=0; cpu < rtems_get_processor_count(); cpu++) {
+    capture_count_on_cpu(cpu) = 0;
+    if (capture_records_on_cpu(cpu).buffer)
+      rtems_capture_buffer_destroy( &capture_records_on_cpu(cpu) );
   }
 
-  return RTEMS_SUCCESSFUL;
-}
+  free( capture_per_cpu );
+  capture_per_cpu = NULL;
 
-/*
- * rtems_capture_control
- *
- *  DESCRIPTION:
- *
- * This function allows control of tracing at a global level.
- */
-static void
-rtems_capture_task_setup (Thread_Control *tcb)
-{
-  rtems_capture_create_capture_task (tcb);
+  return RTEMS_SUCCESSFUL;
 }
 
 rtems_status_code
 rtems_capture_control (bool enable)
 {
-  rtems_interrupt_level level;
+  rtems_interrupt_lock_context lock_context;
 
-  rtems_interrupt_disable (level);
+  rtems_interrupt_lock_acquire (&capture_lock_global, &lock_context);
 
-  if (!capture_records)
+  if ((capture_flags_global & RTEMS_CAPTURE_INIT) != RTEMS_CAPTURE_INIT)
   {
-    rtems_interrupt_enable (level);
+    rtems_interrupt_lock_release (&capture_lock_global, &lock_context);
     return RTEMS_UNSATISFIED;
   }
 
   if (enable)
-    capture_flags |= RTEMS_CAPTURE_ON;
+    capture_flags_global |= RTEMS_CAPTURE_ON;
   else
-    capture_flags &= ~RTEMS_CAPTURE_ON;
+    capture_flags_global &= ~RTEMS_CAPTURE_ON;
 
-  rtems_iterate_over_all_threads (rtems_capture_task_setup);
-
-  rtems_interrupt_enable (level);
+  rtems_interrupt_lock_release (&capture_lock_global, &lock_context);
 
   return RTEMS_SUCCESSFUL;
 }
 
 /*
- * rtems_capture_monitor
- *
- *  DESCRIPTION:
- *
  * This function enable the monitor mode. When in the monitor mode
  * the tasks are monitored but no data is saved. This can be used
  * to profile the load on a system.
@@ -1160,85 +704,89 @@ rtems_capture_control (bool enable)
 rtems_status_code
 rtems_capture_monitor (bool enable)
 {
-  rtems_interrupt_level level;
+  rtems_interrupt_lock_context lock_context;
 
-  rtems_interrupt_disable (level);
+  rtems_interrupt_lock_acquire (&capture_lock_global, &lock_context);
 
-  if (!capture_records)
+  if ((capture_flags_global & RTEMS_CAPTURE_INIT) != RTEMS_CAPTURE_INIT)
   {
-    rtems_interrupt_enable (level);
+    rtems_interrupt_lock_release (&capture_lock_global, &lock_context);
     return RTEMS_UNSATISFIED;
   }
 
   if (enable)
-    capture_flags |= RTEMS_CAPTURE_ONLY_MONITOR;
+    capture_flags_global |= RTEMS_CAPTURE_ONLY_MONITOR;
   else
-    capture_flags &= ~RTEMS_CAPTURE_ONLY_MONITOR;
+    capture_flags_global &= ~RTEMS_CAPTURE_ONLY_MONITOR;
 
-  rtems_interrupt_enable (level);
+  rtems_interrupt_lock_release (&capture_lock_global, &lock_context);
 
   return RTEMS_SUCCESSFUL;
 }
 
 /*
- * rtems_capture_flush
- *
- *  DESCRIPTION:
- *
+ * This function clears the capture trace flag in the tcb.
+ */
+static void
+rtems_capture_flush_tcb (rtems_tcb *tcb)
+{
+  tcb->Capture.flags &= ~RTEMS_CAPTURE_TRACED;
+}
+
+/*
  * This function flushes the capture buffer. The prime parameter allows the
  * capture engine to also be primed again.
  */
 rtems_status_code
 rtems_capture_flush (bool prime)
 {
-  rtems_interrupt_level level;
-  rtems_capture_task_t* task;
+  rtems_interrupt_lock_context lock_context_global;
+  rtems_interrupt_lock_context lock_context_per_cpu;
+  rtems_interrupt_lock*        lock;
+  uint32_t                     cpu;
 
-  rtems_interrupt_disable (level);
+  rtems_interrupt_lock_acquire (&capture_lock_global, &lock_context_global);
 
-  for (task = capture_tasks; task != NULL; task = task->forw)
+  if ( (capture_flags_global & RTEMS_CAPTURE_ON) != 0 )
   {
-    task->flags &= ~RTEMS_CAPTURE_TRACED;
-    task->refcount = 0;
+    rtems_interrupt_lock_release (&capture_lock_global, &lock_context_global);
+    return RTEMS_UNSATISFIED;
   }
+
+  rtems_iterate_over_all_threads (rtems_capture_flush_tcb);
 
   if (prime)
-    capture_flags &= ~(RTEMS_CAPTURE_TRIGGERED | RTEMS_CAPTURE_OVERFLOW);
+    capture_flags_global &= ~(RTEMS_CAPTURE_TRIGGERED | RTEMS_CAPTURE_OVERFLOW);
   else
-    capture_flags &= ~RTEMS_CAPTURE_OVERFLOW;
+    capture_flags_global &= ~RTEMS_CAPTURE_OVERFLOW;
 
-  capture_count = 0;
-  capture_in    = capture_records;
-  capture_out   = 0;
-
-  rtems_interrupt_enable (level);
-
-  task = capture_tasks;
-
-  while (task)
-  {
-    rtems_capture_task_t* check = task;
-    task = task->forw;
-    rtems_capture_destroy_capture_task (check);
+  for (cpu=0; cpu < rtems_get_processor_count(); cpu++) {
+    lock = &(capture_lock_on_cpu( cpu ));
+    rtems_interrupt_lock_acquire (lock, &lock_context_per_cpu);
+    capture_count_on_cpu(cpu) = 0;
+    if (capture_records_on_cpu(cpu).buffer)
+      rtems_capture_buffer_flush( &capture_records_on_cpu(cpu) );
+    rtems_interrupt_lock_release (lock, &lock_context_per_cpu);
   }
+
+  rtems_interrupt_lock_release (&capture_lock_global, &lock_context_global);
 
   return RTEMS_SUCCESSFUL;
 }
 
 /*
- * rtems_capture_watch_add
- *
- *  DESCRIPTION:
- *
  * This function defines a watch for a specific task given a name. A watch
  * causes it to be traced either in or out of context. The watch can be
  * optionally enabled or disabled with the set routine. It is disabled by
- * default.
+ * default.  A watch can only be defined when capture control is disabled
  */
 rtems_status_code
 rtems_capture_watch_add (rtems_name name, rtems_id id)
 {
   rtems_capture_control_t* control;
+
+  if ( (capture_flags_global & RTEMS_CAPTURE_ON) != 0 )
+    return RTEMS_UNSATISFIED;
 
   if ((name == 0) && (id == 0))
     return RTEMS_UNSATISFIED;
@@ -1258,22 +806,21 @@ rtems_capture_watch_add (rtems_name name, rtems_id id)
 }
 
 /*
- * rtems_capture_watch_del
- *
- *  DESCRIPTION:
- *
  * This function removes a watch for a specific task given a name. The task
  * description will still exist if referenced by a trace record in the trace
- * buffer or a global watch is defined.
+ * buffer or a global watch is defined.  A watch can only be deleted when
+ * capture control is disabled.
  */
 rtems_status_code
 rtems_capture_watch_del (rtems_name name, rtems_id id)
 {
-  rtems_interrupt_level     level;
-  rtems_capture_control_t*  control;
-  rtems_capture_control_t** prev_control;
-  rtems_capture_task_t*     task;
-  bool                      found = false;
+  rtems_interrupt_lock_context lock_context;
+  rtems_capture_control_t*     control;
+  rtems_capture_control_t**    prev_control;
+  bool                         found = false;
+
+  if ( (capture_flags_global & RTEMS_CAPTURE_ON) != 0 )
+    return RTEMS_UNSATISFIED;
 
   /*
    * Should this test be for wildcards ?
@@ -1284,17 +831,13 @@ rtems_capture_watch_del (rtems_name name, rtems_id id)
   {
     if (rtems_capture_match_name_id (control->name, control->id, name, id))
     {
-      rtems_interrupt_disable (level);
-
-      for (task = capture_tasks; task != NULL; task = task->forw)
-        if (task->control == control)
-          task->control = 0;
+      rtems_interrupt_lock_acquire (&capture_lock_global, &lock_context);
 
       *prev_control = control->next;
 
-      rtems_interrupt_enable (level);
+      rtems_interrupt_lock_release (&capture_lock_global, &lock_context);
 
-      rtems_workspace_free (control);
+      free (control);
 
       control = *prev_control;
 
@@ -1314,19 +857,18 @@ rtems_capture_watch_del (rtems_name name, rtems_id id)
 }
 
 /*
- * rtems_capture_watch_set
- *
- *  DESCRIPTION:
- *
  * This function allows control of a watch. The watch can be enabled or
  * disabled.
  */
 rtems_status_code
 rtems_capture_watch_ctrl (rtems_name name, rtems_id id, bool enable)
 {
-  rtems_interrupt_level    level;
-  rtems_capture_control_t* control;
-  bool                     found = false;
+  rtems_interrupt_lock_context lock_context;
+  rtems_capture_control_t*     control;
+  bool                         found = false;
+
+  if ( (capture_flags_global & RTEMS_CAPTURE_ON) != 0 )
+    return RTEMS_UNSATISFIED;
 
   /*
    * Find the control and then set the watch. It must exist before it can
@@ -1336,14 +878,14 @@ rtems_capture_watch_ctrl (rtems_name name, rtems_id id, bool enable)
   {
     if (rtems_capture_match_name_id (control->name, control->id, name, id))
     {
-      rtems_interrupt_disable (level);
+      rtems_interrupt_lock_acquire (&capture_lock_global, &lock_context);
 
       if (enable)
         control->flags |= RTEMS_CAPTURE_WATCH;
       else
         control->flags &= ~RTEMS_CAPTURE_WATCH;
 
-      rtems_interrupt_enable (level);
+      rtems_interrupt_lock_release (&capture_lock_global, &lock_context);
 
       found = true;
     }
@@ -1356,10 +898,6 @@ rtems_capture_watch_ctrl (rtems_name name, rtems_id id, bool enable)
 }
 
 /*
- * rtems_capture_watch_global
- *
- *  DESCRIPTION:
- *
  * This function allows control of a global watch. The watch can be enabled or
  * disabled. A global watch configures all tasks below the ceiling and above
  * the floor to be traced.
@@ -1367,42 +905,34 @@ rtems_capture_watch_ctrl (rtems_name name, rtems_id id, bool enable)
 rtems_status_code
 rtems_capture_watch_global (bool enable)
 {
-  rtems_interrupt_level level;
+  rtems_interrupt_lock_context lock_context;
 
-  rtems_interrupt_disable (level);
+  rtems_interrupt_lock_acquire (&capture_lock_global, &lock_context);
 
   /*
    * We need to keep specific and global watches separate so
    * a global enable/disable does not lose a specific watch.
    */
   if (enable)
-    capture_flags |= RTEMS_CAPTURE_GLOBAL_WATCH;
+    capture_flags_global |= RTEMS_CAPTURE_GLOBAL_WATCH;
   else
-    capture_flags &= ~RTEMS_CAPTURE_GLOBAL_WATCH;
+    capture_flags_global &= ~RTEMS_CAPTURE_GLOBAL_WATCH;
 
-  rtems_interrupt_enable (level);
+  rtems_interrupt_lock_release (&capture_lock_global, &lock_context);
 
   return RTEMS_SUCCESSFUL;
 }
 
 /*
- * rtems_capture_watch_global_on
- *
- *  DESCRIPTION:
- *
  * This function returns the global watch state.
  */
 bool
 rtems_capture_watch_global_on (void)
 {
-  return capture_flags & RTEMS_CAPTURE_GLOBAL_WATCH ? 1 : 0;
+  return capture_flags_global & RTEMS_CAPTURE_GLOBAL_WATCH ? 1 : 0;
 }
 
 /*
- * rtems_capture_watch_ceiling
- *
- *  DESCRIPTION:
- *
  * This function sets a watch ceiling. Tasks at or greating that the
  * ceiling priority are not watched. This is a simple way to monitor
  * an application and exclude system tasks running at a higher
@@ -1416,10 +946,6 @@ rtems_capture_watch_ceiling (rtems_task_priority ceiling)
 }
 
 /*
- * rtems_capture_watch_get_ceiling
- *
- *  DESCRIPTION:
- *
  * This function gets the watch ceiling.
  */
 rtems_task_priority
@@ -1429,10 +955,6 @@ rtems_capture_watch_get_ceiling (void)
 }
 
 /*
- * rtems_capture_watch_floor
- *
- *  DESCRIPTION:
- *
  * This function sets a watch floor. Tasks at or less that the
  * floor priority are not watched. This is a simple way to monitor
  * an application and exclude system tasks running at a lower
@@ -1446,10 +968,6 @@ rtems_capture_watch_floor (rtems_task_priority floor)
 }
 
 /*
- * rtems_capture_watch_get_floor
- *
- *  DESCRIPTION:
- *
  * This function gets the watch floor.
  */
 rtems_task_priority
@@ -1459,12 +977,7 @@ rtems_capture_watch_get_floor (void)
 }
 
 /*
- * rtems_capture_map_trigger
- *
- *  DESCRIPTION:
- *
  * Map the trigger to a bit mask.
- *
  */
 static uint32_t
 rtems_capture_map_trigger (rtems_capture_trigger_t trigger)
@@ -1488,6 +1001,8 @@ rtems_capture_map_trigger (rtems_capture_trigger_t trigger)
       return RTEMS_CAPTURE_BEGIN;
     case rtems_capture_exitted:
       return RTEMS_CAPTURE_EXITTED;
+    case rtems_capture_terminated:
+      return RTEMS_CAPTURE_TERMINATED;
     default:
       break;
   }
@@ -1495,10 +1010,6 @@ rtems_capture_map_trigger (rtems_capture_trigger_t trigger)
 }
 
 /*
- * rtems_capture_set_trigger
- *
- *  DESCRIPTION:
- *
  * This function sets a trigger.
  *
  * This set trigger routine will create a capture control for the
@@ -1585,10 +1096,6 @@ rtems_capture_set_trigger (rtems_name                   from_name,
 }
 
 /*
- * rtems_capture_clear_trigger
- *
- *  DESCRIPTION:
- *
  * This function clear a trigger.
  */
 rtems_status_code
@@ -1658,15 +1165,27 @@ rtems_capture_clear_trigger (rtems_name                   from_name,
   return RTEMS_SUCCESSFUL;
 }
 
+static inline uint32_t rtems_capture_count_records( void* recs, size_t size )
+{
+  rtems_capture_record_t* rec;
+  uint8_t*                ptr = recs;
+  uint32_t                rec_count = 0;
+  size_t                  byte_count = 0;
+
+
+ while (byte_count < size) {
+    rec = (rtems_capture_record_t*) ptr;
+    rec_count++;
+    _Assert( rec->size >= sizeof(*rec) );
+    ptr += rec->size;
+    byte_count += rec->size;
+ };
+
+ return rec_count;
+}
+
 /*
- * rtems_capture_read
- *
- *  DESCRIPTION:
- *
  * This function reads a number of records from the capture buffer.
- * The user can optionally block and wait until the buffer as a
- * specific number of records available or a specific time has
- * elasped.
  *
  * The function returns the number of record that is has that are
  * in a continous block of memory. If the number of available records
@@ -1678,162 +1197,113 @@ rtems_capture_clear_trigger (rtems_name                   from_name,
  * The user must release the records. This is achieved with a call to
  * rtems_capture_release. Calls this function without a release will
  * result in at least the same number of records being released.
- *
- * The 'threshold' parameter is the number of records that must be
- * captured before returning. If a timeout period is specified (non-0)
- * any captured records will be returned. These parameters stop
- * thrashing occuring for a small number of records, yet allows
- * a user configured latiency to be applied for single events.
- *
- * The 'timeout' parameter is in micro-seconds. A value of 0 will disable
- * the timeout.
- *
  */
 rtems_status_code
-rtems_capture_read (uint32_t                 threshold,
-                    uint32_t                 timeout,
+rtems_capture_read (uint32_t                 cpu,
                     uint32_t*                read,
                     rtems_capture_record_t** recs)
 {
-  rtems_interrupt_level level;
-  rtems_status_code     sc = RTEMS_SUCCESSFUL;
-  uint32_t              count;
+  rtems_interrupt_lock_context lock_context;
+  rtems_status_code            sc = RTEMS_SUCCESSFUL;
+  size_t                       recs_size = 0;
+  rtems_interrupt_lock*        lock = &(capture_lock_on_cpu( cpu ));
+  rtems_capture_buffer_t*      records = &(capture_records_on_cpu( cpu ));
+  uint32_t*                    flags = &(capture_flags_on_cpu( cpu ));
 
   *read = 0;
   *recs = NULL;
 
-  rtems_interrupt_disable (level);
+  rtems_interrupt_lock_acquire (lock, &lock_context);
 
   /*
    * Only one reader is allowed.
    */
 
-  if (capture_flags & RTEMS_CAPTURE_READER_ACTIVE)
+  if (*flags & RTEMS_CAPTURE_READER_ACTIVE)
   {
-    rtems_interrupt_enable (level);
+    rtems_interrupt_lock_release (lock, &lock_context);
     return RTEMS_RESOURCE_IN_USE;
   }
 
-  capture_flags |= RTEMS_CAPTURE_READER_ACTIVE;
-  *read = count = capture_count;
-
-  rtems_interrupt_enable (level);
-
-  *recs = &capture_records[capture_out];
-
-  for (;;)
+  if ( (capture_flags_global & RTEMS_CAPTURE_ON) != 0 )
   {
-    /*
-     * See if the count wraps the end of the record buffer.
-     */
-    if (count && ((capture_out + count) >= capture_size))
-      *read = capture_size - capture_out;
-
-    /*
-     * Do we have a threshold and the current count has not wrapped
-     * around the end of the capture record buffer ?
-     */
-    if ((*read == count) && threshold)
-    {
-      /*
-       * Do we have enough records ?
-       */
-      if (*read < threshold)
-      {
-        rtems_event_set event_out;
-
-        rtems_task_ident (RTEMS_SELF, RTEMS_LOCAL, &capture_reader);
-
-        rtems_interrupt_disable (level);
-
-        capture_flags |= RTEMS_CAPTURE_READER_WAITING;
-
-        rtems_interrupt_enable (level);
-
-        sc = rtems_event_receive (RTEMS_EVENT_0,
-                                  RTEMS_WAIT | RTEMS_EVENT_ANY,
-                                  RTEMS_MICROSECONDS_TO_TICKS (timeout),
-                                  &event_out);
-
-        /*
-         * Let the user handle all other sorts of errors. This may
-         * not be the best solution, but oh well, it will do for
-         * now.
-         */
-        if ((sc != RTEMS_SUCCESSFUL) && (sc != RTEMS_TIMEOUT))
-          break;
-
-        rtems_interrupt_disable (level);
-
-        *read = count = capture_count;
-
-        rtems_interrupt_enable (level);
-
-        continue;
-      }
-    }
-
-    /*
-     * Always out if we reach here. To loop use continue.
-     */
-    break;
+    rtems_interrupt_lock_release (lock, &lock_context);
+    return RTEMS_UNSATISFIED;
   }
+
+  *flags |= RTEMS_CAPTURE_READER_ACTIVE;
+
+  *recs = rtems_capture_buffer_peek( records, &recs_size );
+
+  *read = rtems_capture_count_records( *recs, recs_size );
+
+  rtems_interrupt_lock_release (lock, &lock_context);
 
   return sc;
 }
 
 /*
- * rtems_capture_release
- *
- *  DESCRIPTION:
- *
  * This function releases the requested number of record slots back
  * to the capture engine. The count must match the number read.
  */
 rtems_status_code
-rtems_capture_release (uint32_t count)
+rtems_capture_release (uint32_t cpu, uint32_t count)
 {
-  rtems_capture_record_t* rec;
-  uint32_t                counted;
+  rtems_interrupt_lock_context lock_context;
+  uint8_t*                     ptr;
+  rtems_capture_record_t*      rec;
+  uint32_t                     counted;
+  size_t                       ptr_size = 0;
+  size_t                       rel_size = 0;
+  rtems_status_code            ret_val = RTEMS_SUCCESSFUL;
+  rtems_interrupt_lock*        lock = &(capture_lock_on_cpu( cpu ));
+  rtems_capture_buffer_t*      records = &(capture_records_on_cpu( cpu ));
+  uint32_t*                    flags = &(capture_flags_on_cpu( cpu ));
+  uint32_t*                    total = &(capture_count_on_cpu( cpu ));
 
-  rtems_interrupt_level level;
+  rtems_interrupt_lock_acquire (lock, &lock_context);
 
-  rtems_interrupt_disable (level);
+  if (count > *total) {
+    count = *total;
+  }
 
-  if (count > capture_count)
-    count = capture_count;
-
-  rtems_interrupt_enable (level);
+  if ( (capture_flags_global & RTEMS_CAPTURE_ON) != 0 ) {
+    rtems_interrupt_lock_release (lock, &lock_context);
+    return RTEMS_UNSATISFIED;
+  }
 
   counted = count;
 
-  rec = &capture_records[capture_out];
+  ptr = rtems_capture_buffer_peek( records, &ptr_size );
+  _Assert(ptr_size >= (count * sizeof(*rec) ));
 
-  while (counted--)
-  {
-    rtems_capture_refcount_down (rec->task);
-    rtems_capture_destroy_capture_task (rec->task);
-    rec++;
+  rel_size = 0;
+  while (counted--) {
+    rec = (rtems_capture_record_t*) ptr;
+    rel_size += rec->size;
+    _Assert( rel_size <= ptr_size );
+    ptr += rec->size;
   }
 
-  rtems_interrupt_disable (level);
+  if (rel_size > ptr_size ) {
+    ret_val = RTEMS_INVALID_NUMBER;
+    rel_size = ptr_size;
+  }
 
-  capture_count -= count;
+  *total -= count;
 
-  capture_out = (capture_out + count) % capture_size;
+  if (count) {
+    rtems_capture_buffer_free( records, rel_size );
+  }
 
-  capture_flags &= ~RTEMS_CAPTURE_READER_ACTIVE;
+  *flags &= ~RTEMS_CAPTURE_READER_ACTIVE;
 
-  rtems_interrupt_enable (level);
+  rtems_interrupt_lock_release (lock, &lock_context);
 
-  return RTEMS_SUCCESSFUL;
+  return ret_val;
 }
 
 /*
- * rtems_capture_time
- *
- *  DESCRIPTION:
- *
  * This function returns the current time. If a handler is provided
  * by the user get the time from that.
  */
@@ -1844,10 +1314,6 @@ rtems_capture_time (rtems_capture_time_t* uptime)
 }
 
 /*
- * rtems_capture_event_text
- *
- *  DESCRIPTION:
- *
  * This function returns a string for an event based on the bit in the
  * event. The functions takes the bit offset as a number not the bit
  * set in a bit map.
@@ -1861,60 +1327,6 @@ rtems_capture_event_text (int event)
 }
 
 /*
- * rtems_capture_get_task_list
- *
- *  DESCRIPTION:
- *
- * This function returns the head of the list of tasks that the
- * capture engine has detected.
- */
-rtems_capture_task_t*
-rtems_capture_get_task_list (void)
-{
-  return capture_tasks;
-}
-
-/*
- * rtems_capture_task_stack_usage
- *
- *  DESCRIPTION:
- *
- * This function updates the stack usage. The task control block
- * is updated.
- */
-uint32_t
-rtems_capture_task_stack_usage (rtems_capture_task_t* task)
-{
-  if (task->tcb)
-  {
-    uint32_t* st;
-    uint32_t* s;
-
-    /*
-     * @todo: Assumes all stacks move the same way.
-     */
-    st = task->tcb->Start.Initial_stack.area + task->stack_size;
-    s  = task->tcb->Start.Initial_stack.area;
-
-    while (s < st)
-    {
-      if (*s != 0xdeaddead)
-        break;
-      s++;
-    }
-
-    task->stack_clean =
-      s - (uint32_t*) task->tcb->Start.Initial_stack.area;
-  }
-
-  return task->stack_clean;
-}
-
-/*
- * rtems_capture_get_control_list
- *
- *  DESCRIPTION:
- *
  * This function returns the head of the list of control in the
  * capture engine.
  */

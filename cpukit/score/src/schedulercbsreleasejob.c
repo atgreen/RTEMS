@@ -12,27 +12,26 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <rtems/score/schedulercbs.h>
+#include <rtems/score/schedulercbsimpl.h>
 #include <rtems/score/threadimpl.h>
 #include <rtems/score/watchdogimpl.h>
 
 void _Scheduler_CBS_Release_job(
-  Thread_Control    *the_thread,
-  uint32_t           deadline
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread,
+  uint32_t                 deadline
 )
 {
-  Priority_Control new_priority;
-  Scheduler_CBS_Per_thread *sched_info =
-    (Scheduler_CBS_Per_thread *) the_thread->scheduler_info;
-  Scheduler_CBS_Server *serv_info =
-    (Scheduler_CBS_Server *) sched_info->cbs_server;
+  Scheduler_CBS_Node   *node = _Scheduler_CBS_Thread_get_node( the_thread );
+  Scheduler_CBS_Server *serv_info = node->cbs_server;
+  Priority_Control      new_priority;
 
   if (deadline) {
     /* Initializing or shifting deadline. */

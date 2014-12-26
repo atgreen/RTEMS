@@ -20,6 +20,11 @@ EXTRA_DIST = times
 
 dist_project_lib_DATA += startup/linkcmds
 
+EXTRA_DIST += ../../powerpc/shared/start/rtems_crti.S
+rtems_crti.$(OBJEXT): ../../powerpc/shared/start/rtems_crti.S
+	$(CPPASCOMPILE) -o $@ -c $<
+project_lib_DATA = rtems_crti.$(OBJEXT)
+
 noinst_LIBRARIES = libbsp.a
 libbsp_a_SOURCES =
 
@@ -38,6 +43,7 @@ libbsp_a_SOURCES += startup/tm27supp.c
 
 libbsp_a_LIBADD = \
     ../../../libcpu/@RTEMS_CPU@/shared/cpuIdent.rel \
+    ../../../libcpu/@RTEMS_CPU@/shared/cache.rel \
     ../../../libcpu/@RTEMS_CPU@/@exceptions@/rtems-cpu.rel \
     ../../../libcpu/@RTEMS_CPU@/mpc5xx/clock.rel \
     ../../../libcpu/@RTEMS_CPU@/mpc5xx/console-generic.rel \

@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,8 +13,44 @@
 
 #include <tmacros.h>
 
+const char rtems_test_name[] = "SP 51";
+
 /* forward declarations to avoid warnings */
 rtems_task Init(rtems_task_argument argument);
+
+static void test_create_initially_locked_prio_inherit_sema(void)
+{
+  rtems_status_code   sc;
+  rtems_id            id;
+  rtems_task_priority prio_a;
+  rtems_task_priority prio_b;
+  rtems_task_priority prio_ceiling = 0;
+
+  sc = rtems_task_set_priority(RTEMS_SELF, RTEMS_CURRENT_PRIORITY, &prio_a);
+  rtems_test_assert(sc == RTEMS_SUCCESSFUL);
+
+  rtems_test_assert(prio_a != prio_ceiling);
+
+  sc = rtems_semaphore_create(
+    rtems_build_name( 'S', 'E', 'M', 'A' ),
+    0,
+    RTEMS_BINARY_SEMAPHORE | RTEMS_PRIORITY | RTEMS_INHERIT_PRIORITY,
+    prio_ceiling,
+    &id
+  );
+  rtems_test_assert(sc == RTEMS_SUCCESSFUL);
+
+  sc = rtems_task_set_priority(RTEMS_SELF, RTEMS_CURRENT_PRIORITY, &prio_b);
+  rtems_test_assert(sc == RTEMS_SUCCESSFUL);
+
+  rtems_test_assert(prio_a == prio_b);
+
+  sc = rtems_semaphore_release(id);
+  rtems_test_assert(sc == RTEMS_SUCCESSFUL);
+
+  sc = rtems_semaphore_delete(id);
+  rtems_test_assert(sc == RTEMS_SUCCESSFUL);
+}
 
 rtems_task Init(
   rtems_task_argument argument
@@ -23,7 +59,7 @@ rtems_task Init(
   rtems_status_code sc;
   rtems_id          mutex;
 
-  puts( "\n\n*** TEST 51 ***" );
+  TEST_BEGIN();
 
   puts( "Create semaphore - priority ceiling locked - violate ceiling" );
   sc = rtems_semaphore_create(
@@ -50,12 +86,14 @@ rtems_task Init(
   fatal_directive_status(
     sc, RTEMS_INVALID_PRIORITY, "rtems_semaphore_obtain" );
 
-  /* This returns successful because RTEMS eats the unneeded unlock */
   puts( "Release semaphore we did not obtain" );
   sc = rtems_semaphore_release( mutex );
-  directive_failed( sc, "rtems_semaphore_release" );
+  fatal_directive_status(
+    sc, RTEMS_NOT_OWNER_OF_RESOURCE, "rtems_semaphore_release" );
 
-  puts( "*** END OF TEST 51 ***" );
+  test_create_initially_locked_prio_inherit_sema();
+
+  TEST_END();
   rtems_test_exit( 0 );
 }
 
@@ -68,6 +106,8 @@ rtems_task Init(
 
 #define CONFIGURE_MAXIMUM_TASKS         1
 #define CONFIGURE_MAXIMUM_SEMAPHORES    1
+
+#define CONFIGURE_INITIAL_EXTENSIONS RTEMS_TEST_INITIAL_EXTENSION
 
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
 

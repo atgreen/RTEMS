@@ -1,4 +1,10 @@
-/*  coverhd.h
+/**
+ * @file
+ * @ingroup sh_gensh2
+ * @brief C Overhead definitions
+ */
+
+/*  
  *
  *  This include file has defines to represent the overhead associated
  *  with calling a particular directive from C.  These are used in the
@@ -30,7 +36,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  *
  *  This file may be copied and distributed in accordance
  *  the above-referenced license. It is provided for critique and

@@ -11,8 +11,8 @@ include_rtems_HEADERS += include/rtems/framebuffer.h
 include_rtems_HEADERS += include/iosupp.h
 include_rtems_HEADERS += include/ringbuf.h
 include_rtems_HEADERS += include/rtc.h
+include_rtems_HEADERS += include/rtems/tod.h
 include_rtems_HEADERS += include/spurious.h
-include_rtems_HEADERS += include/timerdrv.h
 include_rtems_HEADERS += include/vmeintr.h
 
 ## motorola
@@ -58,6 +58,7 @@ BASE_FS_C_FILES = src/base_fs.c src/mount.c src/unmount.c src/libio.c \
     src/libio_helper_null.c \
     src/libio_exit.c \
     src/open_dev_console.c src/__usrenv.c src/rtems_mkdir.c
+BASE_FS_C_FILES += src/uenvgetgroups.c
 
 TERMIOS_C_FILES = src/cfgetispeed.c src/cfgetospeed.c src/cfsetispeed.c \
     src/cfsetospeed.c src/tcgetattr.c src/tcsetattr.c src/tcdrain.c \
@@ -65,7 +66,7 @@ TERMIOS_C_FILES = src/cfgetispeed.c src/cfgetospeed.c src/cfsetispeed.c \
     src/tcsetpgrp.c src/termios.c src/termiosinitialize.c \
     src/termios_baud2index.c src/termios_baud2num.c src/termios_num2baud.c \
     src/termios_setinitialbaud.c src/termios_baudtable.c src/cfsetspeed.c \
-    src/cfmakeraw.c
+    src/cfmakeraw.c src/termios_setbestbaud.c
 
 SYSTEM_CALL_C_FILES = src/open.c src/close.c src/read.c src/write.c \
     src/write_r.c \
@@ -97,18 +98,22 @@ MALLOC_C_FILES = src/malloc_initialize.c src/calloc.c src/malloc.c \
     src/realloc.c src/_calloc_r.c src/_malloc_r.c \
     src/free.c src/_free_r.c \
     src/_realloc_r.c src/mallocfreespace.c \
-   src/mallocgetheapptr.c src/mallocsetheapptr.c \
-    src/mallocinfo.c src/malloc_walk.c src/malloc_get_statistics.c \
-    src/malloc_report_statistics.c src/malloc_report_statistics_plugin.c \
-    src/malloc_statistics_helpers.c src/posix_memalign.c \
+    src/mallocgetheapptr.c src/mallocsetheapptr.c \
+    src/mallocinfo.c src/malloc_walk.c \
+    src/posix_memalign.c \
     src/rtems_memalign.c src/malloc_deferred.c \
     src/malloc_dirtier.c src/malloc_p.h src/rtems_malloc.c \
     src/rtems_heap_extend_via_sbrk.c \
     src/rtems_heap_null_extend.c \
     src/rtems_heap_extend.c \
     src/rtems_heap_greedy.c
+MALLOC_C_FILES += src/cachealignedalloc.c
+MALLOC_C_FILES += src/cachecoherentalloc.c
 
-PASSWORD_GROUP_C_FILES = src/getpwent.c
+PASSWORD_GROUP_C_FILES = src/pwdgrp.c
+PASSWORD_GROUP_C_FILES += src/getgrent.c
+PASSWORD_GROUP_C_FILES += src/getgrnam.c
+PASSWORD_GROUP_C_FILES += src/getpwent.c
 
 TERMINAL_IDENTIFICATION_C_FILES = src/ctermid.c
 ## 20 Nov 2008: Now using these from newlib's posix directory
@@ -119,7 +124,7 @@ TERMINAL_IDENTIFICATION_C_FILES += src/ttyname.c
 LIBC_GLUE_C_FILES = src/__getpid.c src/__gettod.c src/__times.c \
     src/truncate.c src/access.c src/stat.c src/lstat.c src/pathconf.c \
     src/newlibc_reent.c src/newlibc_init.c src/newlibc_exit.c \
-    src/kill_noposix.c src/utsname.c
+    src/kill_noposix.c src/utsname.c src/realpath.c
 
 BSD_LIBC_C_FILES = src/strlcpy.c src/strlcat.c src/issetugid.c
 

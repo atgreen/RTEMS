@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -34,8 +34,6 @@ void *realloc(
 {
   uintptr_t old_size;
   char    *new_area;
-
-  MSBUMP(realloc_calls, 1);
 
   /*
    *  Do not attempt to allocate memory if in a critical section or ISR.
@@ -76,8 +74,6 @@ void *realloc(
    */
 
   new_area = malloc( size );
-
-  MSBUMP(malloc_calls, (uint32_t) -1);   /* subtract off the malloc */
 
   if ( !new_area ) {
     return (void *) 0;

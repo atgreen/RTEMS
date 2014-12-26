@@ -1,7 +1,7 @@
 ## Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([rtems-cpukit],[_RTEMS_VERSION],[http://www.rtems.org/bugzilla])
+AC_INIT([rtems-cpukit],[_RTEMS_VERSION],[https://devel.rtems.org/newticket])
 AC_CONFIG_SRCDIR([score])
 RTEMS_TOP([..],[])
 
@@ -16,6 +16,7 @@ RTEMS_ENABLE_POSIX
 RTEMS_ENABLE_RTEMS_DEBUG
 RTEMS_ENABLE_NETWORKING
 RTEMS_ENABLE_PARAVIRT
+RTEMS_ENABLE_PROFILING
 
 RTEMS_ENV_RTEMSCPU
 RTEMS_CHECK_RTEMS_DEBUG
@@ -98,12 +99,28 @@ RTEMS_CHECK_FUNC([pthread_attr_setstack],[#include <pthread.h>])
 RTEMS_CHECK_FUNC([pthread_attr_getstack],[#include <pthread.h>])
 
 # These are SMP related and were added to newlib by RTEMS.
-RTEMS_CHECK_FUNC([pthread_attr_setaffinity_np],[#include <pthread.h>])
-RTEMS_CHECK_FUNC([pthread_attr_getaffinity_np],[#include <pthread.h>])
-RTEMS_CHECK_FUNC([pthread_setaffinity_np],[#include <pthread.h>])
-RTEMS_CHECK_FUNC([pthread_getaffinity_np],[#include <pthread.h>])
-RTEMS_CHECK_FUNC([pthread_getattr_np],[#include <pthread.h>])
-AC_CHECK_HEADERS([cpuset.h])
+RTEMS_CHECK_FUNC([pthread_attr_setaffinity_np],[
+  #define _GNU_SOURCE
+  #include <pthread.h>])
+RTEMS_CHECK_FUNC([pthread_attr_getaffinity_np],[
+  #define _GNU_SOURCE
+  #include <pthread.h>])
+RTEMS_CHECK_FUNC([pthread_setaffinity_np],[
+  #define _GNU_SOURCE
+  #include <pthread.h>])
+RTEMS_CHECK_FUNC([pthread_getaffinity_np],[
+  #define _GNU_SOURCE
+  #include <pthread.h>])
+RTEMS_CHECK_FUNC([pthread_getattr_np],[
+  #define _GNU_SOURCE
+  #include <pthread.h>])
+AC_CHECK_HEADERS([sys/cpuset.h])
+
+# This was added to newlib in August 2014 to improve conformance.
+# Disable use of internal definition if it is present.
+RTEMS_CHECK_FUNC([sigaltstack],[
+  #define _GNU_SOURCE
+  #include <signal.h>])
 
 # Mandated by POSIX, not declared in some versions of newlib.
 AC_CHECK_DECLS([getrusage],,,[#include sys/resource.h])
@@ -159,7 +176,9 @@ RTEMS_CHECK_MULTIPROCESSING
 RTEMS_CHECK_POSIX_API
 RTEMS_CHECK_NETWORKING
 RTEMS_CHECK_SMP
-RTEMS_CHECK_ATOMIC
+if test "${RTEMS_HAS_SMP}" = "yes"; then
+  AC_CHECK_HEADERS([stdatomic.h],[],[AC_MSG_ERROR([<stdatomic.h> is required for SMP support])])
+fi
 
 rtems_major=`echo _RTEMS_VERSION | sed "s/\..*//"`
 rtems_minor=`echo _RTEMS_VERSION | sed "s/[[0-9]][[0-9]]*\.//;s/\..*//"`
@@ -197,15 +216,15 @@ RTEMS_CPUOPT([RTEMS_PARAVIRT],
   [1],
   [PARAVIRT is enabled])
 
+RTEMS_CPUOPT([RTEMS_PROFILING],
+  [test x"$RTEMS_HAS_PROFILING" = xyes],
+  [1],
+  [if profiling is enabled])
+
 RTEMS_CPUOPT([RTEMS_NETWORKING],
   [test x"$rtems_cv_HAS_NETWORKING" = xyes],
   [1],
   [if networking is enabled])
-
-RTEMS_CPUOPT([RTEMS_ATOMIC],
-  [test x"$rtems_cv_ATOMIC" = xyes],
-  [1],
-  [if cpu supports atomic operations])
 
 RTEMS_CPUOPT([RTEMS_VERSION],
   [true],
@@ -216,6 +235,18 @@ RTEMS_CPUOPT([__RTEMS_USE_TICKS_FOR_STATISTICS__],
   [test x"${USE_TICKS_FOR_STATISTICS}" = x"1"],
   [1],
   [disable nanosecond granularity for statistics])
+
+## Header file differences that need to be known in .h after install
+RTEMS_CPUOPT([__RTEMS_HAVE_SYS_CPUSET_H__],
+  [test x"${ac_cv_header_sys_cpuset_h}" = x"yes"],
+  [1],
+  [indicate if <sys/cpuset.h> is present in toolset])
+
+## Header file differences that need to be known in .h after install
+RTEMS_CPUOPT([__RTEMS_HAVE_DECL_SIGALTSTACK__],
+  [test x"${ac_cv_have_decl_sigaltstack}" = x"yes"],
+  [1],
+  [indicate if <signal.h> in toolset has sigaltstack()])
 
 ## This improves both the size and coverage analysis.
 RTEMS_CPUOPT([__RTEMS_DO_NOT_INLINE_THREAD_ENABLE_DISPATCH__],
@@ -228,12 +259,6 @@ RTEMS_CPUOPT([__RTEMS_DO_NOT_INLINE_CORE_MUTEX_SEIZE__],
   [test x"${RTEMS_DO_NOT_INLINE_CORE_MUTEX_SEIZE}" = x"1"],
   [1],
   [disable inlining _Thread_Enable_dispatch])
-
-## This improves both the size and coverage analysis.
-RTEMS_CPUOPT([__RTEMS_DO_NOT_UNROLL_THREADQ_ENQUEUE_PRIORITY__],
-  [test x"${RTEMS_DO_NOT_UNROLL_THREADQ_ENQUEUE_PRIORITY}" = x"1"],
-  [1],
-  [disable inlining _Thread_queue_Enqueue_priority])
 
 ## This gives the same behavior as 4.8 and older
 RTEMS_CPUOPT([__RTEMS_STRICT_ORDER_MUTEX__],
@@ -273,7 +298,7 @@ AC_ENABLE_MULTILIB([Makefile],[..])
 AC_MSG_CHECKING([for assignable stdio])
 AC_COMPILE_IFELSE(
   [AC_LANG_PROGRAM(
-    [#include <stdio.h>], 
+    [#include <stdio.h>],
     [stdin = fopen("/tmp", "r")])],
   [HAVE_ASSIGNABLE_STDIO=yes],
   [HAVE_ASSIGNABLE_STDIO=no])
@@ -297,7 +322,7 @@ AC_CHECK_SIZEOF([time_t])
 
 AC_CHECK_SIZEOF([size_t])
 
-# FIXME: Mandatory in SUSv4, optional in SUSv3. 
+# FIXME: Mandatory in SUSv4, optional in SUSv3.
 #   Not implemented in GCC/newlib, so far.
 AC_CHECK_DECLS([WORD_BIT],,,[#include <limits.h>])
 AC_CHECK_DECLS([LONG_BIT],,,[#include <limits.h>])
@@ -327,7 +352,6 @@ AM_CONDITIONAL(HAS_SMP,[test "$RTEMS_HAS_SMP" = "yes"])
 
 AM_CONDITIONAL(HAS_PTHREADS,test x"$rtems_cv_HAS_POSIX_API" = x"yes")
 AM_CONDITIONAL(LIBNETWORKING,test x"$rtems_cv_HAS_NETWORKING" = x"yes")
-AM_CONDITIONAL([ATOMIC],[test x"$rtems_cv_ATOMIC" = x"yes"])
 
 AM_CONDITIONAL([LIBSHELL],[test x"$HAVE_ASSIGNABLE_STDIO" = x"yes"])
 AM_CONDITIONAL([LIBSERDBG],[test x"$rtems_cv_cc_attribute_weak" = x"yes"])
@@ -348,12 +372,26 @@ AM_CONDITIONAL([RPCTOOLS],[test "$RPCGEN" = rpcgen \
 && test -n "$AWK" \
 && test "$enable_rpcgen" = yes])
 
+# Filter dynamic loading to only build for architectures that have
+# reloc backends
+AC_MSG_CHECKING([whether CPU supports libdl])
+case $RTEMS_CPU in
+  arm | bfin | h8300 | i386 | lm32 | m32r | m68k | mips | \
+  moxie | powerpc | sparc | v850)
+   HAVE_LIBDL=yes ;;
+  *)
+   HAVE_LIBDL=no ;;
+esac
+AM_CONDITIONAL(LIBDL,[test x"$HAVE_LIBDL" = x"yes"])
+AC_MSG_RESULT([$HAVE_LIBDL])
+
 RTEMS_AMPOLISH3
 
 # Explicitly list all Makefiles here
 AC_CONFIG_FILES([
 Doxyfile
 Makefile
+dev/Makefile
 rtems/Makefile
 sapi/Makefile
 score/Makefile
@@ -370,6 +408,7 @@ score/cpu/m32r/Makefile
 score/cpu/mips/Makefile
 score/cpu/moxie/Makefile
 score/cpu/nios2/Makefile
+score/cpu/or1k/Makefile
 score/cpu/powerpc/Makefile
 score/cpu/sh/Makefile
 score/cpu/sparc/Makefile
@@ -381,12 +420,14 @@ libblock/Makefile
 libfs/Makefile
 libfs/src/nfsclient/Makefile
 libgnat/Makefile
+libcrypt/Makefile
 libcsupport/Makefile
 libnetworking/Makefile
 librpc/Makefile
 libmisc/Makefile
 libi2c/Makefile
 libmd/Makefile
+libdl/Makefile
 zlib/Makefile
 ftpd/Makefile
 telnetd/Makefile

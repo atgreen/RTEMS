@@ -12,31 +12,30 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <rtems/score/schedulercbs.h>
+#include <rtems/score/schedulercbsimpl.h>
+#include <rtems/score/scheduleredfimpl.h>
 #include <rtems/score/schedulerimpl.h>
 #include <rtems/score/threadimpl.h>
 #include <rtems/score/watchdogimpl.h>
 
-void _Scheduler_CBS_Unblock(
-  Thread_Control    *the_thread
+Scheduler_Void_or_thread _Scheduler_CBS_Unblock(
+  const Scheduler_Control *scheduler,
+  Thread_Control          *the_thread
 )
 {
-  Scheduler_CBS_Per_thread *sched_info;
-  Scheduler_CBS_Server *serv_info;
-  Priority_Control new_priority;
+  Scheduler_CBS_Node   *node = _Scheduler_CBS_Thread_get_node( the_thread );
+  Scheduler_CBS_Server *serv_info = node->cbs_server;
+  Priority_Control      new_priority;
 
-  _Scheduler_EDF_Enqueue(the_thread);
+  _Scheduler_EDF_Enqueue( scheduler, the_thread );
   /* TODO: flash critical section? */
-
-  sched_info = (Scheduler_CBS_Per_thread *) the_thread->scheduler_info;
-  serv_info = (Scheduler_CBS_Server *) sched_info->cbs_server;
 
   /*
    * Late unblock rule for deadline-driven tasks. The remaining time to
@@ -73,11 +72,18 @@ void _Scheduler_CBS_Unblock(
    *    Even if the thread isn't preemptible, if the new heir is
    *    a pseudo-ISR system task, we need to do a context switch.
    */
-  if ( _Scheduler_Is_priority_higher_than( the_thread->current_priority,
-       _Thread_Heir->current_priority)) {
+  if (
+    _Scheduler_Is_priority_higher_than(
+       scheduler,
+       the_thread->current_priority,
+       _Thread_Heir->current_priority
+    )
+  ) {
     _Thread_Heir = the_thread;
     if ( _Thread_Executing->is_preemptible ||
          the_thread->current_priority == 0 )
       _Thread_Dispatch_necessary = true;
   }
+
+  SCHEDULER_RETURN_VOID_OR_NULL;
 }

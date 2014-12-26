@@ -54,6 +54,8 @@
  *  Modifications for PPC405GP by Dennis Ehlin
  */
 
+#include <rtems/counter.h>
+
 #include <bsp.h>
 #include <bsp/irq.h>
 #include <bsp/irq-generic.h>
@@ -87,11 +89,12 @@ void bsp_start( void )
   get_ppc_cpu_type();
   get_ppc_cpu_revision();
 
+  rtems_counter_initialize_converter(bsp_time_base_frequency);
+
   /*
    * Initialize default raw exception handlers.
    */
   ppc_exc_initialize_with_vector_base(
-    PPC_INTERRUPT_DISABLE_MASK_DEFAULT,
     (uintptr_t) bsp_section_work_begin,
     rtems_configuration_get_interrupt_stack_size(),
     virtex_exc_vector_base

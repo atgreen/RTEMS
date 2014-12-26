@@ -4,7 +4,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -15,6 +15,8 @@
 #include "system.h"
 #include <errno.h>
 
+const char rtems_test_name[] = "PSX 8";
+
 void *POSIX_Init(
   void *argument
 )
@@ -22,7 +24,7 @@ void *POSIX_Init(
   int    status;
   void  *return_pointer;
 
-  puts( "\n\n*** POSIX TEST 8 ***" );
+  TEST_BEGIN();
 
   /* set the time of day, and print our buffer in multiple ways */
 

@@ -10,7 +10,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -41,9 +41,7 @@ int pthread_rwlock_destroy(
   POSIX_RWLock_Control *the_rwlock = NULL;
   Objects_Locations      location;
 
-  if ( !rwlock )
-    return EINVAL;
-
+  _Objects_Allocator_lock();
   the_rwlock = _POSIX_RWLock_Get( rwlock, &location );
   switch ( location ) {
 
@@ -53,6 +51,7 @@ int pthread_rwlock_destroy(
        */
       if ( _Thread_queue_First( &the_rwlock->RWLock.Wait_queue ) != NULL ) {
         _Objects_Put( &the_rwlock->Object );
+        _Objects_Allocator_unlock();
         return EBUSY;
       }
 
@@ -61,10 +60,10 @@ int pthread_rwlock_destroy(
        */
 
       _Objects_Close( &_POSIX_RWLock_Information, &the_rwlock->Object );
-
-      _POSIX_RWLock_Free( the_rwlock );
-
       _Objects_Put( &the_rwlock->Object );
+      _POSIX_RWLock_Free( the_rwlock );
+      _Objects_Allocator_unlock();
+
       return 0;
 
 #if defined(RTEMS_MULTIPROCESSING)
@@ -73,6 +72,8 @@ int pthread_rwlock_destroy(
     case OBJECTS_ERROR:
       break;
   }
+
+  _Objects_Allocator_unlock();
 
   return EINVAL;
 }

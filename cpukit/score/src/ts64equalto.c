@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -26,6 +26,6 @@ bool _Timestamp64_Equal_to(
   const Timestamp64_Control *_rhs
 )
 {
-  _Timestamp64_implementation_Equal_to( _lhs, _rhs );
+  return _Timestamp64_implementation_Equal_to( _lhs, _rhs );
 }
 #endif

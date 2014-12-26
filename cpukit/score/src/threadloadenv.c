@@ -12,7 +12,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -58,7 +58,8 @@ void _Thread_Load_environment(
     the_thread->Start.Initial_stack.size,
     isr_level,
     _Thread_Handler,
-    is_fp
+    is_fp,
+    the_thread->Start.tls_area
   );
 
 }

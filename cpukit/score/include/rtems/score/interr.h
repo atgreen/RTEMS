@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_SCORE_INTERR_H
@@ -69,21 +69,14 @@ typedef enum {
   RTEMS_FATAL_SOURCE_EXIT,
 
   /**
-   * @brief Fatal source for generic BSP errors.
+   * @brief Fatal source for BSP errors.
    *
-   * The fatal codes are defined in <bsp/generic-fatal.h>.  Examples are
-   * interrupt and exception initialization.
+   * The fatal codes are defined in <bsp/fatal.h>.  Examples are interrupt and
+   * exception initialization.
    *
-   * @see bsp_generic_fatal_code and bsp_generic_fatal().
+   * @see bsp_fatal_code and bsp_fatal().
    */
-  RTEMS_FATAL_SOURCE_BSP_GENERIC,
-
-  /**
-   * @brief Fatal source for BSP specific errors.
-   *
-   * The fatal code is BSP specific.
-   */
-  RTEMS_FATAL_SOURCE_BSP_SPECIFIC,
+  RTEMS_FATAL_SOURCE_BSP,
 
   /**
    * @brief Fatal source of assert().
@@ -109,6 +102,13 @@ typedef enum {
    * @see rtems_exception_frame and rtems_exception_frame_print().
    */
   RTEMS_FATAL_SOURCE_EXCEPTION,
+
+  /**
+   * @brief Fatal source of SMP domain.
+   *
+   * @see SMP_Fatal_code.
+   */
+  RTEMS_FATAL_SOURCE_SMP,
 
   /**
    * @brief The last available fatal source.
@@ -143,11 +143,12 @@ typedef enum {
   INTERNAL_ERROR_IMPLEMENTATION_BLOCKING_OPERATION_CANCEL,
   INTERNAL_ERROR_MUTEX_OBTAIN_FROM_BAD_STATE,
   INTERNAL_ERROR_UNLIMITED_AND_MAXIMUM_IS_0,
-  INTERNAL_ERROR_SHUTDOWN_WHEN_NOT_UP,
+  OBSOLETE_INTERNAL_ERROR_SHUTDOWN_WHEN_NOT_UP,
   INTERNAL_ERROR_GXX_KEY_ADD_FAILED,
   INTERNAL_ERROR_GXX_MUTEX_INIT_FAILED,
   INTERNAL_ERROR_NO_MEMORY_FOR_HEAP,
-  INTERNAL_ERROR_CPU_ISR_INSTALL_VECTOR
+  INTERNAL_ERROR_CPU_ISR_INSTALL_VECTOR,
+  INTERNAL_ERROR_RESOURCE_IN_USE
 } Internal_errors_Core_list;
 
 typedef uint32_t Internal_errors_t;
@@ -176,7 +177,9 @@ extern Internal_errors_Information _Internal_errors_What_happened;
  * determines that a fatal error has occurred or a final system state is
  * reached (for example after exit()).
  *
- * The first action of this function is to call the fatal handler of the user
+ * The first action is to disable interrupts.
+ *
+ * The second action of this function is to call the fatal handler of the user
  * extensions.  For the initial extensions the following conditions are
  * required
  * - a valid stack pointer and enough stack space,
@@ -184,7 +187,10 @@ extern Internal_errors_Information _Internal_errors_What_happened;
  * - valid read-only data.
  *
  * For the initial extensions the read-write data (including BSS segment) is
- * not required.
+ * not required on single processor configurations.  On SMP configurations
+ * however the read-write data must be initialized since this function must
+ * determine the state of the other processors and request them to shut-down if
+ * necessary.
  *
  * Non-initial extensions require in addition valid read-write data.  The BSP
  * may install an initial extension that performs a system reset.  In this case
@@ -192,7 +198,7 @@ extern Internal_errors_Information _Internal_errors_What_happened;
  *
  * Once all fatal handler executed the error information will be stored to
  * _Internal_errors_What_happened and the system state is set to
- * SYSTEM_STATE_FAILED.
+ * SYSTEM_STATE_TERMINATED.
  *
  * The final step is to call the CPU specific _CPU_Fatal_halt().
  *
@@ -205,7 +211,7 @@ extern Internal_errors_Information _Internal_errors_What_happened;
  *
  * @see rtems_fatal_error_occurred() and rtems_fatal().
  */
-void _Internal_error_Occurred(
+void _Terminate(
   Internal_errors_Source  the_source,
   bool                    is_internal,
   Internal_errors_t       the_error

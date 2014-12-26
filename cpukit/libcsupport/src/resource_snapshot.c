@@ -1,15 +1,15 @@
 /*
- * Copyright (c) 2012 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2012-2014 embedded brains GmbH.  All rights reserved.
  *
  *  embedded brains GmbH
- *  Obere Lagerstr. 30
+ *  Dornierstr. 4
  *  82178 Puchheim
  *  Germany
  *  <rtems@embedded-brains.de>
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -22,12 +22,15 @@
 
 #include <rtems/libio_.h>
 #include <rtems/malloc.h>
-#include <rtems/score/wkspace.h>
+#include <rtems/score/rbtreeimpl.h>
 #include <rtems/score/protectedheap.h>
+#include <rtems/score/threadimpl.h>
+#include <rtems/score/wkspace.h>
 
-#include <rtems/extensionimpl.h>
+#include <rtems/posix/keyimpl.h>
 
 #include <rtems/rtems/barrierimpl.h>
+#include <rtems/extensionimpl.h>
 #include <rtems/rtems/dpmemimpl.h>
 #include <rtems/rtems/messageimpl.h>
 #include <rtems/rtems/partimpl.h>
@@ -42,7 +45,6 @@
   #include <rtems/posix/condimpl.h>
   #include <rtems/posix/mqueueimpl.h>
   #include <rtems/posix/muteximpl.h>
-  #include <rtems/posix/keyimpl.h>
   #include <rtems/posix/psignal.h>
   #include <rtems/posix/pthreadimpl.h>
   #include <rtems/posix/rwlockimpl.h>
@@ -51,7 +53,8 @@
   #include <rtems/posix/timerimpl.h>
 #endif
 
-static const Objects_Information *objects_info_table[] = {
+static const Objects_Information *const objects_info_table[] = {
+  &_POSIX_Keys_Information,
   &_Barrier_Information,
   &_Extension_Information,
   &_Message_queue_Information,
@@ -66,7 +69,6 @@ static const Objects_Information *objects_info_table[] = {
     ,
     &_POSIX_Barrier_Information,
     &_POSIX_Condition_variables_Information,
-    &_POSIX_Keys_Information,
     &_POSIX_Message_queue_Information,
     &_POSIX_Message_queue_Information_fds,
     &_POSIX_Mutex_Information,
@@ -97,41 +99,65 @@ static int open_files(void)
   return (int) rtems_libio_number_iops - free_count;
 }
 
-static void free_all_delayed_blocks(void)
+static void get_heap_info(Heap_Control *heap, Heap_Information_block *info)
 {
-  #ifdef HEAP_PROTECTION
-    _RTEMS_Lock_allocator();
-    _Thread_Disable_dispatch();
-    _Heap_Protection_free_all_delayed_blocks( RTEMS_Malloc_Heap );
-    _Heap_Protection_free_all_delayed_blocks( &_Workspace_Area );
-    _Thread_Enable_dispatch();
-    _RTEMS_Unlock_allocator();
-  #endif
+  _Heap_Get_information(heap, info);
+  memset(&info->Stats, 0, sizeof(info->Stats));
+}
+
+static bool count_posix_key_value_pairs(
+  const RBTree_Node *node,
+  RBTree_Direction dir,
+  void *visitor_arg
+)
+{
+  uint32_t *count = visitor_arg;
+
+  (void) node;
+  (void) dir;
+
+  ++(*count);
+
+  return false;
+}
+
+static uint32_t get_active_posix_key_value_pairs(void)
+{
+  uint32_t count = 0;
+
+  _Thread_Disable_dispatch();
+  _RBTree_Iterate(
+    &_POSIX_Keys_Key_value_lookup_tree,
+    RBT_LEFT,
+    count_posix_key_value_pairs,
+    &count
+  );
+  _Thread_Enable_dispatch();
+
+  return count;
 }
 
 void rtems_resource_snapshot_take(rtems_resource_snapshot *snapshot)
 {
-  uint32_t *active = &snapshot->rtems_api.active_barriers;
+  uint32_t *active = &snapshot->active_posix_keys;
   size_t i;
 
-  free_all_delayed_blocks();
+  memset(snapshot, 0, sizeof(*snapshot));
 
-  _Protected_heap_Get_information(RTEMS_Malloc_Heap, &snapshot->heap_info);
+  _RTEMS_Lock_allocator();
 
-  _Thread_Disable_dispatch();
+  _Thread_Kill_zombies();
 
-  _Heap_Get_information(&_Workspace_Area, &snapshot->workspace_info);
+  get_heap_info(RTEMS_Malloc_Heap, &snapshot->heap_info);
+  get_heap_info(&_Workspace_Area, &snapshot->workspace_info);
 
   for (i = 0; i < RTEMS_ARRAY_SIZE(objects_info_table); ++i) {
     active [i] = _Objects_Active_count(objects_info_table[i]);
   }
 
-  _Thread_Enable_dispatch();
+  _RTEMS_Unlock_allocator();
 
-  #ifndef RTEMS_POSIX_API
-    memset(&snapshot->posix_api, 0, sizeof(snapshot->posix_api));
-  #endif
-
+  snapshot->active_posix_key_value_pairs = get_active_posix_key_value_pairs();
   snapshot->open_files = open_files();
 }
 

@@ -13,7 +13,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,7 +41,7 @@ rtems_task Task_1_through_3(
     directive_failed( status, "rtems_clock_get_tod" );
 
     if ( time.second >= 35 ) {
-      puts( "*** END OF CBS SCHEDULER TEST 1 ***" );
+      TEST_END();
       rtems_test_exit( 0 );
     }
 

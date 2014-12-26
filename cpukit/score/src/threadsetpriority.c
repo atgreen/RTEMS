@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #if HAVE_CONFIG_H
@@ -28,5 +28,5 @@ void _Thread_Set_priority(
 {
   the_thread->current_priority = new_priority;
 
-  _Scheduler_Update( the_thread );
+  _Scheduler_Update_priority( the_thread, new_priority );
 }

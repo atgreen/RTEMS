@@ -17,7 +17,7 @@
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
- * http://www.rtems.com/license/LICENSE.
+ * http://www.rtems.org/license/LICENSE.
  */
 
 #include <mpc55xx/edma.h>
@@ -26,6 +26,7 @@
 #include <assert.h>
 
 #include <bsp.h>
+#include <bsp/fatal.h>
 #include <bsp/irq.h>
 
 #define EDMA_CHANNELS_PER_GROUP 32U
@@ -199,7 +200,7 @@ void mpc55xx_edma_init(void)
       NULL
     );
     if (sc != RTEMS_SUCCESSFUL) {
-      mpc55xx_fatal(MPC55XX_FATAL_EDMA_IRQ_INSTALL);
+      bsp_fatal(MPC55XX_FATAL_EDMA_IRQ_INSTALL);
     }
   }
 }
@@ -275,7 +276,7 @@ void mpc55xx_edma_release_channel(edma_channel_context *ctx)
   unsigned channel_index = edma_channel_index_of_tcd(ctx->edma_tcd);
 
   mpc55xx_edma_release_channel_by_tcd(ctx->edma_tcd);
-  rtems_chain_explicit_extract(&edma_channel_chain, &ctx->node);
+  rtems_chain_extract(&ctx->node);
 
   sc = rtems_interrupt_handler_remove(
     MPC55XX_IRQ_EDMA(channel_index),
@@ -283,7 +284,7 @@ void mpc55xx_edma_release_channel(edma_channel_context *ctx)
     ctx
   );
   if (sc != RTEMS_SUCCESSFUL) {
-    mpc55xx_fatal(MPC55XX_FATAL_EDMA_IRQ_REMOVE);
+    bsp_fatal(MPC55XX_FATAL_EDMA_IRQ_REMOVE);
   }
 }
 

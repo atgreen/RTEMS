@@ -12,15 +12,15 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #include <rtems/asm.h>
-#include <rtems/system.h>
+#include <rtems/score/percpu.h>
 #include <bspopts.h>
 
 #if defined(RTEMS_SMP) && defined(BSP_LEON3_SMP)
-  #define ENABLE_SMP
+  #define START_LEON3_ENABLE_SMP
 #endif
 
 /*
@@ -32,14 +32,41 @@
   nop; \
   nop;
 
-#if defined(ENABLE_SMP)
 /*
- * Variables to contain information used with bring a secondary core
- * out of reset.
+ * System call optimized trap table entry
  */
-  	.global bsp_ap_stack
-  	.global bsp_ap_entry
-#endif
+#define IRQDIS_TRAP(_handler)  \
+  mov   %psr, %l0 ; \
+  sethi %hi(_handler), %l4 ; \
+  jmp   %l4+%lo(_handler); \
+   or   %l0, 0x0f00, %l3; ! Set PIL=0xf to disable IRQ
+
+/*
+ * System call optimized trap table entry
+ */
+#define IRQEN_TRAP(_handler)  \
+  mov   %psr, %l0 ; \
+  sethi %hi(_handler), %l4 ; \
+  jmp   %l4+%lo(_handler); \
+   andn %l0, 0xf00, %l3; ! Set PIL=0 to Enable IRQ
+
+/*
+ * Window Overflow optimized trap table entry
+ */
+#define WOTRAP(_vector, _handler)  \
+  sethi %hi(_handler), %l4; \
+  jmp   %l4+%lo(_handler); \
+    save; \
+  nop
+
+/*
+ * Window Underflow optimized trap table entry
+ */
+#define WUTRAP(_vector, _handler)  \
+  mov   %wim, %l3 ; \
+  sethi %hi(_handler), %l4 ; \
+  jmp   %l4+%lo(_handler); \
+   mov  %g0, %wim ! WIM = 0, so that we can restore regardless of WIM
 
 /*
  *  Software trap. Treat as BAD_TRAP for the time being...
@@ -72,8 +99,8 @@ SYM(trap_table):
   BAD_TRAP;                                     ! 02 illegal instruction
   BAD_TRAP;                                     ! 03 privileged instruction
   BAD_TRAP;                                     ! 04 fp disabled
-  TRAP( 5, SYM(window_overflow_trap_handler) ); ! 05 window overflow
-  TRAP( 6, SYM(window_underflow_trap_handler) );! 06 window underflow
+  WOTRAP(5, SYM(window_overflow_trap_handler)); ! 05 window overflow
+  WUTRAP(6, SYM(window_underflow_trap_handler));! 06 window underflow
   BAD_TRAP;                                     ! 07 memory address not aligned
   BAD_TRAP;                                     ! 08 fp exception
   BAD_TRAP;                                     ! 09 data access exception
@@ -165,12 +192,23 @@ SYM(CLOCK_SPEED):
    *        installed before.
    */
 
-  TRAP( 0x80, SYM(syscall) ); 			! 80 syscall SW trap
-  SOFT_TRAP; SOFT_TRAP;  	            	! 81 - 82
+  TRAP( 0x80, SYM(syscall) );                   ! 80 halt syscall SW trap
+  SOFT_TRAP; SOFT_TRAP;                         ! 81 - 82
   TRAP( 0x83, SYM(window_flush_trap_handler) ); ! 83 flush windows SW trap
 
   SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;   ! 84 - 87
-  SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;   ! 88 - 8B
+  SOFT_TRAP;                                    ! 88
+
+  /*
+   *  SW Trap 9-15 Reserved for Operating System
+   *  
+   *  SPARC_SWTRAP_IRQDIS
+   *  SPARC_SWTRAP_IRQEN
+   */
+  IRQDIS_TRAP(SYM(syscall_irqdis));             ! 89 IRQ Disable syscall trap
+  IRQEN_TRAP(SYM(syscall_irqen));               ! 8A IRQ Enable syscall trap
+
+  SOFT_TRAP;                                    ! 8B
   SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;   ! 8C - 8F
   SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;   ! 90 - 93
   SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;   ! 94 - 97
@@ -231,25 +269,32 @@ SYM(hard_reset):
         nop
         nop
 
-#if defined(ENABLE_SMP)
-	rd	%asr17, %g1
-	srl	%g1, 28, %g1
-	and	%g1, 0xff, %g1			! extract cpu id
-	cmp	%g1, 0
+	sethi	%hi(_Per_CPU_Information), %g6 ! get per-CPU control
+	add	%g6, %lo(_Per_CPU_Information), %g6
+
+#if defined(START_LEON3_ENABLE_SMP)
+	rd	%asr17, %o0		! get CPU identifier
+	srl	%o0, LEON3_ASR17_PROCESSOR_INDEX_SHIFT, %o0
+
+	cmp	%o0, 0
 	beq	cpu0
-	nop
-	set	SYM(bsp_ap_stack), %g1		! set the stack pointer
-	ld	[%g1], %sp
-	mov	%sp, %fp
-	set	SYM(bsp_ap_entry), %g1		! where to start
-	ld	[%g1], %g1
-	call	%g1
-	nop
+	 nop
+
+	sll	%o0, PER_CPU_CONTROL_SIZE_LOG2, %l0
+	add	%g6, %l0, %g6
+
+	ld	[%g6 + PER_CPU_INTERRUPT_STACK_HIGH], %sp ! set stack pointer
+	sub	%sp, 4, %sp		! stack starts at end of area - 4
+	andn	%sp, 0x0f, %sp		! align stack on 16-byte boundary
+	mov	%sp, %fp		! set frame pointer
+
+	call	SYM(bsp_start_on_secondary_processor) ! does not return
+	 sub	%sp, CPU_MINIMUM_STACK_FRAME_SIZE, %sp
 cpu0:
 #endif
 
-	set	(SYM(rdb_start)), %g6	! End of RAM
-	st	%sp, [%g6]
+	set	(SYM(rdb_start)), %g5	! End of RAM
+	st	%sp, [%g5]
 	sub	%sp, 4, %sp		! stack starts at end of RAM - 4
 	andn	%sp, 0x0f, %sp		! align stack on 16-byte boundary
         mov     %sp, %fp                ! Set frame pointer
@@ -301,12 +346,12 @@ cpu0:
  	set	SYM(RAM_START), %l1  ! Cannot use RAM_END due to bug in linker
  	set	SYM(RAM_SIZE), %l2
  	add	%l1, %l2, %sp
- 	st	%sp, [%g6]
+ 	st	%sp, [%g5]
 
 
-	set	SYM(CLOCK_SPEED), %g6	! Use 14 MHz in simulator
+	set	SYM(CLOCK_SPEED), %g5	! Use 14 MHz in simulator
 	set	14, %g1
-	st	%g1, [%g6]
+	st	%g1, [%g5]
 
 2:
 #endif
@@ -319,33 +364,31 @@ cpu0:
          *  LENGTH: (__bss_start - _data_start) bytes
          */
 
-        sethi %hi(_endtext),%g2
-        or    %g2,%lo(_endtext),%g2     ! g2 = start of initialized data in ROM
+        sethi %hi(_endtext),%g1
+        or    %g1,%lo(_endtext),%g1     ! g1 = start of initialized data in ROM
 
         sethi %hi(_data_start),%g3
         or    %g3,%lo(_data_start),%g3  ! g3 = start of initialized data in RAM
 
-        sethi %hi(__bss_start),%g4
-        or    %g4,%lo(__bss_start),%g4  ! g4 = end of initialized data in RAM
+        sethi %hi(__bss_start), %g2
+        or    %g2,%lo(__bss_start),%g2  ! g2 = end of initialized data in RAM
 
-	cmp   %g2, %g3
+	cmp   %g1, %g3
 	be    1f
 	nop
 
 copy_data:
-        ldd   [ %g2 ], %g6
-        std   %g6 , [ %g3 ]             ! copy this double word
+        ldd   [%g1], %g4
+        std   %g4 , [%g3]               ! copy this double word
         add   %g3, 8, %g3               ! bump the destination pointer
-        add   %g2, 8, %g2               ! bump the source pointer
-        cmp   %g3, %g4                  ! Is the pointer past the end of dest?
+        add   %g1, 8, %g1               ! bump the source pointer
+        cmp   %g3, %g2                  ! Is the pointer past the end of dest?
         bl    copy_data
         nop
 
         /* clear the bss */
 1:
 
-        sethi %hi(_edata),%g2
-        or    %g2,%lo(_edata),%g2       ! g2 = start of bss
         sethi %hi(_end),%g3
         or    %g3,%lo(_end),%g3         ! g3 = end of bss
         mov   %g0,%g1                   ! so std has two zeros
@@ -357,16 +400,7 @@ zerobss:
         nop
 
         mov     %0, %o0                 ! command line
-        call    SYM(boot_card)
-        sub     %sp, 0x60, %sp          ! room for boot_card to save args
-        nop
-
-        PUBLIC(BSP_fatal_return)
-        PUBLIC(bsp_reset)
-SYM(BSP_fatal_return):
-SYM(bsp_reset):
-	mov	1, %g1
-        ta      0                       ! Halt if _main returns ...
-        nop
+        call    SYM(boot_card)          ! does not return
+         sub     %sp, 0x60, %sp         ! room for boot_card to save args
 
 /* end of file */

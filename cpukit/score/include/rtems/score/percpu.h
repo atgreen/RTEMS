@@ -11,7 +11,7 @@
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  http://www.rtems.org/license/LICENSE.
  */
 
 #ifndef _RTEMS_PERCPU_H
@@ -23,9 +23,10 @@
   #include <rtems/asm.h>
 #else
   #include <rtems/score/assert.h>
-  #include <rtems/score/isrlock.h>
-  #include <rtems/score/timestamp.h>
+  #include <rtems/score/isrlevel.h>
   #include <rtems/score/smp.h>
+  #include <rtems/score/smplock.h>
+  #include <rtems/score/timestamp.h>
 #endif
 
 #ifdef __cplusplus
@@ -39,7 +40,11 @@ extern "C" {
    * used in assembler code to easily get the per-CPU control for a particular
    * processor.
    */
-  #define PER_CPU_CONTROL_SIZE_LOG2 7
+  #if defined( RTEMS_PROFILING )
+    #define PER_CPU_CONTROL_SIZE_LOG2 8
+  #else
+    #define PER_CPU_CONTROL_SIZE_LOG2 7
+  #endif
 
   #define PER_CPU_CONTROL_SIZE ( 1 << PER_CPU_CONTROL_SIZE_LOG2 )
 #endif
@@ -50,6 +55,8 @@ extern "C" {
 #define __THREAD_CONTROL_DEFINED__
 typedef struct Thread_Control_struct Thread_Control;
 #endif
+
+struct Scheduler_Context;
 
 /**
  *  @defgroup PerCPU RTEMS Per CPU Information
@@ -70,64 +77,83 @@ typedef struct Thread_Control_struct Thread_Control;
   #error "deferred FP switch not implemented for SMP"
 #endif
 
+/**
+ * @brief State of a processor.
+ *
+ * The processor state controls the life cycle of processors at the lowest
+ * level.  No multi-threading or other high-level concepts matter here.
+ *
+ * State changes must be initiated via _Per_CPU_State_change().  This function
+ * may not return in case someone requested a shutdown.  The
+ * _SMP_Send_message() function will be used to notify other processors about
+ * state changes if the other processor is in the up state.
+ *
+ * Due to the sequential nature of the basic system initialization one
+ * processor has a special role.  It is the processor executing the boot_card()
+ * function.  This processor is called the boot processor.  All other
+ * processors are called secondary.
+ *
+ * @dot
+ * digraph states {
+ *   i [label="PER_CPU_STATE_INITIAL"];
+ *   rdy [label="PER_CPU_STATE_READY_TO_START_MULTITASKING"];
+ *   reqsm [label="PER_CPU_STATE_REQUEST_START_MULTITASKING"];
+ *   u [label="PER_CPU_STATE_UP"];
+ *   s [label="PER_CPU_STATE_SHUTDOWN"];
+ *   i -> rdy [label="processor\ncompleted initialization"];
+ *   rdy -> reqsm [label="boot processor\ncompleted initialization"];
+ *   reqsm -> u [label="processor\nstarts multitasking"];
+ *   i -> s;
+ *   rdy -> s;
+ *   reqsm -> s;
+ *   u -> s;
+ * }
+ * @enddot
+ */
 typedef enum {
   /**
    * @brief The per CPU controls are initialized to zero.
    *
-   * In this state the only valid field of the per CPU controls for secondary
-   * processors is the per CPU state.  The secondary processors should perform
-   * their basic initialization now and change into the
-   * PER_CPU_STATE_READY_TO_BEGIN_MULTITASKING state once this is complete.
-   *
-   * The owner of the per CPU state field is the secondary processor in this
-   * state.
+   * The boot processor executes the sequential boot code in this state.  The
+   * secondary processors should perform their basic initialization now and
+   * change into the PER_CPU_STATE_READY_TO_START_MULTITASKING state once this
+   * is complete.
    */
-  PER_CPU_STATE_BEFORE_INITIALIZATION,
+  PER_CPU_STATE_INITIAL,
 
   /**
-   * @brief Secondary processor is ready to begin multitasking.
+   * @brief Processor is ready to start multitasking.
    *
    * The secondary processor performed its basic initialization and is ready to
    * receive inter-processor interrupts.  Interrupt delivery must be disabled
    * in this state, but requested inter-processor interrupts must be recorded
    * and must be delivered once the secondary processor enables interrupts for
-   * the first time.  The main processor will wait for all secondary processors
+   * the first time.  The boot processor will wait for all secondary processors
    * to change into this state.  In case a secondary processor does not reach
    * this state the system will not start.  The secondary processors wait now
-   * for a change into the PER_CPU_STATE_BEGIN_MULTITASKING state set by the
-   * main processor once all secondary processors reached the
-   * PER_CPU_STATE_READY_TO_BEGIN_MULTITASKING state.
-   *
-   * The owner of the per CPU state field is the main processor in this state.
+   * for a change into the PER_CPU_STATE_REQUEST_START_MULTITASKING state set
+   * by the boot processor once all secondary processors reached the
+   * PER_CPU_STATE_READY_TO_START_MULTITASKING state.
    */
-  PER_CPU_STATE_READY_TO_BEGIN_MULTITASKING,
+  PER_CPU_STATE_READY_TO_START_MULTITASKING,
 
   /**
-   * @brief Multitasking begin of secondary processor is requested.
+   * @brief Multitasking start of processor is requested.
    *
-   * The main processor completed system initialization and is about to perform
+   * The boot processor completed system initialization and is about to perform
    * a context switch to its heir thread.  Secondary processors should now
    * issue a context switch to the heir thread.  This normally enables
    * interrupts on the processor for the first time.
-   *
-   * The owner of the per CPU state field is the secondary processor in this
-   * state.
    */
-  PER_CPU_STATE_BEGIN_MULTITASKING,
+  PER_CPU_STATE_REQUEST_START_MULTITASKING,
 
   /**
    * @brief Normal multitasking state.
-   *
-   * The owner of the per CPU state field is the secondary processor in this
-   * state.
    */
   PER_CPU_STATE_UP,
 
   /**
    * @brief This is the terminal state.
-   *
-   * The owner of the per CPU state field is the secondary processor in this
-   * state.
    */
   PER_CPU_STATE_SHUTDOWN
 } Per_CPU_State;
@@ -135,11 +161,83 @@ typedef enum {
 #endif /* defined( RTEMS_SMP ) */
 
 /**
+ * @brief Per-CPU statistics.
+ */
+typedef struct {
+#if defined( RTEMS_PROFILING )
+  /**
+   * @brief The thread dispatch disabled begin instant in CPU counter ticks.
+   *
+   * This value is used to measure the time of disabled thread dispatching.
+   */
+  CPU_Counter_ticks thread_dispatch_disabled_instant;
+
+  /**
+   * @brief The maximum time of disabled thread dispatching in CPU counter
+   * ticks.
+   */
+  CPU_Counter_ticks max_thread_dispatch_disabled_time;
+
+  /**
+   * @brief The maximum time spent to process a single sequence of nested
+   * interrupts in CPU counter ticks.
+   *
+   * This is the time interval between the change of the interrupt nest level
+   * from zero to one and the change back from one to zero.
+   */
+  CPU_Counter_ticks max_interrupt_time;
+
+  /**
+   * @brief The maximum interrupt delay in CPU counter ticks if supported by
+   * the hardware.
+   */
+  CPU_Counter_ticks max_interrupt_delay;
+
+  /**
+   * @brief Count of times when the thread dispatch disable level changes from
+   * zero to one in thread context.
+   *
+   * This value may overflow.
+   */
+  uint64_t thread_dispatch_disabled_count;
+
+  /**
+   * @brief Total time of disabled thread dispatching in CPU counter ticks.
+   *
+   * The average time of disabled thread dispatching is the total time of
+   * disabled thread dispatching divided by the thread dispatch disabled
+   * count.
+   *
+   * This value may overflow.
+   */
+  uint64_t total_thread_dispatch_disabled_time;
+
+  /**
+   * @brief Count of times when the interrupt nest level changes from zero to
+   * one.
+   *
+   * This value may overflow.
+   */
+  uint64_t interrupt_count;
+
+  /**
+   * @brief Total time of interrupt processing in CPU counter ticks.
+   *
+   * The average time of interrupt processing is the total time of interrupt
+   * processing divided by the interrupt count.
+   *
+   * This value may overflow.
+   */
+  uint64_t total_interrupt_time;
+#endif /* defined( RTEMS_PROFILING ) */
+} Per_CPU_Stats;
+
+/**
  *  @brief Per CPU Core Structure
  *
  *  This structure is used to hold per core state information.
  */
-typedef struct {
+typedef struct Per_CPU_Control {
   /**
    * @brief CPU port specific control.
    */
@@ -172,41 +270,103 @@ typedef struct {
    */
   volatile uint32_t thread_dispatch_disable_level;
 
-  /** This is set to true when this CPU needs to run the dispatcher. */
-  volatile bool dispatch_necessary;
-
-  /** This is the thread executing on this CPU. */
+  /**
+   * @brief This is the thread executing on this processor.
+   *
+   * This field is not protected by a lock.  The only writer is this processor.
+   *
+   * On SMP configurations a thread may be registered as executing on more than
+   * one processor in case a thread migration is in progress.  On SMP
+   * configurations use _Thread_Is_executing_on_a_processor() to figure out if
+   * a thread context is executing on a processor.
+   */
   Thread_Control *executing;
 
-  /** This is the heir thread for this this CPU. */
+  /**
+   * @brief This is the heir thread for this processor.
+   *
+   * This field is not protected by a lock.  The only writer after multitasking
+   * start is the scheduler owning this processor.  This processor will set the
+   * dispatch necessary indicator to false, before it reads the heir.  This
+   * field is used in combination with the dispatch necessary indicator.
+   *
+   * A thread can be a heir on at most one processor in the system.
+   *
+   * @see _Thread_Get_heir_and_make_it_executing().
+   */
   Thread_Control *heir;
+
+  /**
+   * @brief This is set to true when this processor needs to run the
+   * dispatcher.
+   *
+   * It is volatile since interrupts may alter this flag.
+   *
+   * This field is not protected by a lock.  There are two writers after
+   * multitasking start.  The scheduler owning this processor sets this
+   * indicator to true, after it updated the heir field.  This processor sets
+   * this indicator to false, before it reads the heir.  This field is used in
+   * combination with the heir field.
+   *
+   * @see _Thread_Get_heir_and_make_it_executing().
+   */
+  volatile bool dispatch_necessary;
 
   /** This is the time of the last context switch on this CPU. */
   Timestamp_Control time_of_last_context_switch;
 
-  /**
-   * @brief This lock protects the dispatch_necessary, executing, heir and
-   * message fields.
-   */
-  ISR_lock_Control lock;
-
   #if defined( RTEMS_SMP )
     /**
-     *  This is the request for the interrupt.
+     * @brief This lock protects some parts of the low-level thread dispatching.
      *
-     *  @note This may become a chain protected by atomic instructions.
+     * We must use a ticket lock here since we cannot transport a local context
+     * through the context switch.
+     *
+     * @see _Thread_Dispatch().
      */
-    uint32_t message;
+    SMP_ticket_lock_Control Lock;
+
+    /**
+     * @brief Lock statistics context for the per-CPU lock.
+     */
+    SMP_lock_Stats_context Lock_stats_context;
+
+    /**
+     * @brief Context for the Giant lock acquire and release pair of this
+     * processor.
+     */
+    SMP_lock_Context Giant_lock_context;
+
+    /**
+     * @brief Bit field for SMP messages.
+     *
+     * This bit field is not protected locks.  Atomic operations are used to
+     * set and get the message bits.
+     */
+    Atomic_Ulong message;
+
+    /**
+     * @brief The scheduler context of the scheduler owning this processor.
+     */
+    const struct Scheduler_Context *scheduler_context;
 
     /**
      * @brief Indicates the current state of the CPU.
      *
-     * This field is not protected by a lock.
+     * This field is protected by the _Per_CPU_State_lock lock.
      *
-     * @see _Per_CPU_Change_state() and _Per_CPU_Wait_for_state().
+     * @see _Per_CPU_State_change().
      */
     Per_CPU_State state;
+
+    /**
+     * @brief Indicates if the processor has been successfully started via
+     * _CPU_SMP_Start_processor().
+     */
+    bool started;
   #endif
+
+  Per_CPU_Stats Stats;
 } Per_CPU_Control;
 
 #if defined( RTEMS_SMP )
@@ -228,17 +388,59 @@ typedef struct {
  */
 extern Per_CPU_Control_envelope _Per_CPU_Information[] CPU_STRUCTURE_ALIGNMENT;
 
-#define _Per_CPU_ISR_disable_and_acquire( per_cpu, isr_cookie ) \
-  _ISR_lock_ISR_disable_and_acquire( &( per_cpu )->lock, isr_cookie )
+#if defined( RTEMS_SMP )
+#define _Per_CPU_Acquire( cpu ) \
+  _SMP_ticket_lock_Acquire( \
+    &( cpu )->Lock, \
+    &( cpu )->Lock_stats_context \
+  )
+#else
+#define _Per_CPU_Acquire( cpu ) \
+  do { \
+    (void) ( cpu ); \
+  } while ( 0 )
+#endif
 
-#define _Per_CPU_Release_and_ISR_enable( per_cpu, isr_cookie ) \
-  _ISR_lock_Release_and_ISR_enable( &( per_cpu )->lock, isr_cookie )
+#if defined( RTEMS_SMP )
+#define _Per_CPU_Release( cpu ) \
+  _SMP_ticket_lock_Release( \
+    &( cpu )->Lock, \
+    &( cpu )->Lock_stats_context \
+  )
+#else
+#define _Per_CPU_Release( cpu ) \
+  do { \
+    (void) ( cpu ); \
+  } while ( 0 )
+#endif
 
-#define _Per_CPU_Acquire( per_cpu ) \
-  _ISR_lock_Acquire( &( per_cpu )->lock )
+#if defined( RTEMS_SMP )
+#define _Per_CPU_ISR_disable_and_acquire( cpu, isr_cookie ) \
+  do { \
+    _ISR_Disable_without_giant( isr_cookie ); \
+    _Per_CPU_Acquire( cpu ); \
+  } while ( 0 )
+#else
+#define _Per_CPU_ISR_disable_and_acquire( cpu, isr_cookie ) \
+  do { \
+    _ISR_Disable( isr_cookie ); \
+    (void) ( cpu ); \
+  } while ( 0 )
+#endif
 
-#define _Per_CPU_Release( per_cpu ) \
-  _ISR_lock_Release( &( per_cpu )->lock )
+#if defined( RTEMS_SMP )
+#define _Per_CPU_Release_and_ISR_enable( cpu, isr_cookie ) \
+  do { \
+    _Per_CPU_Release( cpu ); \
+    _ISR_Enable_without_giant( isr_cookie ); \
+  } while ( 0 )
+#else
+#define _Per_CPU_Release_and_ISR_enable( cpu, isr_cookie ) \
+  do { \
+    (void) ( cpu ); \
+    _ISR_Enable( isr_cookie ); \
+  } while ( 0 )
+#endif
 
 #if defined( RTEMS_SMP )
 #define _Per_CPU_Acquire_all( isr_cookie ) \
@@ -270,20 +472,33 @@ extern Per_CPU_Control_envelope _Per_CPU_Information[] CPU_STRUCTURE_ALIGNMENT;
   _ISR_Enable( isr_cookie )
 #endif
 
+/*
+ * If we get the current processor index in a context which allows thread
+ * dispatching, then we may already run on another processor right after the
+ * read instruction.  There are very few cases in which this makes sense (here
+ * we can use _Per_CPU_Get_snapshot()).  All other places must use
+ * _Per_CPU_Get() so that we can add checks for RTEMS_DEBUG.
+ */
+#if defined( _CPU_Get_current_per_CPU_control )
+  #define _Per_CPU_Get_snapshot() _CPU_Get_current_per_CPU_control()
+#else
+  #define _Per_CPU_Get_snapshot() \
+    ( &_Per_CPU_Information[ _SMP_Get_current_processor() ].per_cpu )
+#endif
+
 #if defined( RTEMS_SMP )
 static inline Per_CPU_Control *_Per_CPU_Get( void )
 {
-  Per_CPU_Control *per_cpu =
-    &_Per_CPU_Information[ _SMP_Get_current_processor() ].per_cpu;
+  Per_CPU_Control *cpu_self = _Per_CPU_Get_snapshot();
 
   _Assert(
-    per_cpu->thread_dispatch_disable_level != 0 || _ISR_Get_level() != 0
+    cpu_self->thread_dispatch_disable_level != 0 || _ISR_Get_level() != 0
   );
 
-  return per_cpu;
+  return cpu_self;
 }
 #else
-#define _Per_CPU_Get() ( &_Per_CPU_Information[ 0 ].per_cpu )
+#define _Per_CPU_Get() _Per_CPU_Get_snapshot()
 #endif
 
 static inline Per_CPU_Control *_Per_CPU_Get_by_index( uint32_t index )
@@ -291,27 +506,33 @@ static inline Per_CPU_Control *_Per_CPU_Get_by_index( uint32_t index )
   return &_Per_CPU_Information[ index ].per_cpu;
 }
 
-static inline uint32_t _Per_CPU_Get_index( const Per_CPU_Control *per_cpu )
+static inline uint32_t _Per_CPU_Get_index( const Per_CPU_Control *cpu )
 {
   const Per_CPU_Control_envelope *per_cpu_envelope =
-    ( const Per_CPU_Control_envelope * ) per_cpu;
+    ( const Per_CPU_Control_envelope * ) cpu;
 
   return ( uint32_t ) ( per_cpu_envelope - &_Per_CPU_Information[ 0 ] );
 }
 
-#if defined( RTEMS_SMP )
-
-static inline void _Per_CPU_Send_interrupt( const Per_CPU_Control *per_cpu )
+static inline bool _Per_CPU_Is_processor_started(
+  const Per_CPU_Control *cpu
+)
 {
-  _CPU_SMP_Send_interrupt( _Per_CPU_Get_index( per_cpu ) );
+#if defined( RTEMS_SMP )
+  return cpu->started;
+#else
+  (void) cpu;
+
+  return true;
+#endif
 }
 
-/**
- *  @brief Initialize SMP Handler
- *
- *  This method initialize the SMP Handler.
- */
-void _SMP_Handler_initialize(void);
+#if defined( RTEMS_SMP )
+
+static inline void _Per_CPU_Send_interrupt( const Per_CPU_Control *cpu )
+{
+  _CPU_SMP_Send_interrupt( _Per_CPU_Get_index( cpu ) );
+}
 
 /**
  *  @brief Allocate and Initialize Per CPU Structures
@@ -320,14 +541,39 @@ void _SMP_Handler_initialize(void);
  */
 void _Per_CPU_Initialize(void);
 
-void _Per_CPU_Change_state(
-  Per_CPU_Control *per_cpu,
+void _Per_CPU_State_change(
+  Per_CPU_Control *cpu,
   Per_CPU_State new_state
 );
 
-void _Per_CPU_Wait_for_state(
-  const Per_CPU_Control *per_cpu,
-  Per_CPU_State desired_state
+/**
+ * @brief Waits for a processor to change into a non-initial state.
+ *
+ * This function should be called only in _CPU_SMP_Start_processor() if
+ * required by the CPU port or BSP.
+ *
+ * @code
+ * bool _CPU_SMP_Start_processor(uint32_t cpu_index)
+ * {
+ *   uint32_t timeout = 123456;
+ *
+ *   start_the_processor(cpu_index);
+ *
+ *   return _Per_CPU_State_wait_for_non_initial_state(cpu_index, timeout);
+ * }
+ * @endcode
+ *
+ * @param[in] cpu_index The processor index.
+ * @param[in] timeout_in_ns The timeout in nanoseconds.  Use a value of zero to
+ * wait forever if necessary.
+ *
+ * @retval true The processor is in a non-initial state.
+ * @retval false The timeout expired before the processor reached a non-initial
+ * state.
+ */
+bool _Per_CPU_State_wait_for_non_initial_state(
+  uint32_t cpu_index,
+  uint32_t timeout_in_ns
 );
 
 #endif /* defined( RTEMS_SMP ) */
@@ -388,8 +634,12 @@ void _Per_CPU_Wait_for_state(
   PER_CPU_END_STACK
 #define PER_CPU_THREAD_DISPATCH_DISABLE_LEVEL \
   PER_CPU_ISR_NEST_LEVEL + 4
-#define PER_CPU_DISPATCH_NEEDED \
+#define PER_CPU_OFFSET_EXECUTING \
   PER_CPU_THREAD_DISPATCH_DISABLE_LEVEL + 4
+#define PER_CPU_OFFSET_HEIR \
+  PER_CPU_OFFSET_EXECUTING + CPU_SIZEOF_POINTER
+#define PER_CPU_DISPATCH_NEEDED \
+  PER_CPU_OFFSET_HEIR + CPU_SIZEOF_POINTER
 
 #define THREAD_DISPATCH_DISABLE_LEVEL \
   (SYM(_Per_CPU_Information) + PER_CPU_THREAD_DISPATCH_DISABLE_LEVEL)
